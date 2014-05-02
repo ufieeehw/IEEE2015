@@ -1,0 +1,23 @@
+#Debug Folder
+Debug/
+
+#Misc
+.d
+.o
+.idea
+*.swp
+
+#Python
+*~
+*.pyc
+
+#Images
+*.png
+*.jpg
+*.tif
+
+*.pdf
+
+#Just in case...
+*.iso
+
