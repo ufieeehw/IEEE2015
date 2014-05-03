@@ -4,7 +4,7 @@
 import rospy
 import pygame
 from std_msgs.msg import Float64
-
+from ieee2015_simulator.msg import Float_List
 width = 250
 height = 1300/8
 bgcolor = 192, 192, 192
@@ -13,18 +13,35 @@ linecolor = 255, 0 , 0
 screen = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
 
-def render(dr):
-    last_position = (0,0)
-    while not rospy.is_shutdown():
-       end_position =  (last_position[0]+dr[0], last_position[1]+dr[1])
-       pygame.draw.line(screen, linecolor, last_position, end_position, 1)
-       last_position = end_position; 
+class Renderer:
+    '''
+    Renderer class
+    
+    Creator:
+        Aaron Marquez - UF CISE (2016)
+        (Special thanks to Rev. Jacob Panikulam)
+    Function:
+        Draws on awesome simulated etch-a-sketch
 
-       pygame.display.flip()
-       clock.tick(240)
+    '''
+    def __init__(self):
+        self.last_position = [width/2,height/2]
 
-def callback(data):
-    render(data.data)
+        rospy.init_node('etch_visualizer', anonymous=True)
+
+        rospy.Subscriber("random_movement", Float_List, self.callback)
+    def render(self,dr):
+        end_position =  (self.last_position[0]+dr[0], self.last_position[1]+dr[1])
+        
+        pygame.draw.line(screen, linecolor, self.last_position, end_position, 1)
+        self.last_position = end_position; 
+
+        pygame.display.flip()
+        clock.tick(240)
+
+    def callback(self,data):
+        dr = (data.data[0].data,data.data[1].data)
+        self.render(dr)
 
     
 def listener():
@@ -34,12 +51,9 @@ def listener():
     # anonymous=True flag means that rospy will choose a unique
     # name for our 'talker' node so that multiple talkers can
     # run simultaenously.
-    rospy.init_node('etch_visualizer', anonymous=True)
-
-    rospy.Subscriber("random_movement", Float64, callback)
-
     # spin() simply keeps python from exiting until this node is stopped
-    rospy.spin()
-        
+    pass 
 if __name__ == '__main__':
-    listener()
+    #listener()
+    my_renderer = Renderer()
+    rospy.spin()
