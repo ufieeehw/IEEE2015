@@ -4,7 +4,7 @@ import rospy
 import random
 from std_msgs.msg import Float64
 from ieee2015_simulator.msg import Float_List
-screen_width = 150
+screen_width = 250
 screen_height = 1300/8
 
 def displace(start, boundary):
@@ -37,13 +37,8 @@ def talker():
         lastx += dx
         lasty += dy
 
-        #rospy.loginfo(dr)
         msg = Float_List()
-        #msg.data = []
-        f1 = Float64(dx)
-        f2 = Float64(dy)
-        #msg.data = dr
-        msg.data = [f1,f2]
+        msg.float_list = [Float64(dx),Float64(dy)]
         pub.publish(msg)
         r.sleep()
 

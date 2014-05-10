@@ -40,7 +40,7 @@ class Renderer:
         clock.tick(240)
 
     def callback(self,data):
-        dr = (data.data[0].data,data.data[1].data)
+        dr = (data.float_list[0].data,data.float_list[1].data)
         self.render(dr)
 
     
