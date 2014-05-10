@@ -28,8 +28,8 @@ class Renderer:
         self.last_position = [width/2,height/2]
 
         rospy.init_node('etch_visualizer', anonymous=True)
-
         rospy.Subscriber("random_movement", Float_List, self.callback)
+  
     def render(self,dr):
         end_position =  (self.last_position[0]+dr[0], self.last_position[1]+dr[1])
         
@@ -38,9 +38,10 @@ class Renderer:
 
         pygame.display.flip()
         clock.tick(240)
+ 
 
-    def callback(self,data):
-        dr = (data.float_list[0].data,data.float_list[1].data)
+    def callback(self, subscription):
+        dr = (subscription.float_list[0].data, subscription.float_list[1].data)
         self.render(dr)
 
     
