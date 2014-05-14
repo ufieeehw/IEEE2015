@@ -37,6 +37,7 @@ class Renderer:
         self.last_position = end_position; 
 
         pygame.display.flip()
+        #max frames per second
         clock.tick(240)
  
 
