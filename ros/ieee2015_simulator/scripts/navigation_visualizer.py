@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Software License Agreement (BSD License)
 import rospy
 import pygame
 from geometry_msgs.msg import Twist
@@ -7,13 +6,12 @@ from geometry_msgs.msg import Twist
 #constants
 SCREEN_WIDTH = 500
 SCREEN_HEIGHT = 500
-bgcolor = 0,0,0
+BG_COLOR = 0,0,0
 
-#data that can be variables
+#global variables
 hz = 20.0
 ms = (int)(1000/hz)
 sec = ms / 1000.0
-
 
 #initalizations for pygame
 clock = pygame.time.Clock()
@@ -56,7 +54,7 @@ class Navigator:
             self.degree -= 360
 
         #clear screen
-        screen.fill(bgcolor)
+        screen.fill(BG_COLOR)
 
         #draw the location (base) of the robot
         pygame.draw.rect(screen, self.box_color, self.navbox, 0 )

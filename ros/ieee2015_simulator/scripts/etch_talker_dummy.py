@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# license removed for brevity
 import rospy
 import random
 from std_msgs.msg import Float64
@@ -9,7 +8,7 @@ screen_height = 1300/8
 
 def displace(start, boundary):
     midpoint = boundary / 2
-
+    
     #set direction
     if start < midpoint / 2 :
         direction = 1
@@ -27,13 +26,10 @@ def talker():
     r = rospy.Rate(10) # 10hz
     lastx = screen_width/2.0
     lasty = screen_height/2.0
+    
     while not rospy.is_shutdown():
         dx = int(displace(lastx, screen_width))
         dy = int(displace(lasty, screen_height))
-        #dr = (dx, dy)
-
-
-
         lastx += dx
         lasty += dy
 

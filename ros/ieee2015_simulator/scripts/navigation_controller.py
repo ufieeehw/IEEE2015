@@ -6,12 +6,15 @@ from geometry_msgs.msg import Twist
 #constants
 SCREEN_WIDTH = 200
 SCREEN_HEIGHT = 200
-bgcolor = 256,256,256
 
 def talker():
+    #initalizations
     pub = rospy.Publisher('navigation_control_signals', Twist)
     rospy.init_node('navigation_controller', anonymous=True)
     r = rospy.Rate(10) # 10hz
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    
+    #initilize velocity
     velocity = Twist()
     velocity.linear.x = 0
     velocity.linear.y = 0
@@ -19,8 +22,9 @@ def talker():
     velocity.angular.x = 0
     velocity.angular.y = 0
     velocity.angular.z = 0
+    
+    #determines size of change when key events are recieved
     increment = 20
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     while not rospy.is_shutdown():
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
