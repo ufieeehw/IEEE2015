@@ -24,7 +24,7 @@ class Renderer:
 
     '''
     def __init__(self):
-        self.last_position = [width/2,height/2]
+        self.last_position = [SCREEN_WIDTH/2,SCREEN_HEIGHT/2]
         
         rospy.init_node('etch_visualizer', anonymous=True)
         rospy.Subscriber("random_movement", Float_List, self.callback)
@@ -43,7 +43,7 @@ class Renderer:
         self.render(dr)
     
 if __name__ == '__main__':
-	screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-	clock = pygame.time.Clock()
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    clock = pygame.time.Clock()
     my_renderer = Renderer()
     rospy.spin()

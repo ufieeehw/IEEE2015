@@ -3,8 +3,10 @@ import rospy
 import random
 from std_msgs.msg import Float64
 from ieee2015_simulator.msg import Float_List
-screen_width = 250
-screen_height = 1300/8
+
+#constants
+SCREEN_WIDTH = 250
+SCREEN_HEIGHT = 1300/8
 
 def displace(start, boundary):
     midpoint = boundary / 2
@@ -24,12 +26,12 @@ def talker():
     pub = rospy.Publisher('random_movement', Float_List)
     rospy.init_node('dummy_etch_talker', anonymous=True)
     r = rospy.Rate(10) # 10hz
-    lastx = screen_width/2.0
-    lasty = screen_height/2.0
+    lastx = SCREEN_WIDTH/2.0
+    lasty = SCREEN_HEIGHT/2.0
     
     while not rospy.is_shutdown():
-        dx = int(displace(lastx, screen_width))
-        dy = int(displace(lasty, screen_height))
+        dx = int(displace(lastx, SCREEN_WIDTH))
+        dy = int(displace(lasty, SCREEN_HEIGHT))
         lastx += dx
         lasty += dy
 
