@@ -6,6 +6,7 @@ Debug/
 .o
 .idea
 *.swp
+$
 
 #Python
 *~
