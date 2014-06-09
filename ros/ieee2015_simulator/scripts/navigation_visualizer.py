@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 import rospy
 import pygame
-from geometry_msgs.msg import Twist, Point
+
+from std_msgs.msg import Header
+from geometry_msgs.msg import Twist, Point, PoseStamped, Pose, Quaternion
+from tf import transformations as tf_trans
 
 #constants
 SCREEN_WIDTH = 500
@@ -29,6 +32,9 @@ class Rover:
         self.navsurface.fill((200, 0, 0))
         #color key for blitting
         self.navsurface.set_colorkey((255, 0, 0))
+
+        # Add a pose publisher
+        self.pose_pub = rospy.Publisher('pose', PoseStamped)
 
     def render(self, v):
         #find new position based on update frequency
@@ -59,7 +65,28 @@ class Rover:
         rotRect.center = self.navbox.center
         screen.blit(rotatedSurf, rotRect)
         
+        # Publish position to 'pose' topic
+        self.publish_pose()
 
+
+    def publish_pose(self):
+        '''Publish Pose
+        (Sorry Aaron, couldn't make controller work without)
+        '''
+        _orientation = tf_trans.quaternion_from_euler(0,0,self.degree)
+        self.pose_pub.publish(
+            PoseStamped(
+                header = Header(
+                    stamp=rospy.Time.now(),
+                    frame_id='/course',
+                ),
+                pose=Pose(
+                    position=Point(self.navbox.x, self.navbox.x, 0.0),
+                    orientation=Quaternion(*_orientation),
+                )
+            )
+        )
+        
         
 class Course:
     point_color = 100, 50, 50
@@ -113,3 +140,4 @@ if __name__ == '__main__':
     #when a message is recieved the main_Course's render function will be called
     rospy.Subscriber("navigation_control_signals", Twist, main_Course.render)
     rospy.spin()
+
