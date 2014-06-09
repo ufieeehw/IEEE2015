@@ -51,9 +51,9 @@ class kinect_controller:
 
         rgb_image = np.uint8(data)
 
-        edges = cv2.Canny(rgb_image, self.th1,self.th2, apertureSize=7)
-        
-        cv2.imshow('RGB Edges', edges)
+        edges2 = cv2.Canny(rgb_image, self.th1,self.th2, apertureSize=5)
+
+        cv2.imshow('RGB Edges', edges2)
         if cv.WaitKey(10) == 27:
             keep_running = False
 
