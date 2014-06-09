@@ -6,6 +6,9 @@ from std_msgs.msg import Header
 from geometry_msgs.msg import Twist, Point, PoseStamped, Pose, Quaternion
 from tf import transformations as tf_trans
 
+import math
+import numpy as np
+
 #constants
 SCREEN_WIDTH = 500
 SCREEN_HEIGHT = 500
@@ -20,7 +23,7 @@ sec = ms / 1000.0
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-class Rover:
+class Rover(object):
     box_color = 192, 192, 192
     def __init__(self, x, y):
         #set intial values
@@ -34,6 +37,7 @@ class Rover:
         self.navsurface.set_colorkey((255, 0, 0))
 
         # Add a pose publisher
+        self.position = np.array([x,y], np.int32)
         self.pose_pub = rospy.Publisher('pose', PoseStamped)
 
     def render(self, v):
@@ -42,12 +46,21 @@ class Rover:
         dx = v.linear.x * sec
         dy = v.linear.y * sec
 
+        #>
+        self.position += (self.forward_vector * dx) + (self.left_vector * dy)
+        
         #find new angle of orientation
         dtheta = v.angular.z * sec
 
-        #update position
-        self.navbox.x += dx
-        self.navbox.y += dy
+        #>update position
+        # self.navbox.x += dx
+        # self.navbox.y += dy
+        
+        #> Thoughts on this, Aaron?
+        # This way, we're simulating local twist instead of absolute
+        # I have another idea involving reference-frame switching, that we should talk about
+        # This makes the visualizer extraordinarily difficult to control by keys, though
+        self.navbox.x, self.navbox.y = self.position
 
         #update orientation
         self.degree += dtheta
@@ -86,7 +99,18 @@ class Rover:
                 )
             )
         )
-        
+
+    @property 
+    def rad_angle(self):
+        return math.radians(self.degree)
+
+    @property
+    def forward_vector(self):
+        return np.array([math.cos(self.rad_angle), math.sin(self.rad_angle)])
+    @property
+    def left_vector(self):
+        return np.array([math.cos(self.rad_angle+math.pi/2), math.sin(self.rad_angle+math.pi/2)])
+
         
 class Course:
     point_color = 100, 50, 50
