@@ -36,6 +36,7 @@ def print_in(f):
 class Controller(object):
     '''Controller object 
     See Jacob Panikulam or Aaron Marquez for questions
+    Special glory to Lord Forrest Voight, creator of the universe
     '''
 
     def __init__(self):
@@ -57,8 +58,7 @@ class Controller(object):
         self.position = None
         self.yaw = None
 
-    @print_in
-    def send_twist((xvel,yvel), angvel):
+    def send_twist(self, (xvel,yvel), angvel):
         '''send_twist((xvel,yvel), angvel)
         Generate twist message
         '''
@@ -69,7 +69,7 @@ class Controller(object):
             )
         )
 
-    def norm_angle_diff(ang_1, ang_2):
+    def norm_angle_diff(self, ang_1, ang_2):
         '''norm_angle_diff(ang_1, ang_2)
         -> Normalized angle difference, constrained to [-pi, pi]
         '''
@@ -83,13 +83,12 @@ class Controller(object):
             return(v)
         return np.array(v)/np.linalg.norm(v)
 
-    @print_in
-    def got_pose(msg):
+    def got_pose(self, msg):
         self.position = np.array([msg.pose.position.x, msg.pose.position.y])
         self.yaw = tf_trans.euler_from_quaternion(xyzw_array(msg.pose.orientation))[2]
 
     @print_in
-    def got_desired_pose(msg):
+    def got_desired_pose(self, msg):
         '''Figure out how to do this in a separate thread
         (So we're not depending on a message to act)
         #LearnToThreading
@@ -129,6 +128,5 @@ class Controller(object):
             desired_angvel
         )
 
-print("ON IT!")
 controller = Controller()
 rospy.spin()
