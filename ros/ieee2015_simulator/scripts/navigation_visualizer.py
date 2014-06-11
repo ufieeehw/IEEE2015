@@ -40,7 +40,7 @@ class Rover(object):
         self.position = np.array([x,y], np.int32)
         self.pose_pub = rospy.Publisher('pose', PoseStamped)
 
-    def render(self, v):
+    def reposition(self, v):
         #find new position based on update frequency
         #sec = ms / 1000.0 seconds have passed since last update
         dx = v.linear.x * sec
@@ -71,16 +71,18 @@ class Rover(object):
         #pygame.draw.rect(screen, self.box_color, self.navbox, 0 )
 
         #rotate surface
-        rotatedSurf = pygame.transform.rotate(self.navsurface, self.degree)
+        self.navsurf = pygame.transform.rotate(self.navsurface, self.degree)
 
         #get the rect of the rotated surface and set it's center to the base (navbox)
-        rotRect = rotatedSurf.get_rect()
+        rotRect = self.navsurf.get_rect()
         rotRect.center = self.navbox.center
-        screen.blit(rotatedSurf, rotRect)
+        self.navbox = rotRect
         
         # Publish position to 'pose' topic
         self.publish_pose()
-
+        
+    def render(self):
+        screen.blit(self.navsurface, self.navbox)
 
     def publish_pose(self):
         '''Publish Pose
@@ -137,17 +139,20 @@ class Course:
                 
             i = i + 1
                 
-    def render(self, rover_velocity):
+    def render(self):
         #clear screen
         screen.fill(BG_COLOR)
 
         #render objects on the surface
-        self.rover.render(rover_velocity)
+        self.rover.render()
         self.render_waypoints()
         pygame.display.flip()
 
         #mas frames per second
         clock.tick(240)
+        
+    def callback(self, rover_velocity):
+        self.rover.reposition(rover_velocity)
         
 if __name__ == '__main__':
     waypoint = Point()
@@ -162,6 +167,9 @@ if __name__ == '__main__':
     #listener initalizations
     rospy.init_node('navigation_visualizer', anonymous=True)
     #when a message is recieved the main_Course's render function will be called
-    rospy.Subscriber("navigation_control_signals", Twist, main_Course.render)
+    rospy.Subscriber("navigation_control_signals", Twist, main_Course.callback)
+    
+    while not rospy.is_shutdown():
+        main_Course.render()
     rospy.spin()
 
