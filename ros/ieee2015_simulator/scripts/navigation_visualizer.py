@@ -29,6 +29,15 @@ class Rover(object):
         #set intial values
         self.navbox = pygame.Rect((x, y, 20, 20))
         self.degree = 1
+        self.velocity = Twist()
+        
+        #this may not be nessesary, playing it safe
+        self.velocity.linear.x = 0
+        self.velocity.linear.y = 0
+        self.velocity.linear.z = 0
+        self.velocity.angular.x = 0
+        self.velocity.angular.y = 0
+        self.velocity.angular.z = 0
         
         #sufrace around the box
         self.navsurface = pygame.Surface((20, 20))
@@ -40,21 +49,13 @@ class Rover(object):
         self.position = np.array([x,y], np.int32)
         self.pose_pub = rospy.Publisher('pose', PoseStamped)
 
-    def reposition(self, v):
+    def reposition(self):
         #find new position based on update frequency
         #sec = ms / 1000.0 seconds have passed since last update
-        dx = v.linear.x * sec
-        dy = v.linear.y * sec
+        dx = self.velocity.linear.x * sec
+        dy = self.velocity.linear.y * sec
 
-        #>
         self.position += (self.forward_vector * dx) + (self.left_vector * dy)
-        
-        #find new angle of orientation
-        dtheta = v.angular.z * sec
-
-        #>update position
-        # self.navbox.x += dx
-        # self.navbox.y += dy
         
         #> Thoughts on this, Aaron?
         # This way, we're simulating local twist instead of absolute
@@ -62,6 +63,9 @@ class Rover(object):
         # This makes the visualizer extraordinarily difficult to control by keys, though
         self.navbox.x, self.navbox.y = self.position
 
+        #find new angle of orientation
+        dtheta = self.velocity.angular.z * sec
+        
         #update orientation
         self.degree += dtheta
         if self.degree > 360:
@@ -81,7 +85,11 @@ class Rover(object):
         # Publish position to 'pose' topic
         self.publish_pose()
         
+    def set_velocity(self, v):
+        self.velocity = v
+        
     def render(self):
+        self.reposition()
         screen.blit(self.navsurface, self.navbox)
 
     def publish_pose(self):
@@ -149,10 +157,10 @@ class Course:
         pygame.display.flip()
 
         #mas frames per second
-        clock.tick(240)
+        clock.tick(60)
         
     def callback(self, rover_velocity):
-        self.rover.reposition(rover_velocity)
+        self.rover.set_velocity(rover_velocity)
         
 if __name__ == '__main__':
     waypoint = Point()
