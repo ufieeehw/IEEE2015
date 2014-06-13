@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import pygame
+import random
 
 from std_msgs.msg import Header
 from geometry_msgs.msg import Twist, Point, PoseStamped, Pose, Quaternion
@@ -10,8 +11,9 @@ import math
 import numpy as np
 
 #constants
-SCREEN_WIDTH = 500
-SCREEN_HEIGHT = 500
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 400
+WAYPOINT_LENGTH = 100
 BG_COLOR = 0,0,0
 
 #global variables
@@ -27,7 +29,7 @@ class Rover(object):
     box_color = 192, 192, 192
     def __init__(self, x, y):
         #set intial values
-        self.navbox = pygame.Rect((x, y, 20, 20))
+        self.navbox = pygame.Rect((x, y, 50, 50))
         self.degree = 1
         self.velocity = Twist()
         
@@ -40,7 +42,7 @@ class Rover(object):
         self.velocity.angular.z = 0
         
         #sufrace around the box
-        self.navsurface = pygame.Surface((20, 20))
+        self.navsurface = pygame.Surface((50, 50))
         self.navsurface.fill((200, 0, 0))
         #color key for blitting
         self.navsurface.set_colorkey((255, 0, 0))
@@ -137,13 +139,18 @@ class Course:
     def render_waypoints(self):
         i = 0
         for point in self.waypoints:
-            if abs(point.x - self.rover.navbox.x) <= 20  and abs(point.y - self.rover.navbox.y) <= 20:
+            box = pygame.Rect((0, 0, 20, 20))
+            box.center = (point.x, point.y)
+            boundary = pygame.Rect((point.x, point.y, WAYPOINT_LENGTH, WAYPOINT_LENGTH))
+            boundary.center = (point.x, point.y)
+            if boundary.colliderect(self.rover.navbox):
                 self.isPointVisited[i] = True
-            box = pygame.Rect((point.x, point.y, 20, 20))
+            
             if self.isPointVisited[i]:
-                pygame.draw.rect(screen, self.visited_color, box, 0)
+                pygame.draw.rect(screen, self.visited_color, boundary, 0)
             else:
-                pygame.draw.rect(screen, self.point_color, box, 0)
+                pygame.draw.rect(screen, (250,250,250), boundary, 0)
+            pygame.draw.rect(screen, self.point_color, box, 0)
                 
             i = i + 1
                 
@@ -152,8 +159,8 @@ class Course:
         screen.fill(BG_COLOR)
 
         #render objects on the surface
-        self.rover.render()
         self.render_waypoints()
+        self.rover.render()
         pygame.display.flip()
 
         #mas frames per second
@@ -163,14 +170,17 @@ class Course:
         self.rover.set_velocity(rover_velocity)
         
 if __name__ == '__main__':
-    waypoint = Point()
-    waypoint.x = SCREEN_WIDTH/2
-    waypoint.y = SCREEN_HEIGHT/2
-    waypoint.z = 0
-    test_waypoints = [waypoint]
+    random_waypoints = []
+    for i in range(3):
+        waypoint = Point()
+        waypoint.x = random.randint(WAYPOINT_LENGTH/2, SCREEN_WIDTH - WAYPOINT_LENGTH/2)
+        waypoint.y = random.randint(WAYPOINT_LENGTH/2, SCREEN_HEIGHT - WAYPOINT_LENGTH/2)
+        waypoint.z = 0
+        random_waypoints.append(waypoint)
+       
     
     main_Rover = Rover(0, SCREEN_HEIGHT/2)
-    main_Course = Course(main_Rover, test_waypoints)
+    main_Course = Course(main_Rover, random_waypoints)
     
     #listener initalizations
     rospy.init_node('navigation_visualizer', anonymous=True)
