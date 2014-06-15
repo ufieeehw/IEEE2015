@@ -2,6 +2,7 @@
 import rospy
 import pygame
 import random
+import os
 
 from std_msgs.msg import Header
 from geometry_msgs.msg import Twist, Point, PoseStamped, Pose, Quaternion
@@ -19,14 +20,23 @@ BG_COLOR = 0,0,0
 PXL_PER_METER = 15  # Or something like that
 
 #global variables
-hz = 20.0
-ms = (int)(1000/hz)
-sec = ms / 1000.0
+fps = 60.0
 
 #initalizations for pygame
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+def load_image(name, colorkey=False):
+    name = os.path.join(os.getcwd(), 'data', name)
+    try:
+        image = pygame.image.load(name)
+        colorkey = image.get_at((0, 0))
+        if colorkey is True:
+            image.set_colorkey(colorkey, pygame.RLEACCEL)
+    except:
+        print 'Unable to load: ' + name
+    return image.convert_alpha() #Convert any transparency in the image
+    
 class Rover(object):
     box_color = 192, 192, 192
     def __init__(self, x, y):
@@ -45,7 +55,7 @@ class Rover(object):
         
         #sufrace around the box
         self.navsurface = pygame.Surface((50, 50))
-        self.navsurface.fill((200, 0, 0))
+        self.navsurface = load_image('rover.png')
         #color key for blitting
         self.navsurface.set_colorkey((255, 0, 0))
 
@@ -55,16 +65,17 @@ class Rover(object):
 
     def reposition(self):
         #find new position based on update frequency
-        #sec = ms / 1000.0 seconds have passed since last update
-        dx = self.velocity.linear.x * sec * PXL_PER_METER
-        dy = self.velocity.linear.y * sec * PXL_PER_METER
+        #dt seconds have passed since last frame update
+        dt = 1.0/fps
+        dx = self.velocity.linear.x * dt * PXL_PER_METER
+        dy = self.velocity.linear.y * dt * PXL_PER_METER
 
         self.position += (self.forward_vector * dx) + (self.left_vector * dy)
         
         self.navbox.x, self.navbox.y = self.position
 
         #find new angle of orientation
-        dtheta = math.degrees(self.velocity.angular.z) * sec
+        dtheta = math.degrees(self.velocity.angular.z) * dt
         
         #update orientation
         self.degree += dtheta
@@ -163,7 +174,7 @@ class Course:
         pygame.display.flip()
 
         #mas frames per second
-        clock.tick(60)
+        clock.tick(fps)
         
     def callback(self, rover_velocity):
         self.rover.set_velocity(rover_velocity)

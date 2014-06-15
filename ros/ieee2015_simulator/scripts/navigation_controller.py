@@ -6,7 +6,6 @@ from geometry_msgs.msg import Twist
 #constants
 SCREEN_WIDTH = 200
 SCREEN_HEIGHT = 200
-
 def talker():
     #initalizations
     pub = rospy.Publisher('navigation_control_signals', Twist)
@@ -24,7 +23,8 @@ def talker():
     velocity.angular.z = 0
     
     #determines size of change when key events are recieved
-    increment = 20
+    increment = 2
+    
     while not rospy.is_shutdown():
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
