@@ -16,6 +16,8 @@ SCREEN_HEIGHT = 400
 WAYPOINT_LENGTH = 100
 BG_COLOR = 0,0,0
 
+PXL_PER_METER = 15  # Or something like that
+
 #global variables
 hz = 20.0
 ms = (int)(1000/hz)
@@ -48,37 +50,33 @@ class Rover(object):
         self.navsurface.set_colorkey((255, 0, 0))
 
         # Add a pose publisher
-        self.position = np.array([x,y], np.int32)
+        self.position = np.array([x,y], np.float32)
         self.pose_pub = rospy.Publisher('pose', PoseStamped)
 
     def reposition(self):
         #find new position based on update frequency
         #sec = ms / 1000.0 seconds have passed since last update
-        dx = self.velocity.linear.x * sec
-        dy = self.velocity.linear.y * sec
+        dx = self.velocity.linear.x * sec * PXL_PER_METER
+        dy = self.velocity.linear.y * sec * PXL_PER_METER
 
         self.position += (self.forward_vector * dx) + (self.left_vector * dy)
         
-        #> Thoughts on this, Aaron?
-        # This way, we're simulating local twist instead of absolute
-        # I have another idea involving reference-frame switching, that we should talk about
-        # This makes the visualizer extraordinarily difficult to control by keys, though
         self.navbox.x, self.navbox.y = self.position
 
         #find new angle of orientation
-        dtheta = self.velocity.angular.z * sec
+        dtheta = math.degrees(self.velocity.angular.z) * sec
         
         #update orientation
         self.degree += dtheta
         if self.degree > 360:
             self.degree -= 360
-
+        elif self.degree < 0:
+            self.degree += 360
         #draw the location (base) of the robot
         #pygame.draw.rect(screen, self.box_color, self.navbox, 0 )
 
         #rotate surface
         self.navsurf = pygame.transform.rotate(self.navsurface, self.degree)
-
         #get the rect of the rotated surface and set it's center to the base (navbox)
         rotRect = self.navsurf.get_rect()
         rotRect.center = self.navbox.center
@@ -98,7 +96,7 @@ class Rover(object):
         '''Publish Pose
         (Sorry Aaron, couldn't make controller work without)
         '''
-        _orientation = tf_trans.quaternion_from_euler(0,0,self.degree)
+        _orientation = tf_trans.quaternion_from_euler(0,0,self.rad_angle)
         self.pose_pub.publish(
             PoseStamped(
                 header = Header(
@@ -106,8 +104,8 @@ class Rover(object):
                     frame_id='/course',
                 ),
                 pose=Pose(
-                    position=Point(self.navbox.x, self.navbox.x, 0.0),
-                    orientation=Quaternion(*_orientation),
+                    position=Point(self.position[0], self.position[1], 0.0),
+                    orientation=Quaternion(*_orientation), # Radians
                 )
             )
         )
@@ -119,6 +117,7 @@ class Rover(object):
     @property
     def forward_vector(self):
         return np.array([math.cos(self.rad_angle), math.sin(self.rad_angle)])
+
     @property
     def left_vector(self):
         return np.array([math.cos(self.rad_angle+math.pi/2), math.sin(self.rad_angle+math.pi/2)])
@@ -178,7 +177,7 @@ if __name__ == '__main__':
         waypoint.z = 0
         random_waypoints.append(waypoint)
        
-    
+
     main_Rover = Rover(0, SCREEN_HEIGHT/2)
     main_Course = Course(main_Rover, random_waypoints)
     
