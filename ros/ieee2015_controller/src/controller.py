@@ -28,9 +28,12 @@ def xyzw_array(quaternion):
 
 
 def print_in(f):
+    print("Defining " + f.func_name)
     def print_on_entry(*args, **kwargs):
         print("Executing " + f.func_name)
-        return( f(*args, **kwargs) )
+        result = f(*args, **kwargs)
+        print("Returning " + str(result))
+        return(result)
     return(print_on_entry)
 
 
@@ -52,11 +55,11 @@ class Controller(object):
         
         # Current pose sub
         self.pose_sub = rospy.Subscriber('pose', PoseStamped, self.got_pose)
-        self.desired_pose_sub = rospy.Subscriber('desired_pose', Twist, self.got_desired_pose)
+        self.desired_pose_sub = rospy.Subscriber('desired_pose', PoseStamped, self.got_desired_pose)
         
         # Initializations to avoid weird things
         self.des_position = np.array([100, 100])
-        self.des_yaw = np.pi*3.0/2.0
+        self.des_yaw = np.pi*2.0/3.0
 
         self.position = None
         self.yaw = None
@@ -68,7 +71,7 @@ class Controller(object):
         self.twist_pub.publish(
             Twist(
                 linear=Vector3(xvel, yvel, 0),
-                angular=Vector3(0, 0, angvel),
+                angular=Vector3(0, 0, angvel),  # Radians
             )
         )
 
@@ -85,6 +88,13 @@ class Controller(object):
         if norm == 0:
             return(v)
         return np.array(v)/np.linalg.norm(v)
+
+    def vec_diff(self, v1, v2):
+        '''norm(v1 - v2)'''
+        assert isinstance(v1, np.array)
+        assert isinstance(v2, np.array)
+        diff = np.linalg.norm(v1-v2)
+        return(diff)
 
     def sign(self, x):
         if x > 0: return 1
@@ -117,14 +127,16 @@ class Controller(object):
         forward = np.array([math.cos(self.yaw), math.sin(self.yaw)])
         left = np.array([math.cos(self.yaw + math.pi/2), math.sin(self.yaw + math.pi/2)])
 
-        self.send_twist(
-            (
-                forward.dot(desired_vel), 
-                left.dot(desired_vel)
-            ), 
-            desired_angvel
-        )
-
+        # Send twist if above error threshold
+        if (np.fabs(yaw_error) > 0.01) or (np.linalg.norm(position_error) > 0.01):
+            self.send_twist(
+                (
+                    forward.dot(desired_vel), 
+                    left.dot(desired_vel)
+                ), 
+                desired_angvel
+            )
+    
     def got_desired_pose(self, msg):
         '''Figure out how to do this in a separate thread
          So we're not depending on a message to act
@@ -133,7 +145,6 @@ class Controller(object):
         '''
         self.des_position = np.array([msg.pose.position.x, msg.pose.position.y])
         self.des_yaw = tf_trans.euler_from_quaternion(xyzw_array(msg.pose.orientation))[2]
-
 
 
 controller = Controller()
