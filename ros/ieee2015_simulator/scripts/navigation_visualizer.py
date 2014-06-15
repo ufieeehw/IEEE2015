@@ -37,12 +37,28 @@ def load_image(name, colorkey=False):
         print 'Unable to load: ' + name
     return image.convert_alpha() #Convert any transparency in the image
     
+def rotate_center(image, angle):
+    """rotate an image while keeping its center and size"""
+    orig_rect = image.get_rect()
+    rot_image = pygame.transform.rotate(image, angle)
+    rot_rect = orig_rect.copy()
+    rot_rect.center = rot_image.get_rect().center
+    rot_image = rot_image.subsurface(rot_rect).copy()
+    return rot_image
+    
 class Rover(object):
     box_color = 192, 192, 192
     def __init__(self, x, y):
+        self.rover_rect = pygame.Rect((x, y, 50, 50))
+        #image surface around the box
+        self.master_image = pygame.Surface((50, 50))
+        self.master_image = load_image('rover.png')
+        self.rover_image = self.master_image
+        #self.rover_rect = self.rover_image.get_rect()
+        #self.rover_rect.center = (100, 100)
+        
         #set intial values
-        self.navbox = pygame.Rect((x, y, 50, 50))
-        self.degree = 1
+        self.direction = 0
         self.velocity = Twist()
         
         #this may not be nessesary, playing it safe
@@ -53,11 +69,8 @@ class Rover(object):
         self.velocity.angular.y = 0
         self.velocity.angular.z = 0
         
-        #sufrace around the box
-        self.navsurface = pygame.Surface((50, 50))
-        self.navsurface = load_image('rover.png')
         #color key for blitting
-        self.navsurface.set_colorkey((255, 0, 0))
+        self.rover_image.set_colorkey((0, 0, 0))
 
         # Add a pose publisher
         self.position = np.array([x,y], np.float32)
@@ -72,26 +85,31 @@ class Rover(object):
 
         self.position += (self.forward_vector * dx) + (self.left_vector * dy)
         
-        self.navbox.x, self.navbox.y = self.position
+        self.rover_rect.x, self.rover_rect.y = self.position
 
         #find new angle of orientation
         dtheta = math.degrees(self.velocity.angular.z) * dt
         
-        #update orientation
-        self.degree += dtheta
-        if self.degree > 360:
-            self.degree -= 360
-        elif self.degree < 0:
-            self.degree += 360
-        #draw the location (base) of the robot
-        #pygame.draw.rect(screen, self.box_color, self.navbox, 0 )
+        #update direction
+        self.direction = dtheta
+        self.direction % 360
+        
+        #old_center = self.rover_rect.center
+        #self.rover_image = pygame.transform.rotate(self.master_image, self.direction)
+        #self.rover_rect = self.rover_image.get_rect()
+        #self.rover_rect.center = old_center
+        #old_center = self.rover_rect.center
+        
+       
 
         #rotate surface
-        self.navsurf = pygame.transform.rotate(self.navsurface, self.degree)
+        self.rover_image = pygame.transform.rotate(self.master_image, self.direction)
         #get the rect of the rotated surface and set it's center to the base (navbox)
-        rotRect = self.navsurf.get_rect()
-        rotRect.center = self.navbox.center
-        self.navbox = rotRect
+        rotRect = self.rover_image.get_rect()
+        rotRect.center = self.rover_rect.center
+        self.rover_rect = rotRect
+         
+        screen.blit(self.rover_image, self.rover_rect)
         
         # Publish position to 'pose' topic
         self.publish_pose()
@@ -101,8 +119,10 @@ class Rover(object):
         
     def render(self):
         self.reposition()
-        screen.blit(self.navsurface, self.navbox)
 
+        
+        screen.blit(self.rover_image, self.rover_rect)
+        
     def publish_pose(self):
         '''Publish Pose
         (Sorry Aaron, couldn't make controller work without)
@@ -123,7 +143,7 @@ class Rover(object):
 
     @property 
     def rad_angle(self):
-        return math.radians(self.degree)
+        return math.radians(self.direction)
 
     @property
     def forward_vector(self):
@@ -153,7 +173,7 @@ class Course:
             box.center = (point.x, point.y)
             boundary = pygame.Rect((point.x, point.y, WAYPOINT_LENGTH, WAYPOINT_LENGTH))
             boundary.center = (point.x, point.y)
-            if boundary.colliderect(self.rover.navbox):
+            if boundary.colliderect(self.rover.rover_rect):
                 self.isPointVisited[i] = True
             
             if self.isPointVisited[i]:

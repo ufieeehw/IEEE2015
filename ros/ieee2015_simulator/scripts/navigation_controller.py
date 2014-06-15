@@ -24,7 +24,7 @@ def talker():
     
     #determines size of change when key events are recieved
     increment = 2
-    
+    degree_increment = 10
     while not rospy.is_shutdown():
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
@@ -37,9 +37,9 @@ def talker():
                 if event.key == pygame.K_DOWN:
                     velocity.linear.y += increment
                 if event.key == pygame.K_a:
-                    velocity.angular.z -= increment
+                    velocity.angular.z += degree_increment
                 if event.key == pygame.K_d:
-                    velocity.angular.z += increment
+                    velocity.angular.z -= degree_increment
     
         pub.publish(velocity)
         r.sleep()
