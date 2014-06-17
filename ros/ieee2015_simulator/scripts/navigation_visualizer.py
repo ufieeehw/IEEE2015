@@ -22,9 +22,9 @@ PXL_PER_METER = 15  # Or something like that
 #global variables
 fps = 60.0
 
-#initalizations for pygame
-clock = pygame.time.Clock()
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+#waypoint are shared with other files
+waypoint_list = [Point(400, 200, 0), Point(600, 200, 0), Point(0, 300, 0)]
 
 def load_image(name, colorkey=False):
     name = os.path.join(os.getcwd(), 'data', name)
@@ -37,15 +37,6 @@ def load_image(name, colorkey=False):
         print 'Unable to load: ' + name
     return image.convert_alpha() #Convert any transparency in the image
     
-def rotate_center(image, angle):
-    """rotate an image while keeping its center and size"""
-    orig_rect = image.get_rect()
-    rot_image = pygame.transform.rotate(image, angle)
-    rot_rect = orig_rect.copy()
-    rot_rect.center = rot_image.get_rect().center
-    rot_image = rot_image.subsurface(rot_rect).copy()
-    return rot_image
-    
 class Rover(object):
     box_color = 192, 192, 192
     def __init__(self, x, y):
@@ -55,7 +46,6 @@ class Rover(object):
         self.master_image = load_image('rover.png')
         self.rover_image = self.master_image
         #self.rover_rect = self.rover_image.get_rect()
-        #self.rover_rect.center = (100, 100)
         
         #set intial values
         self.direction = 0
@@ -73,7 +63,7 @@ class Rover(object):
         self.rover_image.set_colorkey((0, 0, 0))
 
         # Add a pose publisher
-        self.position = np.array([x,y], np.float32)
+        self.position_vector = np.array([x,y], np.float32)
         self.pose_pub = rospy.Publisher('pose', PoseStamped)
 
     def reposition(self):
@@ -83,9 +73,9 @@ class Rover(object):
         dx = self.velocity.linear.x * dt * PXL_PER_METER
         dy = self.velocity.linear.y * dt * PXL_PER_METER
 
-        self.position += (self.forward_vector * dx) + (self.left_vector * dy)
+        self.position_vector += (self.forward_vector * dx) + (self.left_vector * dy)
         
-        self.rover_rect.x, self.rover_rect.y = self.position
+        self.rover_rect.x, self.rover_rect.y = self.position_vector
 
         #find new angle of orientation
         dtheta = math.degrees(self.velocity.angular.z) * dt
@@ -100,16 +90,13 @@ class Rover(object):
         #self.rover_rect.center = old_center
         #old_center = self.rover_rect.center
         
-       
-
+    
         #rotate surface
         self.rover_image = pygame.transform.rotate(self.master_image, self.direction)
         #get the rect of the rotated surface and set it's center to the base (navbox)
         rotRect = self.rover_image.get_rect()
         rotRect.center = self.rover_rect.center
         self.rover_rect = rotRect
-         
-        screen.blit(self.rover_image, self.rover_rect)
         
         # Publish position to 'pose' topic
         self.publish_pose()
@@ -119,13 +106,10 @@ class Rover(object):
         
     def render(self):
         self.reposition()
-
-        
         screen.blit(self.rover_image, self.rover_rect)
         
     def publish_pose(self):
         '''Publish Pose
-        (Sorry Aaron, couldn't make controller work without)
         '''
         _orientation = tf_trans.quaternion_from_euler(0,0,self.rad_angle)
         self.pose_pub.publish(
@@ -134,9 +118,9 @@ class Rover(object):
                     stamp=rospy.Time.now(),
                     frame_id='/course',
                 ),
-                pose=Pose(
-                    position=Point(self.position[0], self.position[1], 0.0),
-                    orientation=Quaternion(*_orientation), # Radians
+                pose = Pose(
+                    position = Point(self.position_vector[0], self.position_vector[1], 0.0),
+                    orientation = Quaternion(*_orientation), #Radians
                 )
             )
         )
@@ -160,8 +144,7 @@ class Course:
     def __init__(self, rover, waypoints):
         self.rover = rover
         self.waypoints = waypoints
-        self.target = waypoints[0]
-        #I ASSUMING lists are false by default!!!!
+		#false by default
         self.isPointVisited = []
         for w in waypoints :
             self.isPointVisited.append(False)
@@ -200,23 +183,20 @@ class Course:
         self.rover.set_velocity(rover_velocity)
         
 if __name__ == '__main__':
-    random_waypoints = []
-    for i in range(3):
-        waypoint = Point()
-        waypoint.x = random.randint(WAYPOINT_LENGTH/2, SCREEN_WIDTH - WAYPOINT_LENGTH/2)
-        waypoint.y = random.randint(WAYPOINT_LENGTH/2, SCREEN_HEIGHT - WAYPOINT_LENGTH/2)
-        waypoint.z = 0
-        random_waypoints.append(waypoint)
-       
+	
+	#initalizations for pygame
+    clock = pygame.time.Clock()
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
     main_Rover = Rover(0, SCREEN_HEIGHT/2)
-    main_Course = Course(main_Rover, random_waypoints)
+    main_Course = Course(main_Rover, waypoint_list)
     
     #listener initalizations
     rospy.init_node('navigation_visualizer', anonymous=True)
-    #when a message is recieved the main_Course's render function will be called
-    rospy.Subscriber("navigation_control_signals", Twist, main_Course.callback)
     
+    #when a message is recieved the main_Course's render function will be called
+    rospy.Subscriber("manual_navigation_twists", Twist, main_Course.callback)
+    rospy.Subscriber("automatic_navigation_twists", Twist, main_Course.callback)
     while not rospy.is_shutdown():
         main_Course.render()
     rospy.spin()
