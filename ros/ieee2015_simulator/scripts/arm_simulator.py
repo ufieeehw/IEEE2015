@@ -101,8 +101,6 @@ def main():
             if event.type == pygame.QUIT:
                 return
         
-
-
         t = time.time()
         for arm in arms:
             arm.draw(display)

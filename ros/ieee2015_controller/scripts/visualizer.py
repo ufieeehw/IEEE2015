@@ -1,21 +1,19 @@
 #!/usr/bin/python
 '''
-The purpose of this script is to draw the angle, desired velocity and current velocity vectors, and write position and angle in text
+The purpose of this script is to draw the angle, desired velocity and current velocity vectors, and write position and angle in text.
+For vehicle visualization, motion simulation, and everything else that matters to all of the other tasks, 
+ see the visualizer in ieee2015_simulator/scripts
 '''
 from __future__ import division
-
 ## Math
 import numpy as np
 import math
-
 ## Rendering
 import pygame
 import time
-
 ## Ros
 from tf import transformations as tf_trans
 import rospy
-
 ## Ros msgs
 from std_msgs.msg import Header
 from geometry_msgs.msg import Pose, PoseStamped, Twist, TwistStamped, Vector3
@@ -97,7 +95,7 @@ class Visualizer(object):
         self.des_position = np.array([msg.pose.position.x, msg.pose.position.y])
         self.des_yaw = tf_trans.euler_from_quaternion(xyzw_array(msg.pose.orientation))[2]
 
-    @add_to_list
+    @self.add_to_list
     def draw_velocities(self, display):
         # Twist
         x,y = self.lin_vel
@@ -107,7 +105,7 @@ class Visualizer(object):
         # x2, y2 = self.lin_vel
         # des_ang_vel = Line(x2, y2, (250, 50, 250))
 
-    @add_to_list
+    @self.add_to_list
     def draw_rotation(self, display):
         length = 100
         x,y = (np.cos(self.yaw) * length, np.sin(self.yaw) * length)
@@ -119,16 +117,16 @@ class Visualizer(object):
         des_rot_line = Line(x, y, (100, 250, 200))
         des_rot_line.draw(display)
 
-    @add_to_list
+    @self.add_to_list
     def draw_twist(self, display):
         pass
 
-    @add_to_list
+    @self.add_to_list
     def draw_text(self, display):
         pass
 
 
-    @add_to_list
+    @self.add_to_list
     def draw_bot(self, display):
         pass
 

@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 from __future__ import division
-
+## Math
 import numpy as np
 import math
+## Ros/tools
 import tf
 from tf import transformations as tf_trans
 import rospy
 ## Possibly necessary:
 # import time
 # import threading
-
 ## Ros msgs
 from std_msgs.msg import Header
 from geometry_msgs.msg import Pose, PoseStamped, Twist, TwistStamped, Vector3
@@ -47,7 +47,7 @@ class Controller(object):
     '''
     def __init__(self):
         '''Initialize Controller Object'''
-        rospy.init_node('controller')
+        rospy.init_node('vehicle_controller')
 
         # Twist pub
         twist_topic = 'navigation_control_signals'
@@ -59,15 +59,13 @@ class Controller(object):
         
         # Initializations to avoid weird things
         self.des_position = np.array([100, 100])
-        self.des_yaw = np.pi*2.0/3.0
+        self.des_yaw = np.pi * 2.0 / 3.0 #  PEMDAS, baby!
 
         self.position = None
         self.yaw = None
 
     def send_twist(self, (xvel,yvel), angvel):
-        '''send_twist((xvel,yvel), angvel)
-        Generate twist message
-        '''
+        '''Generate twist message'''
         self.twist_pub.publish(
             Twist(
                 linear=Vector3(xvel, yvel, 0),
@@ -77,13 +75,12 @@ class Controller(object):
 
     def norm_angle_diff(self, ang_1, ang_2):
         '''norm_angle_diff(ang_1, ang_2)
-        -> Normalized angle difference, constrained to [-pi, pi]
+        -> Normalized angle difference, constrained to range [-pi, pi]
         '''
         return (ang_1 - ang_2 + math.pi) % (2 * math.pi) - math.pi
 
     def unit_vec(self, v):
-        '''unit_vec(v)
-        '''
+        '''unit_vec(v)'''
         norm = np.linalg.norm(v)
         if norm == 0:
             return(v)
@@ -97,6 +94,7 @@ class Controller(object):
         return(diff)
 
     def sign(self, x):
+        '''-> -1, 1 or 0'''
         if x > 0: return 1
         elif x < 0: return -1
         else: return 0
@@ -104,14 +102,12 @@ class Controller(object):
     def got_pose(self, msg):
         self.position = np.array([msg.pose.position.x, msg.pose.position.y])
         self.yaw = tf_trans.euler_from_quaternion(xyzw_array(msg.pose.orientation))[2]
-        print tf_trans.euler_from_quaternion(xyzw_array(msg.pose.orientation))
         # if((self.position is None) or (self.yaw is None)):
             ## Ain't doin shit if we don't know where we at!
             # return
 
         position_error = self.des_position - self.position
         yaw_error = self.norm_angle_diff(self.des_yaw, self.yaw)
-        print 'Yaw error:',yaw_error
         linear_speed = min(
                          math.sqrt(2 * np.linalg.norm(position_error) * max_linear_acc),
                          max_linear_vel
@@ -127,7 +123,7 @@ class Controller(object):
         forward = np.array([math.cos(self.yaw), math.sin(self.yaw)])
         left = np.array([math.cos(self.yaw + math.pi/2), math.sin(self.yaw + math.pi/2)])
 
-        # Send twist if above error threshold
+        # Send twist if above error threshold (Aaron or others, feel free to edit)
         if (np.fabs(yaw_error) > 0.01) or (np.linalg.norm(position_error) > 0.01):
             self.send_twist(
                 (
