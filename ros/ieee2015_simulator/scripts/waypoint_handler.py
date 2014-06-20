@@ -3,6 +3,7 @@ import os
 import sys
 import rospy
 import pygame
+from std_msgs.msg import Header
 from geometry_msgs.msg import Twist, Point, PoseStamped, Pose, Quaternion
 scriptpath = "navigation_visualizer.py"
 
@@ -21,7 +22,7 @@ hertz = 60
 class Waypoint_Handler(object):
     def __init__(self, waypoints):
         self.waypoints = waypoints
-        self.pose = Pose(
+        self.vehicle_pose = Pose(
                 position = Point(),
                 orientation = Quaternion(), #Radians
         )
@@ -31,60 +32,51 @@ class Waypoint_Handler(object):
         for w in waypoints:
             self.isPointVisited.append(False)
             
-        # Add a twist publisher
-        self.twist_pub = rospy.Publisher('automatic_navigation_twists', Twist)
+        #add a PoseStamped publisher
+        self.pose_pub = rospy.Publisher('desired_pose', PoseStamped)
             
-    def set_pose(self, pose_stamped) :
-         self.pose = pose_stamped.pose
+    def set_vehicle_pose(self, pose_stamped) :
+         self.vehicle_pose = pose_stamped.pose
          
     def check_waypoints(self):
         i = 0
-        rover_rect = pygame.Rect(0, 0, 50, 50)
-        rover_rect.center = (self.pose.position.x, self.pose.position.y)
+        vehicle_rect = pygame.Rect(0, 0, 50, 50)
+        vehicle_rect.center = (self.vehicle_pose.position.x, self.vehicle_pose.position.y)
         
         for waypoint in self.waypoints:
-            boundary = pygame.Rect((0, 0, 100, 100))
-            boundary.center = (waypoint.x, waypoint.y)
-            if boundary.colliderect(rover_rect):
+            boundary = pygame.Rect((0, 0, 25, 25))
+            boundary.center = (self.target.x, self.target.y)
+            if boundary.colliderect(vehicle_rect):
                 if not self.isPointVisited[i]:
                     self.isPointVisited[i] = True
-                    print "REACHED WAYPOINT at " 
-                    print self.pose.position
-                    if i < len(self.waypoints)-1 and waypoint.x == self.target.x and waypoint.y == self.target.y :
+                    print "Reached desired waypoint at " 
+                    print self.vehicle_pose.position
+                    if i < len(self.waypoints)-1:
                         self.target = self.waypoints[i+1]
             i = i + 1
-            
-            self.move_to_target()
-            
-    def move_to_target(self):
-        #This need to be changed to be the robot's current velocity, then be changed by a safe acceleration
-        new_velocity = Twist()
-        #get direction, 0 means we're here
-        #this method is temporary and not ideal, SAFE_SPEED must be accelerated to
-        dx = self.pose.position.x - self.target.x
-        if dx > 0:
-            new_velocity.linear.x = -SAFE_SPEED
-        elif dx < 0:
-            new_velocity.linear.x = SAFE_SPEED
-        else:
-            new_velocity.linear.x = 0
-            
-        dy = self.pose.position.y - self.target.y
-        if dy > 0:
-            new_velocity.linear.y = -SAFE_SPEED
-        elif dy < 0:
-            new_velocity.linear.y = SAFE_SPEED
-        else:
-            new_velocity.linear.y = 0
+           
+            #publish the desired pose for the vechile
+            self.pose_pub.publish(
+                PoseStamped(
+                    header = Header(
+                        stamp=rospy.Time.now(),
+                        frame_id='/course',
+                    ),
+                    pose = Pose(
+                        position = self.target,
+                        #placeholder orientation
+                        orientation = self.vehicle_pose.orientation,
+                    )
+                )
+            )
+                
         
-        self.twist_pub.publish(new_velocity)
-
 if __name__ == '__main__':
     handler = Waypoint_Handler(nv.waypoint_list)
     
     #listener initalizations
     rospy.init_node('waypoint_handler', anonymous=True)
-    rospy.Subscriber('pose', PoseStamped, handler.set_pose)
+    rospy.Subscriber('pose', PoseStamped, handler.set_vehicle_pose)
     
 	#initalizations for pygame
     clock = pygame.time.Clock()
