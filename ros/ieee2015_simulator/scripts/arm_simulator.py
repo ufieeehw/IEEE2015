@@ -35,6 +35,9 @@ def norm_angle_diff(ang_1, ang_2):
 
 
 class Line(object):
+    '''->Make a *joint* class that supports multiple children, parents, and local reference frames
+        Can use the samething to back-out the end pose from angles, etc
+    '''
     def __init__(self, point1, point2, color=(200,200,200)):
         self.point1 = np.array(point1, np.float32)
         self.point2 = np.array(point2, np.float32)
@@ -97,10 +100,10 @@ class SCARA(object):
 
     def got_des_pose(self, msg):
         self.position = np.array([msg.pose.position.x, msg.pose.position.y])
-
+    @print_in
     def got_elbow_angle(self, msg):
         self.angle1 = msg.data
-
+    @print_in
     def got_base_angle(self, msg):
         self.angle2 = msg.data
 
@@ -148,7 +151,7 @@ def main():
             arm.draw(display)
         
         pygame.display.update()
-        clock.tick(60)
+        clock.tick(20)
         display.fill((0, 0, 0))
 
 

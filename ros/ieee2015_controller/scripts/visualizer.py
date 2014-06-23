@@ -1,8 +1,9 @@
 #!/usr/bin/python
 '''
 The purpose of this script is to draw the angle, desired velocity and current velocity vectors, and write position and angle in text.
-For vehicle visualization, motion simulation, and everything else that matters to all of the other tasks, 
- see the visualizer in ieee2015_simulator/scripts
+See the visualizer in ieee2015_simulator/scripts for vehicle visualization, 
+ motion simulation, and everything else that matters to all of the other tasks, 
+
 '''
 from __future__ import division
 ## Math
