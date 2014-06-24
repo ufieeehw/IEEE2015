@@ -15,7 +15,7 @@ import numpy as np
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 400
 WAYPOINT_LENGTH = 100
-BG_COLOR = 0,0,0
+BG_COLOR = 200,200,100
 
 PXL_PER_METER = 15  # Or something like that
 
@@ -42,7 +42,8 @@ def load_image(name, colorkey=False):
 class Rover(object):
     box_color = 192, 192, 192
     def __init__(self, x, y):
-        self.rover_rect = pygame.Rect((x, y, 50, 50))
+        self.rover_rect = pygame.Rect((0, 0, 200, 200))
+        self.rover_rect.center = (x,y)
         #image surface around the box
         self.master_image = pygame.Surface((50, 50))
         self.master_image = load_image('rover.png')
@@ -95,10 +96,9 @@ class Rover(object):
     
         #rotate surface
         self.rover_image = pygame.transform.rotate(self.master_image, self.direction)
-        #get the rect of the rotated surface and set it's center to the base (navbox)
-        rotRect = self.rover_image.get_rect()
-        rotRect.center = self.rover_rect.center
-        self.rover_rect = rotRect
+        
+        #get the rect of the rotated surface and set it's center to the base (self.rover_rect)
+        self.rover_rect = self.rover_image.get_rect(center = self.rover_rect.center) 
         
         # Publish position to 'pose' topic
         self.publish_pose()
@@ -108,7 +108,7 @@ class Rover(object):
         
     def render(self):
         self.reposition()
-        screen.blit(self.rover_image, self.rover_rect)
+        screen.blit(self.rover_image, (self.rover_rect.center[0]-(self.rover_rect.width/2), self.rover_rect.center[1]-(self.rover_rect.height/2)))
         
     def publish_pose(self):
         '''Publish Pose

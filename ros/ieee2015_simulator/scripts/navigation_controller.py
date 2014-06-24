@@ -24,7 +24,7 @@ def talker():
     
     #determines size of change when key events are recieved
     increment = 2
-    degree_increment = 10
+    degree_increment = .1
     while not rospy.is_shutdown():
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
