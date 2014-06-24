@@ -2,7 +2,7 @@
 import rospy
 import pygame
 import random
-import os
+import os, sys
 
 from std_msgs.msg import Header
 from geometry_msgs.msg import Twist, Point, PoseStamped, Pose, Quaternion
@@ -27,7 +27,9 @@ fps = 60.0
 waypoint_list = [Point(400, 200, 0), Point(600, 200, 0), Point(0, 300, 0)]
 
 def load_image(name, colorkey=False):
-    name = os.path.join(os.getcwd(), 'data', name)
+    #get file directory
+    sim_folder = os.path.dirname(os.path.dirname(sys.argv[0]))
+    name = os.path.join(sim_folder, 'data', name)
     try:
         image = pygame.image.load(name)
         colorkey = image.get_at((0, 0))
