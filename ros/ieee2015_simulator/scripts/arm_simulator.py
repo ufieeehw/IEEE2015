@@ -90,25 +90,23 @@ class SCARA(object):
 
         length1, length2 = 100, 100
         self.joint1 = Line(self.base, (length1, 0), color=(100,100,100))
-        self.joint1.end
         self.joint2 = Line(self.joint1.end, self.joint1.end + (length2, 0), color=(200,200,100))
 
         self.elbow_sub = rospy.Subscriber('arm_elbow_angle', Float32, self.got_elbow_angle)
         self.base_sub = rospy.Subscriber('arm_base_angle', Float32, self.got_base_angle)
-
         self.error_sub = rospy.Subscriber('arm_des_pose', PointStamped, self.got_des_pose)
-        rospy.sleep(1)
-        self.angle1, self.angle2 = 0.0 , 0.0
-        self.des_pose = self.joint2[1]
+
+        self.angle1, self.angle2 = 0.0 , 1.505
+        self.position = None
 
     def got_des_pose(self, msg):
-        self.position = np.array([msg.point.x, msg.point.y])
+        self.position = (msg.point.x, msg.point.y)
 
     def got_elbow_angle(self, msg):
-        self.angle1 = msg.data
+        self.angle2 = msg.data
 
     def got_base_angle(self, msg):
-        self.angle2 = msg.data
+        self.angle1 = msg.data
 
     def update(self, center=(0,0)):
         # TODO:
@@ -134,6 +132,8 @@ class SCARA(object):
         self.update(new_base)
         self.joint1.draw(display)
         self.joint2.draw(display)
+        if self.position is not None:
+            pygame.draw.circle(display, (250,30,30), round_point(self.position), 5)
 
 
 def main():
