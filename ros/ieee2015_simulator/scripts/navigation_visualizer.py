@@ -24,7 +24,7 @@ fps = 60.0
 
 
 #waypoint are shared with other files
-waypoint_list = [Point(400, 200, 0), Point(600, 200, 0), Point(0, 300, 0)]
+waypoint_list = [Point(400, -200, 0), Point(600, -200, 0), Point(0, -300, 0)]
 
 def load_image(name, colorkey=False):
     #get file directory
@@ -42,8 +42,8 @@ def load_image(name, colorkey=False):
 class Rover(object):
     box_color = 192, 192, 192
     def __init__(self, x, y):
-        self.rover_rect = pygame.Rect((0, 0, 200, 200))
-        self.rover_rect.center = (x,y)
+        self.rover_rect = pygame.Rect((0, 0, 50, 50))
+        self.rover_rect.center = (x, y)
         #image surface around the box
         self.master_image = pygame.Surface((50, 50))
         self.master_image = load_image('rover.png')
@@ -54,19 +54,11 @@ class Rover(object):
         self.direction = 0
         self.velocity = Twist()
         
-        #this may not be nessesary, playing it safe
-        self.velocity.linear.x = 0
-        self.velocity.linear.y = 0
-        self.velocity.linear.z = 0
-        self.velocity.angular.x = 0
-        self.velocity.angular.y = 0
-        self.velocity.angular.z = 0
-        
         #color key for blitting
         self.rover_image.set_colorkey((0, 0, 0))
 
         # Add a pose publisher
-        self.position_vector = np.array([x,y], np.float32)
+        self.position_vector = np.array([x, -y], np.float32)
         self.pose_pub = rospy.Publisher('pose', PoseStamped)
 
     def reposition(self):
@@ -78,7 +70,7 @@ class Rover(object):
 
         self.position_vector += (self.forward_vector * dx) + (self.left_vector * dy)
         
-        self.rover_rect.x, self.rover_rect.y = self.position_vector
+        self.rover_rect.x, self.rover_rect.y = self.position_vector[0], -self.position_vector[1]
 
         #find new angle of orientation
         dtheta = math.degrees(self.velocity.angular.z) * dt
@@ -155,9 +147,9 @@ class Course:
         i = 0
         for point in self.waypoints:
             box = pygame.Rect((0, 0, 20, 20))
-            box.center = (point.x, point.y)
-            boundary = pygame.Rect((point.x, point.y, WAYPOINT_LENGTH, WAYPOINT_LENGTH))
-            boundary.center = (point.x, point.y)
+            box.center = (point.x, -point.y)
+            boundary = pygame.Rect((point.x, -point.y, WAYPOINT_LENGTH, WAYPOINT_LENGTH))
+            boundary.center = (point.x, -point.y)
             if boundary.colliderect(self.rover.rover_rect):
                 self.isPointVisited[i] = True
             

@@ -33,9 +33,9 @@ def talker():
                 if event.key == pygame.K_LEFT:
                     velocity.linear.x -= increment
                 if event.key == pygame.K_UP:
-                    velocity.linear.y -= increment
-                if event.key == pygame.K_DOWN:
                     velocity.linear.y += increment
+                if event.key == pygame.K_DOWN:
+                    velocity.linear.y -= increment
                 if event.key == pygame.K_a:
                     velocity.angular.z += degree_increment
                 if event.key == pygame.K_d:
