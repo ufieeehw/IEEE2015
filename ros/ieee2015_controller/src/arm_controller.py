@@ -8,7 +8,7 @@ import tf.transformations as tf_trans
 import tf
 ## Ros Msgs
 from std_msgs.msg import Header, Float32
-from geometry_msgs.msg import Point, PoseStamped, Pose, Quaternion
+from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
 
 def normalize_angle(ang):
     return ang % (2 * np.pi) - np.pi
@@ -21,25 +21,25 @@ class SCARA_Controller(object):
         self.length_1 = self.length_2 = 100
         self.base = np.array([0, 0], np.float32)
 
-        self.pose_sub = rospy.Subscriber('arm_des_pose', PoseStamped, self.got_des_pose)
+        self.pose_sub = rospy.Subscriber('arm_des_pose', PointStamped, self.got_des_pose)
 
         self.elbow_pub = rospy.Publisher('arm_elbow_angle', Float32)
         self.base_pub = rospy.Publisher('arm_base_angle', Float32)
 
-        self.des_position = (50, 50)
-        solutions = self.solve_angles(self.des_position)
-        print solutions
-        self.publish_angles(*solutions)
+        self.des_position = None
 
     def got_des_pose(self, msg):
-        self.des_position = np.array([msg.pose.position.x, msg.pose.position.y])
-        base, elbow = self.solve_angles(self.des_position)
-        self.publish_angles(base, elbow)
+        self.des_position = np.array([msg.point.x, msg.point.y])
+        solutions = self.solve_angles(self.des_position)
+        if solutions is not None:
+            print("Actuating to position {}".format(self.des_position))
+            base, elbow = solutions
+            self.publish_angles(base, elbow)
 
     def publish_angles(self, base, elbow):
+        print("Targeting angles base: {}, elbow: {}".format(base, elbow))
         self.base_pub.publish(Float32(data=base))
         self.elbow_pub.publish(Float32(data=elbow))
-        print("Publishing angles")
 
     def solve_angles(self, pt):
         '''2DOF has a closed form solution, this method only slightly extends to higher DOF, where there is not a closed form
@@ -49,16 +49,15 @@ class SCARA_Controller(object):
 
         distance = np.sqrt((x**2) + (y**2))
         if distance > self.length_1 + self.length_2:
+            print("Target arm position out of bounds")
             return None
 
-        mantissa = distance / (2 * self.length_1)
-        base_angle = np.arctan(y / x) - np.arccos(mantissa)
+        base_angle = np.arctan(y / x) - np.arccos( distance / (2 * self.length_1) )
 
         abs_joint_angle = np.arctan( (y - (self.length_1 * np.sin(base_angle))) / (x - (self.length_1 * np.cos(base_angle))) )
         joint_angle = abs_joint_angle - base_angle
 
         return map(normalize_angle, (base_angle, joint_angle))
-
 
 
 if __name__ == '__main__':

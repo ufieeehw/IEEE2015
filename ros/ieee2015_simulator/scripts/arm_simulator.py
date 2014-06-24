@@ -10,7 +10,7 @@ import rospy
 from tf import transformations as tf_trans
 ## Ros Msgs
 from std_msgs.msg import Header, Float32
-from geometry_msgs.msg import Point, PoseStamped, Pose, Quaternion
+from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
 
 SCREEN_DIM = (500,500)
 ORIGIN = np.array([SCREEN_DIM[0]/2.0, SCREEN_DIM[1]/2.0])
@@ -26,6 +26,9 @@ def print_in(f):
 
 def round_point((x,y)):
     return map(int, (x + ORIGIN[0], -y + ORIGIN[1]))
+
+def unround_point((x,y)):
+    return map(int, (x - ORIGIN[0], -y + ORIGIN[1]))
 
 def norm_angle_diff(ang_1, ang_2):
     '''norm_angle_diff(ang_1, ang_2)
@@ -93,17 +96,17 @@ class SCARA(object):
         self.elbow_sub = rospy.Subscriber('arm_elbow_angle', Float32, self.got_elbow_angle)
         self.base_sub = rospy.Subscriber('arm_base_angle', Float32, self.got_base_angle)
 
-        self.error_sub = rospy.Subscriber('arm_des_pose', PoseStamped, self.got_des_pose)
-
+        self.error_sub = rospy.Subscriber('arm_des_pose', PointStamped, self.got_des_pose)
+        rospy.sleep(1)
         self.angle1, self.angle2 = 0.0 , 0.0
         self.des_pose = self.joint2[1]
 
     def got_des_pose(self, msg):
-        self.position = np.array([msg.pose.position.x, msg.pose.position.y])
-    @print_in
+        self.position = np.array([msg.point.x, msg.point.y])
+
     def got_elbow_angle(self, msg):
         self.angle1 = msg.data
-    @print_in
+
     def got_base_angle(self, msg):
         self.angle2 = msg.data
 
@@ -133,18 +136,40 @@ class SCARA(object):
         self.joint2.draw(display)
 
 
-
 def main():
     arm1 = SCARA()
     arms = [arm1]
 
     display = pygame.display.set_mode(SCREEN_DIM)
 
+    des_pose_pub = rospy.Publisher('arm_des_pose', PointStamped)
+
+    def publish_des_pos(pos):
+        '''Publish Pose
+        '''
+        des_pose_pub.publish(
+            PointStamped(
+                header = Header(
+                    stamp=rospy.Time.now(),
+                    frame_id='/robot',
+                ),
+                point=Point(
+                    x=pos[0], 
+                    y=pos[1], 
+                    z=0
+                )
+            )
+        )
+
     clock = pygame.time.Clock()
     while not rospy.is_shutdown():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pt = pygame.mouse.get_pos()
+                print unround_point(pt)
+                publish_des_pos(unround_point(pt))
 
         t = time.time()
         for arm in arms:
