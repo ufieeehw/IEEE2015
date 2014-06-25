@@ -25,7 +25,6 @@ class SCARA_Controller(object):
 
         self.elbow_pub = rospy.Publisher('arm_elbow_angle', Float32)
         self.base_pub = rospy.Publisher('arm_base_angle', Float32)
-
         self.des_position = None
 
     def got_des_pose(self, msg):
@@ -48,16 +47,15 @@ class SCARA_Controller(object):
         x, y = pt
 
         distance = np.sqrt((x**2) + (y**2))
-        if distance > self.length_1 + self.length_2:
+        if distance > (self.length_1 + self.length_2):
             print("Target arm position out of bounds")
             return None
 
-        base_angle = np.arctan(y / x) - np.arccos( distance / (2 * self.length_1) )
-
-        abs_joint_angle = np.arctan( (y - (self.length_1 * np.sin(base_angle))) / (x - (self.length_1 * np.cos(base_angle))) )
+        base_angle = np.arctan2(y, x) - np.arccos(distance / (2 * self.length_1))
+        abs_joint_angle = np.arctan2(y - (self.length_1 * np.sin(base_angle)), x - (self.length_1 * np.cos(base_angle)))
         joint_angle = abs_joint_angle - base_angle
-
-        return map(normalize_angle, (base_angle, joint_angle))
+        print("Base solve {}, elbow solve {}".format(base_angle, joint_angle))
+        return (normalize_angle(base_angle + np.pi), normalize_angle(np.pi + joint_angle))
 
 
 if __name__ == '__main__':
@@ -71,8 +69,12 @@ if __name__ == '__main__':
             [4, 9],
         ]
     )
+
+
+
+
     SCARA = SCARA_Controller()
     rospy.spin()
-    #for test in tests:
+    # for test in tests:
     #    print SCARA.solve_angles(test)
 
