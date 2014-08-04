@@ -11,5 +11,7 @@ IEEE2015
 
 * Commit non-ROS-ready code to the python, XMega or cpp directory as appropriate
 
+* Only commit non-text files (Like pictures, 3D models, etc) if they are necessary to run or test your code!
+
 
 Th-th-th-that's all folks!
