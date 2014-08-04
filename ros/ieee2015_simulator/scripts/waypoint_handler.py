@@ -3,6 +3,7 @@ import os
 import sys
 import rospy
 import pygame
+import numpy as np
 from std_msgs.msg import Header
 from geometry_msgs.msg import Twist, Point, PoseStamped, Pose, Quaternion
 scriptpath = "navigation_visualizer.py"
@@ -53,8 +54,21 @@ class Waypoint_Handler(object):
                     print self.vehicle_pose.position
                     if i < len(self.waypoints)-1:
                         self.target = self.waypoints[i+1]
+                        
             i = i + 1
-           
+            
+            dx = self.target.x - self.vehicle_pose.position.x
+            if dx > 0:
+                target_orientation = Quaternion(
+                    z = -np.sqrt(.5),
+                    w = np.sqrt(.5)
+                    )
+            else :
+                target_orientation = Quaternion(
+                    z = np.sqrt(.5),
+                    w = np.sqrt(.5)
+                    )
+            
             #publish the desired pose for the vechile
             self.pose_pub.publish(
                 PoseStamped(
@@ -65,7 +79,7 @@ class Waypoint_Handler(object):
                     pose = Pose(
                         position = self.target,
                         #placeholder orientation
-                        orientation = self.vehicle_pose.orientation,
+                        orientation = target_orientation
                     )
                 )
             )
@@ -78,7 +92,7 @@ if __name__ == '__main__':
     rospy.init_node('waypoint_handler', anonymous=True)
     rospy.Subscriber('pose', PoseStamped, handler.set_vehicle_pose)
     
-	#initalizations for pygame
+    #initalizations for pygame
     clock = pygame.time.Clock()
     
     while not rospy.is_shutdown():
