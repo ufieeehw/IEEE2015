@@ -7,14 +7,11 @@ import math
 import tf
 from tf import transformations as tf_trans
 import rospy
-## Possibly necessary:
-# import time
-# import threading
 ## Ros msgs
 from std_msgs.msg import Header
 from geometry_msgs.msg import Pose, PoseStamped, Twist, TwistStamped, Vector3
 
-# Try a Forrest style locking function
+#-> Try a Forrest style locking function
 
 max_linear_vel = 1
 max_linear_acc = max_linear_vel
@@ -102,9 +99,6 @@ class Controller(object):
     def got_pose(self, msg):
         self.position = np.array([msg.pose.position.x, msg.pose.position.y])
         self.yaw = tf_trans.euler_from_quaternion(xyzw_array(msg.pose.orientation))[2]
-        # if((self.position is None) or (self.yaw is None)):
-            ## Ain't doin shit if we don't know where we at!
-            # return
 
         position_error = self.des_position - self.position
         yaw_error = self.norm_angle_diff(self.des_yaw, self.yaw)

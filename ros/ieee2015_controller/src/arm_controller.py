@@ -73,6 +73,4 @@ if __name__ == '__main__':
 
     SCARA = SCARA_Controller()
     rospy.spin()
-    # for test in tests:
-    #    print SCARA.solve_angles(test)
 
