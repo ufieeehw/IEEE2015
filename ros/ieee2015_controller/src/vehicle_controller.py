@@ -20,11 +20,13 @@ max_angular_vel = 2
 max_angular_acc = max_angular_vel
 
 def xyzw_array(quaternion):
+    '''Convert quaternion to non-shit array'''
     xyzw_array = np.array([quaternion.x, quaternion.y, quaternion.z, quaternion.w])
     return(xyzw_array)
 
 
 def print_in(f):
+    '''Shitty decorator for printing function business'''
     print("Defining " + f.func_name)
     def print_on_entry(*args, **kwargs):
         print("Executing " + f.func_name)
@@ -91,12 +93,13 @@ class Controller(object):
         return(diff)
 
     def sign(self, x):
-        '''-> -1, 1 or 0'''
+        '''return sign of x -> -1, 1 or 0'''
         if x > 0: return 1
         elif x < 0: return -1
         else: return 0
 
     def got_pose(self, msg):
+        '''recieve current pose of robot'''
         self.position = np.array([msg.pose.position.x, msg.pose.position.y])
         self.yaw = tf_trans.euler_from_quaternion(xyzw_array(msg.pose.orientation))[2]
 

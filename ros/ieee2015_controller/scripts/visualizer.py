@@ -33,6 +33,7 @@ class Line(object):
         self.point2 = point2
 
     def draw(self, display):
+        '''draw object method'''
         pygame.draw.line(display, self.color, round_point(self.point1), round_point(self.point2))
 
 
@@ -46,6 +47,7 @@ class Text_Box(object):
         # screen.blit(label, (100, 100))
 
     def draw(self, display, text):
+        '''draw object method'''
         lines = self.text.splitlines()
         width = height = 0
         for l in lines:
@@ -82,6 +84,7 @@ class Visualizer(object):
         self.objs = []
 
     def add_to_list(f):
+        '''Half this shit I don't know what I was doing...'''
         self.objs.append(f)
 
     def got_twist(self, msg):

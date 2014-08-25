@@ -26,10 +26,12 @@ def print_in(f):
 
 
 def round_point((x,y)):
+    '''Round and change point to centered coordinate system'''
     return map(int, (x + ORIGIN[0], -y + ORIGIN[1]))
 
 
 def unround_point((x,y)):
+    '''Change center-origin coordinates to pygame coordinates'''
     return map(int, (x - ORIGIN[0], -y + ORIGIN[1]))
 
 
@@ -48,10 +50,12 @@ class Line(object):
         self.color = color
     
     def update(self, point1, point2):
+        '''Change line endpoints'''
         self.point1 = np.array(point1, np.float32)
         self.point2 = np.array(point2, np.float32)
     
     def draw(self, display):
+        '''Draw method'''
         pygame.draw.line(display, self.color, round_point(self.point1), round_point(self.point2), 4)
     
     @property
@@ -72,19 +76,21 @@ class Line(object):
         return np.linalg.norm(np.array(self.point2) - np.array(self.point1))
 
     def __getitem__(self, key):
+        '''[Point 1, Point 2]'''
         return self.points[key]
 
-    @classmethod
+    @staticmethod
     def dotproduct(v1, v2):
-      return sum((a*b) for a, b in zip(v1, v2))
+        return sum((a*b) for a, b in zip(v1, v2))
     
-    @classmethod
+    @staticmethod
     def length(v):
-      return np.sqrt(dotproduct(v, v))
+        return np.sqrt(dotproduct(v, v))
     
-    @classmethod
+    @staticmethod
     def angle(line1, line2):
-      return np.arccos(dotproduct(v1, v2) / (length(v1) * length(v2)))
+        '''angle between two line objects'''
+        return np.arccos(dotproduct(v1, v2) / (length(v1) * length(v2)))
 
 
 class SCARA(object):
@@ -104,15 +110,19 @@ class SCARA(object):
         self.position = None
 
     def got_des_pose(self, msg):
+        '''Recieved desired arm pose'''
         self.position = (msg.point.x, msg.point.y)
 
     def got_elbow_angle(self, msg):
+        '''Recieved current elbow angle'''
         self.angle2 = msg.data
 
     def got_base_angle(self, msg):
+        '''Recieved current base angle'''
         self.angle1 = msg.data
 
     def update(self, center=(0, 0)):
+        '''Update each arm joint position according to the angles and lengths'''
         # TODO:
         # Make this non-instantaneous
 
@@ -133,6 +143,7 @@ class SCARA(object):
         self.joint2.update(self.joint1.end, self.new_end_2)
 
     def draw(self, display, new_base=(0, 0)):
+        '''Draw method yo'''
         self.update(new_base)
         self.joint1.draw(display)
         self.joint2.draw(display)
@@ -141,6 +152,7 @@ class SCARA(object):
 
 
 def main():
+    '''In principle, we can support an arbitrary number of arms in simulation'''
     arm1 = SCARA()
     arms = [arm1]
 

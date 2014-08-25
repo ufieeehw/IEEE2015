@@ -29,6 +29,7 @@ class SCARA_Controller(object):
         self.des_position = None
 
     def got_des_pose(self, msg):
+        '''Receiving desired pose'''
         self.des_position = np.array([msg.point.x, msg.point.y])
         solutions = self.solve_angles(self.des_position)
         if solutions is not None:
@@ -37,6 +38,7 @@ class SCARA_Controller(object):
             self.publish_angles(base, elbow)
 
     def publish_angles(self, base, elbow):
+        '''This should be goddamn obvious'''
         print("Targeting angles base: {0:0.2f} (rad), elbow: {0:0.2f} (rad)".format(base, elbow))
         self.base_pub.publish(Float32(data=base))
         self.elbow_pub.publish(Float32(data=elbow))
