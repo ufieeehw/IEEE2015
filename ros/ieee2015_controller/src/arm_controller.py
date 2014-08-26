@@ -12,6 +12,7 @@ from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
 
 
 def normalize_angle(ang):
+    '''Constrain angle between -pi and pi'''
     return ang % (2 * np.pi) - np.pi
 
 
@@ -75,4 +76,3 @@ if __name__ == '__main__':
 
     SCARA = SCARA_Controller()
     rospy.spin()
-
