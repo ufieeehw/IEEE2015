@@ -1,24 +1,20 @@
-#Debug Folder
+# Debug Folder
 Debug/
 
-#Misc
+# Misc
 .d
 .o
 .idea
 *.swp
 $
 
-#Python
+# Python
 *~
 *.pyc
 
-#Images
-*.png
-*.jpg
-*.tif
-
+# Images
 *.pdf
 
-#Just in case...
+# Just in case...
 *.iso
 

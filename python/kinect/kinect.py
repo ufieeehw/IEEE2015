@@ -8,7 +8,6 @@ import frame_convert
 import time
 import random
 import signal
-
 keep_running = True
 last_time = 0
 
@@ -42,9 +41,10 @@ class kinect_controller:
         cv2.imshow('Depth Edges',edges)
 
         self.depth_image = depth_image
-
-        if cv.WaitKey(10) == 27:
+        
+        if cv2.waitKey(50) == 27:
             keep_running = False
+            cv2.destroyAllWindows()
 
     def do_rgb(self, dev, data, timestamp):
         global keep_running
@@ -54,9 +54,10 @@ class kinect_controller:
         edges2 = cv2.Canny(rgb_image, self.th1,self.th2, apertureSize=5)
 
         cv2.imshow('RGB Edges', edges2)
-        if cv.WaitKey(10) == 27:
+        if cv2.waitKey(50) == 27:
             keep_running = False
-
+            cv2.destroyAllWindows()
+            
     def body(self,*args):
         if not keep_running:
             raise freenect.Kill

@@ -10,15 +10,17 @@ import tf
 from std_msgs.msg import Header, Float32
 from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
 
+
 def normalize_angle(ang):
+    '''Constrain angle between -pi and pi'''
     return ang % (2 * np.pi) - np.pi
 
 
 class SCARA_Controller(object):
     '''APPLIES ONLY TO 2 DOF ARM, PROOF OF CONCEPT'''
-    def __init__(self):
+    def __init__(self, lengths=(100, 100)):
         rospy.init_node('SCARA_controller')
-        self.length_1 = self.length_2 = 100
+        self.length_1, self.length_2 = lengths
         self.base = np.array([0, 0], np.float32)
 
         self.pose_sub = rospy.Subscriber('arm_des_pose', PointStamped, self.got_des_pose)
@@ -28,15 +30,17 @@ class SCARA_Controller(object):
         self.des_position = None
 
     def got_des_pose(self, msg):
+        '''Receiving desired pose'''
         self.des_position = np.array([msg.point.x, msg.point.y])
         solutions = self.solve_angles(self.des_position)
         if solutions is not None:
-            print("Actuating to position {}".format(self.des_position))
+            print("Targeting arm-base local position {} (m)".format(self.des_position))
             base, elbow = solutions
             self.publish_angles(base, elbow)
 
     def publish_angles(self, base, elbow):
-        print("Targeting angles base: {}, elbow: {}".format(base, elbow))
+        '''This should be goddamn obvious'''
+        print("Targeting angles base: {0:0.2f} (rad), elbow: {0:0.2f} (rad)".format(base, elbow))
         self.base_pub.publish(Float32(data=base))
         self.elbow_pub.publish(Float32(data=elbow))
 
@@ -52,9 +56,9 @@ class SCARA_Controller(object):
             return None
 
         base_angle = np.arctan2(y, x) - np.arccos(distance / (2 * self.length_1))
-        abs_joint_angle = np.arctan2(y - (self.length_1 * np.sin(base_angle)), x - (self.length_1 * np.cos(base_angle)))
+        abs_joint_angle = np.arctan2(y - (self.length_1 * np.sin(base_angle)),
+                                     x - (self.length_1 * np.cos(base_angle)))
         joint_angle = abs_joint_angle - base_angle
-        print("Base solve {}, elbow solve {}".format(base_angle, joint_angle))
         return (normalize_angle(base_angle + np.pi), normalize_angle(np.pi + joint_angle))
 
 
@@ -70,11 +74,5 @@ if __name__ == '__main__':
         ]
     )
 
-
-
-
     SCARA = SCARA_Controller()
     rospy.spin()
-    # for test in tests:
-    #    print SCARA.solve_angles(test)
-

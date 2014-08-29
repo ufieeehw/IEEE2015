@@ -1,7 +1,6 @@
 #!/usr/bin/python
 ## Math
 import numpy as np
-import math
 ## Display
 import pygame
 import time
@@ -15,6 +14,7 @@ from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
 SCREEN_DIM = (500,500)
 ORIGIN = np.array([SCREEN_DIM[0]/2.0, SCREEN_DIM[1]/2.0])
 
+
 def print_in(f):
     print("Defining " + f.func_name)
     def print_on_entry(*args, **kwargs):
@@ -24,34 +24,38 @@ def print_in(f):
         return(result)
     return(print_on_entry)
 
+
 def round_point((x,y)):
+    '''Round and change point to centered coordinate system'''
     return map(int, (x + ORIGIN[0], -y + ORIGIN[1]))
 
+
 def unround_point((x,y)):
+    '''Change center-origin coordinates to pygame coordinates'''
     return map(int, (x - ORIGIN[0], -y + ORIGIN[1]))
+
 
 def norm_angle_diff(ang_1, ang_2):
     '''norm_angle_diff(ang_1, ang_2)
-    -> Normalized angle difference, constrained to [-pi, pi]
-    '''
-    return (ang_1 - ang_2 + math.pi) % (2 * math.pi) - math.pi
+    -> Normalized angle difference, constrained to [-pi, pi]'''
+    return (ang_1 - ang_2 + np.pi) % (2 * np.pi) - np.pi
 
 
 class Line(object):
     '''->Make a *joint* class that supports multiple children, parents, and local reference frames
-        Can use the samething to back-out the end pose from angles, etc
-    '''
-    def __init__(self, point1, point2, color=(200,200,200)):
+        Can use the samething to back-out the end pose from angles, etc'''
+    def __init__(self, point1, point2, color=(200, 200, 200)):
         self.point1 = np.array(point1, np.float32)
         self.point2 = np.array(point2, np.float32)
-        print "Initializing", self.point1, self.point2
         self.color = color
     
     def update(self, point1, point2):
+        '''Change line endpoints'''
         self.point1 = np.array(point1, np.float32)
         self.point2 = np.array(point2, np.float32)
     
     def draw(self, display):
+        '''Draw method'''
         pygame.draw.line(display, self.color, round_point(self.point1), round_point(self.point2), 4)
     
     @property
@@ -62,25 +66,31 @@ class Line(object):
     def start(self):
         '''Closest point to origin'''
         return np.array(min(self.points, key=lambda v: np.linalg.norm(np.array(v) - (0,0))))
+    
     @property
     def points(self):
         return [self.point1, self.point2]
+    
     @property
     def norm(self):
-        return np.linalg.norm(np.array(self.point2)-np.array(self.point1))
+        return np.linalg.norm(np.array(self.point2) - np.array(self.point1))
 
     def __getitem__(self, key):
+        '''[Point 1, Point 2]'''
         return self.points[key]
 
-    @classmethod
+    @staticmethod
     def dotproduct(v1, v2):
-      return sum((a*b) for a, b in zip(v1, v2))
-    @classmethod
+        return sum((a*b) for a, b in zip(v1, v2))
+    
+    @staticmethod
     def length(v):
-      return math.sqrt(dotproduct(v, v))
-    @classmethod
+        return np.sqrt(dotproduct(v, v))
+    
+    @staticmethod
     def angle(line1, line2):
-      return math.acos(dotproduct(v1, v2) / (length(v1) * length(v2)))
+        '''angle between two line objects'''
+        return np.arccos(dotproduct(v1, v2) / (length(v1) * length(v2)))
 
 
 class SCARA(object):
@@ -89,8 +99,8 @@ class SCARA(object):
         self.base = np.array([0.0, 0.0])
 
         length1, length2 = 100, 100
-        self.joint1 = Line(self.base, (length1, 0), color=(100,100,100))
-        self.joint2 = Line(self.joint1.end, self.joint1.end + (length2, 0), color=(200,200,100))
+        self.joint1 = Line(self.base, (length1, 0), color=(100, 100, 100))
+        self.joint2 = Line(self.joint1.end, self.joint1.end + (length2, 0), color=(200, 200, 100))
 
         self.elbow_sub = rospy.Subscriber('arm_elbow_angle', Float32, self.got_elbow_angle)
         self.base_sub = rospy.Subscriber('arm_base_angle', Float32, self.got_base_angle)
@@ -100,15 +110,19 @@ class SCARA(object):
         self.position = None
 
     def got_des_pose(self, msg):
+        '''Recieved desired arm pose'''
         self.position = (msg.point.x, msg.point.y)
 
     def got_elbow_angle(self, msg):
+        '''Recieved current elbow angle'''
         self.angle2 = msg.data
 
     def got_base_angle(self, msg):
+        '''Recieved current base angle'''
         self.angle1 = msg.data
 
-    def update(self, center=(0,0)):
+    def update(self, center=(0, 0)):
+        '''Update each arm joint position according to the angles and lengths'''
         # TODO:
         # Make this non-instantaneous
 
@@ -128,20 +142,21 @@ class SCARA(object):
         self.joint1.update(self.base, self.new_end_1)
         self.joint2.update(self.joint1.end, self.new_end_2)
 
-    def draw(self, display, new_base=(0,0)):
+    def draw(self, display, new_base=(0, 0)):
+        '''Draw method yo'''
         self.update(new_base)
         self.joint1.draw(display)
         self.joint2.draw(display)
         if self.position is not None:
-            pygame.draw.circle(display, (250,30,30), round_point(self.position), 5)
+            pygame.draw.circle(display, (250, 30, 30), round_point(self.position), 5, 1)
 
 
 def main():
+    '''In principle, we can support an arbitrary number of arms in simulation'''
     arm1 = SCARA()
     arms = [arm1]
 
     display = pygame.display.set_mode(SCREEN_DIM)
-
     des_pose_pub = rospy.Publisher('arm_des_pose', PointStamped)
 
     def publish_des_pos(pos):
@@ -168,7 +183,6 @@ def main():
                 return
             if event.type == pygame.MOUSEBUTTONDOWN:
                 pt = pygame.mouse.get_pos()
-                print unround_point(pt)
                 publish_des_pos(unround_point(pt))
 
         t = time.time()
