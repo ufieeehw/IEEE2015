@@ -138,7 +138,7 @@ class Course:
     def __init__(self, rover, waypoints):
         self.rover = rover
         self.waypoints = waypoints
-		#false by default
+        #false by default
         self.isPointVisited = []
         for w in waypoints :
             self.isPointVisited.append(False)
@@ -169,7 +169,12 @@ class Course:
         self.render_waypoints()
         self.rover.render()
         pygame.display.flip()
-
+        ###event handling###
+        ev = pygame.event.get()
+        for event in ev:
+            #get the position when mouse is released, so it can be published
+            if event.type == pygame.MOUSEBUTTONUP:
+                main_Rover.publish_pose()
         #mas frames per second
         clock.tick(fps)
         
@@ -177,8 +182,8 @@ class Course:
         self.rover.set_velocity(rover_velocity)
         
 if __name__ == '__main__':
-	
-	#initalizations for pygame
+    
+    #initalizations for pygame
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
@@ -191,7 +196,12 @@ if __name__ == '__main__':
     #when a message is recieved the main_Course's render function will be called
     rospy.Subscriber("desired_velocity", Twist, main_Course.callback)
     #rospy.Subscriber("automatic_navigation_twists", Twist, main_Course.callback)
+    
     while not rospy.is_shutdown():
+        
         main_Course.render()
-    rospy.spin()
+      
+        
+          
+        rospy.spin()
 
