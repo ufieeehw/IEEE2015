@@ -189,7 +189,7 @@ if __name__ == '__main__':
     rospy.init_node('navigation_visualizer', anonymous=True)
     
     #when a message is recieved the main_Course's render function will be called
-    rospy.Subscriber("navigation_control_signals", Twist, main_Course.callback)
+    rospy.Subscriber("desired_velocity", Twist, main_Course.callback)
     #rospy.Subscriber("automatic_navigation_twists", Twist, main_Course.callback)
     while not rospy.is_shutdown():
         main_Course.render()

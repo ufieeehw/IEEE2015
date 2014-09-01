@@ -71,7 +71,7 @@ class Visualizer(object):
     def __init__(self):
         rospy.init_node('controller_visualization')
 
-        twist_topic = 'navigation_control_signals'
+        twist_topic = 'desired_velocity'
         self.twist_sub = rospy.Subscriber(twist_topic, Twist, self.got_twist) 
         
         # Current pose sub

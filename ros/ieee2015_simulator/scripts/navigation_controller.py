@@ -8,7 +8,7 @@ SCREEN_WIDTH = 200
 SCREEN_HEIGHT = 200
 def talker():
     #initalizations
-    pub = rospy.Publisher('navigation_control_signals', Twist)
+    pub = rospy.Publisher('desired_velocity', Twist)
     rospy.init_node('navigation_controller', anonymous=True)
     r = rospy.Rate(10) # 10hz
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))

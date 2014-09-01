@@ -49,7 +49,7 @@ class Controller(object):
         rospy.init_node('vehicle_controller')
 
         # Twist pub
-        twist_topic = 'navigation_control_signals'
+        twist_topic = 'desired_velocity'
         self.twist_pub = rospy.Publisher(twist_topic, Twist) 
         
         # Current pose sub
