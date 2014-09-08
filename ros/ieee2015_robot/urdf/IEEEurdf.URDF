@@ -1,5 +1,4 @@
-<robot
-  name="robot">
+<robot name="ieee2015_robot">
   <link
     name="base_link">
     <inertial>
@@ -22,7 +21,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/base_link.STL" />
+          filename="package://ieee2015_robot/meshes/base_link.STL" />
       </geometry>
       <material
         name="">
@@ -36,7 +35,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/base_link_col.STL" />
+          filename="package://ieee2015_robot/meshes/base_link_col.STL" />
       </geometry>
     </collision>
   </link>
@@ -62,7 +61,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/FLWheel.STL" />
+          filename="package://ieee2015_robot/meshes/FLWheel.STL" />
       </geometry>
       <material
         name="">
@@ -76,7 +75,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/FLWheel_col.STL" />
+          filename="package://ieee2015_robot/meshes/FLWheel_col.STL" />
       </geometry>
     </collision>
   </link>
@@ -115,7 +114,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/FRWheel.STL" />
+          filename="package://ieee2015_robot/meshes/FRWheel.STL" />
       </geometry>
       <material
         name="">
@@ -129,7 +128,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/FRWheel_col.STL" />
+          filename="package://ieee2015_robot/meshes/FRWheel_col.STL" />
       </geometry>
     </collision>
   </link>
@@ -168,7 +167,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/BLWheel.STL" />
+          filename="package://ieee2015_robot/meshes/BLWheel.STL" />
       </geometry>
       <material
         name="">
@@ -182,7 +181,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/BLWheel_col.STL" />
+          filename="package://ieee2015_robot/meshes/BLWheel_col.STL" />
       </geometry>
     </collision>
   </link>
@@ -221,7 +220,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/BRWheel.STL" />
+          filename="package://ieee2015_robot/meshes/BRWheel.STL" />
       </geometry>
       <material
         name="">
@@ -235,7 +234,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/BRWheel_col.STL" />
+          filename="package://ieee2015_robot/meshes/BRWheel_col.STL" />
       </geometry>
     </collision>
   </link>
@@ -274,7 +273,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/ArmYRot.STL" />
+          filename="package://ieee2015_robot/meshes/ArmYRot.STL" />
       </geometry>
       <material
         name="">
@@ -288,7 +287,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/ArmYRot_col.STL" />
+          filename="package://ieee2015_robot/meshes/ArmYRot_col.STL" />
       </geometry>
     </collision>
   </link>
@@ -327,7 +326,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/ArmRot1.STL" />
+          filename="package://ieee2015_robot/meshes/ArmRot1.STL" />
       </geometry>
       <material
         name="">
@@ -341,7 +340,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/ArmRot1_col.STL" />
+          filename="package://ieee2015_robot/meshes/ArmRot1_col.STL" />
       </geometry>
     </collision>
   </link>
@@ -385,7 +384,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/ArmRot2.STL" />
+          filename="package://ieee2015_robot/meshes/ArmRot2.STL" />
       </geometry>
       <material
         name="">
@@ -399,7 +398,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://robot/meshes/ArmRot2_col.STL" />
+          filename="package://ieee2015_robot/meshes/ArmRot2_col.STL" />
       </geometry>
     </collision>
   </link>
@@ -422,6 +421,7 @@
       velocity="1" />
   </joint>
 
+
   <gazebo reference="FLWheel">
       <material>Gazebo/Gold</material>
   </gazebo>
@@ -435,9 +435,17 @@
       <material>Gazebo/Gold</material>
   </gazebo>
 
+
   <gazebo reference="base_link">
       <material>Gazebo/Blue</material>
   </gazebo>
+  <gazebo reference="camera_link">
+      <material>Gazebo/Red</material>
+  </gazebo>
+  <gazebo reference="kinect_link">
+      <material>Gazebo/Red</material>
+  </gazebo>
+
 
   <gazebo reference="ArmYRot">
       <material>Gazebo/Gold</material>
@@ -449,6 +457,7 @@
       <material>Gazebo/Gold</material>
   </gazebo>
 
+
   <gazebo>
       <plugin name="object_controller" filename="libgazebo_ros_planar_move.so">
         <commandTopic>desired_velocity</commandTopic>
@@ -457,7 +466,78 @@
         <odometryRate>20.0</odometryRate>
         <robotBaseFrame>base_link</robotBaseFrame>
       </plugin>
- </gazebo>
+  </gazebo>
 
+
+  <!-- Camera -->
+  <joint name="camera_joint" type="fixed">
+     <origin xyz="0 -.15 .040" rpy="0 0 -1.57"/>
+     <parent link="base_link"/>
+     <child link="camera_link"/>
+     <axis xyz="1 0 0" />
+  </joint>
+
+  <link name="camera_link">
+    <inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.025 0.025 0.025"/>
+      </geometry>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.025 0.025 0.025"/>
+      </geometry>
+    </collision> 
+  </link>
+
+   <gazebo reference="camera_link">
+    <sensor type="camera" name="camera1">
+      <update_rate>30.0</update_rate>
+      <camera name="head">
+        <horizontal_fov>1.3962634</horizontal_fov>
+        <image>
+          <width>800</width>
+          <height>800</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise is sampled independently per pixel on each frame.
+               That pixel's noise value is added to each of its color
+               channels, which at that point lie in the range [0,1]. -->
+
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>robot/camera1</cameraName>
+        <imageTopicName>image</imageTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <frameName>camera_link</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo> 
 </robot>
 
