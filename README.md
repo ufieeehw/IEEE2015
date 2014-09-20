@@ -57,4 +57,6 @@ Th-th-th-that's all folks!
 
 * Use the metric units! Don't use imperial! No imperial!
 
+* When publishing and subscribing to measured topics, ALWAYS SPECIFY UNITS AND A REFERENCE FRAME!
+
 * Indent with 4 spaces
