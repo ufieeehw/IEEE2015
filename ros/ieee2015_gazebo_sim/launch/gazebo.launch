@@ -12,14 +12,16 @@
     name="spawn_urdf"
     pkg="gazebo_ros"
     type="spawn_model"
-    args="-file $(find ieee2015_robot)/urdf/IEEEurdf.URDF -urdf -z 0.2 -model ieee2015_robot"
+    args="-file $(find ieee2015_robot)/urdf/IEEEurdf.URDF -urdf 
+      -x 0.3 -y 0.0 -z 0.06 -model ieee2015_robot"
     output="screen" />
 
   <node
     name="spawn_sdf"
     pkg="gazebo_ros"
     type="spawn_model"
-    args="-file $(find ieee2015_gazebo_sim)/stage/model.sdf -sdf -y -0.9 -z 0.0 -model stage"
+    args="-file $(find ieee2015_gazebo_sim)/stage/model.sdf -sdf 
+      -x 0.6096 -y -1.2192 -z 0.0 -model stage" 
     output="screen" />
 
   <node
