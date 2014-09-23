@@ -9,6 +9,9 @@ Debug/
 $
 todo
 
+# Folders
+/Documents/
+
 # Python
 *~
 *.pyc

@@ -11,19 +11,12 @@ import rospy
 from std_msgs.msg import Header
 from geometry_msgs.msg import Pose, PoseStamped, Twist, TwistStamped, Vector3
 
-#-> Try a Forrest style locking function
+max_linear_vel = 1 # m/s
+max_linear_acc = max_linear_vel # m/s^2
 
-max_linear_vel = 1
-max_linear_acc = max_linear_vel
-
-max_angular_vel = 2
-max_angular_acc = max_angular_vel
-
-def xyzw_array(quaternion):
-    '''Convert quaternion to non-shit array'''
-    xyzw_array = np.array([quaternion.x, quaternion.y, quaternion.z, quaternion.w])
-    return(xyzw_array)
-
+max_angular_vel = 2 # rad/s
+max_angular_acc = max_angular_vel # rad/s^2 
+# (Jason says this is just called angular acceleration, # I call it angcelleration)
 
 def print_in(f):
     '''Shitty decorator for printing function business'''
@@ -34,6 +27,12 @@ def print_in(f):
         print("Returning " + str(result))
         return(result)
     return(print_on_entry)
+
+
+def xyzw_array(quaternion):
+    '''Convert quaternion to non-shit array'''
+    xyzw_array = np.array([quaternion.x, quaternion.y, quaternion.z, quaternion.w])
+    return(xyzw_array)
 
 
 class Controller(object):
@@ -50,18 +49,19 @@ class Controller(object):
 
         # Twist pub
         twist_topic = 'desired_velocity'
-        self.twist_pub = rospy.Publisher(twist_topic, Twist) 
+        self.twist_pub = rospy.Publisher(twist_topic, Twist, queue_size=1) 
         
+        # Initializations to avoid weird desynchronizations
+        self.des_position = None
+        self.des_yaw = None
+        # Don't want to have an a-priori position
+        self.position = None
+        self.yaw = None
+
         # Current pose sub
         self.pose_sub = rospy.Subscriber('pose', PoseStamped, self.got_pose)
         self.desired_pose_sub = rospy.Subscriber('desired_pose', PoseStamped, self.got_desired_pose)
-        
-        # Initializations to avoid weird things
-        self.des_position = np.array([100, 100])
-        self.des_yaw = np.pi * 2.0 / 3.0 #  PEMDAS, baby!
 
-        self.position = None
-        self.yaw = None
 
     def send_twist(self, (xvel,yvel), angvel):
         '''Generate twist message'''
@@ -76,7 +76,7 @@ class Controller(object):
         '''norm_angle_diff(ang_1, ang_2)
         -> Normalized angle difference, constrained to range [-pi, pi]
         '''
-        return (ang_1 - ang_2 + math.pi) % (2 * math.pi) - math.pi
+        return (ang_1 - ang_2 + np.pi) % (2 * np.pi) - np.pi
 
     def unit_vec(self, v):
         '''unit_vec(v)'''
@@ -89,7 +89,7 @@ class Controller(object):
         '''norm(v1 - v2)'''
         assert isinstance(v1, np.array)
         assert isinstance(v2, np.array)
-        diff = np.linalg.norm(v1-v2)
+        diff = np.linalg.norm(v1 - v2)
         return(diff)
 
     def sign(self, x):
@@ -99,46 +99,60 @@ class Controller(object):
         else: return 0
 
     def got_pose(self, msg):
-        '''recieve current pose of robot'''
+        '''recieve current pose of robot
+
+        Velocity calcluation should be done in a separate thread
+         this thread should have an independent information "watchdog" timing method
+        '''
+        if (self.des_pose is None) or (self.des_yaw is None):
+            return
+
+        # World frame position
         self.position = np.array([msg.pose.position.x, msg.pose.position.y])
         self.yaw = tf_trans.euler_from_quaternion(xyzw_array(msg.pose.orientation))[2]
 
         position_error = self.des_position - self.position
         yaw_error = self.norm_angle_diff(self.des_yaw, self.yaw)
+        # Determines the linear speed necessary to maintain a consant backward acceleration
         linear_speed = min(
-                         math.sqrt(2 * np.linalg.norm(position_error) * max_linear_acc),
-                         max_linear_vel
+                            math.sqrt(2 * np.linalg.norm(position_error) * max_linear_acc),
+                            max_linear_vel
                         )
+        # Determines the angular speed necessary to maintain a constant angular acceleration 
+        #  opposite the direction of motion
         angular_speed = min(
-                         math.sqrt(2 * abs(yaw_error) * max_angular_acc), 
-                         max_angular_vel
+                            math.sqrt(2 * abs(yaw_error) * max_angular_acc), 
+                            max_angular_vel
                         )
 
+        # Provide direction for both linear and angular velocity
         desired_vel = linear_speed * self.unit_vec(position_error)
         desired_angvel = angular_speed * self.sign(yaw_error)
 
+        # Unit vectors that determine the right-handed coordinate system of the roobt in the world frame
         forward = np.array([math.cos(self.yaw), math.sin(self.yaw)])
-        left = np.array([math.cos(self.yaw + math.pi/2), math.sin(self.yaw + math.pi/2)])
+        left = np.array([math.cos(self.yaw + np.pi/2), math.sin(self.yaw + np.pi/2)])
 
-        # Send twist if above error threshold (Aaron or others, feel free to edit)
+        # Send twist if above error threshold
         if (np.fabs(yaw_error) > 0.01) or (np.linalg.norm(position_error) > 0.01):
             self.send_twist(
                 (
-                    forward.dot(desired_vel), 
-                    left.dot(desired_vel)
+                    forward.dot(desired_vel), # X vel
+                    left.dot(desired_vel) # Y vel
                 ), 
-                desired_angvel
+                desired_angvel # Yaw
             )
     
     def got_desired_pose(self, msg):
-        '''Figure out how to do this in a separate thread
-         So we're not depending on a message to act
+        '''Recieved desired pose message
+        Figure out how to do this in a separate thread
+        So we're not depending on a message to act
         #LearnToThreading
         (That's a hashtag)
         '''
         self.des_position = np.array([msg.pose.position.x, msg.pose.position.y])
         self.des_yaw = tf_trans.euler_from_quaternion(xyzw_array(msg.pose.orientation))[2]
 
-
-controller = Controller()
-rospy.spin()
+if __name__ == '__main__':
+    controller = Controller()
+    rospy.spin()
