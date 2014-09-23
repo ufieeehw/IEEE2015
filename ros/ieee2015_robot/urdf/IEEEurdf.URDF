@@ -6,7 +6,7 @@
         xyz="-0.000264760661064783 0.00664648963349924 0.000264762912808713"
         rpy="0 0 0" />
       <mass
-        value="1.15919256315212" />
+        value="15.15919256315212" /><!-- initialy 1.159-->
       <inertia
         ixx="0.0067094003476943"
         ixy="-2.34510261921351E-06"
@@ -46,7 +46,7 @@
         xyz="0.00388945308315219 4.79531763399738E-06 -1.38067043967127E-06"
         rpy="0 0 0" />
       <mass
-        value="0.0736541264322109" />
+        value="0.0736541264322109" /> <!--orig 0.07-->
       <inertia
         ixx="2.77194970489744E-05"
         ixy="-3.49012075170458E-09"
@@ -99,7 +99,7 @@
         xyz="-0.238089456274567 3.97925711011909E-06 2.9933165490853E-06"
         rpy="0 0 0" />
       <mass
-        value="0.0736541281508339" />
+        value="0.0736541281508339" />  <!---->
       <inertia
         ixx="2.77194939807717E-05"
         ixy="2.89824828067423E-09"
@@ -152,7 +152,7 @@
         xyz="0.00388945627456712 3.97925711014685E-06 -2.99331654884938E-06"
         rpy="0 0 0" />
       <mass
-        value="0.0736541281508339" />
+        value="0.0736541281508339" />  <!---->
       <inertia
         ixx="2.77194939807717E-05"
         ixy="-2.89824828068812E-09"
@@ -205,7 +205,7 @@
         xyz="-0.00636445308315207 4.79531763405289E-06 1.38067043978229E-06"
         rpy="0 0 0" />
       <mass
-        value="0.0736541264322109" />
+        value="0.0736541264322109" />   <!---->
       <inertia
         ixx="2.77194970489743E-05"
         ixy="3.49012075168172E-09"
@@ -258,7 +258,7 @@
         xyz="0.000681964404144919 0.0310539448648574 -0.0127837530436466"
         rpy="0 0 0" />
       <mass
-        value="0.571743531126574" />
+        value="0.271743531126574" />  <!--was .57-->
       <inertia
         ixx="0.00130664575781196"
         ixy="2.01805366799632E-05"
@@ -293,16 +293,21 @@
   </link>
   <joint
     name="ArmYRotCont"
-    type="continuous">
+    type="revolute">
     <origin
       xyz="0 0 0.02266"
-      rpy="1.5708 -4.2993E-16 -0.7854" />
+      rpy="1.5708 -4.2993E-16 -3.14" />
     <parent
       link="base_link" />
     <child
       link="ArmYRot" />
     <axis
       xyz="0 -1 0" />
+      <limit
+      lower="-999"
+      upper="999"
+      effort="10"
+      velocity="1" />
   </joint>
   <link
     name="ArmRot1">
@@ -311,7 +316,7 @@
         xyz="0.00851780401293389 0.0652472578677626 0.0130718014658456"
         rpy="0 0 0" />
       <mass
-        value="0.247629627425225" />
+        value="0.187629627425225" /> <!--was .24-->
       <inertia
         ixx="0.00083952384826181"
         ixy="5.66840333807547E-05"
@@ -357,8 +362,8 @@
     <axis
       xyz="1 0 0" />
     <limit
-      lower="0"
-      upper="0"
+      lower="-1.77"
+      upper="1.37"
       effort="10"
       velocity="1" />
   </joint>
@@ -369,7 +374,7 @@
         xyz="0.00563335405046204 -0.0743495625672852 0.0774120463323625"
         rpy="0 0 0" />
       <mass
-        value="0.274282093236145" />
+        value="0.204282093236145" /> <!--was .27-->
       <inertia
         ixx="0.00181284257514748"
         ixy="5.21711953619901E-05"
@@ -415,14 +420,14 @@
     <axis
       xyz="1 0 0" />
     <limit
-      lower="0"
-      upper="0"
+      lower="-5"
+      upper=".9"
       effort="10"
       velocity="1" />
   </joint>
 
 
-  <gazebo reference="FLWheel">
+ <gazebo reference="FLWheel">
       <material>Gazebo/Gold</material>
   </gazebo>
   <gazebo reference="FRWheel">
@@ -469,9 +474,51 @@
   </gazebo>
 
 
+
+  <transmission name="ArmYRotTrans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="ArmYRotCont">
+      <hardwareInterface>EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="ArmYRotMotor">
+      <hardwareInterface>EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <transmission name="ArmRot1Trans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="ArmRot1Rev">
+      <hardwareInterface>EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="ArmRot1Motor">
+      <hardwareInterface>EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <transmission name="ArmRot2Trans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="ArmRot2Rev">
+      <hardwareInterface>EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="ArmRot2Motor">
+      <hardwareInterface>EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      <robotNamespace>/robot</robotNamespace>
+    </plugin>
+  </gazebo>
+
+
   <!-- Camera -->
   <joint name="camera_joint" type="fixed">
-     <origin xyz="0 -.15 .040" rpy="0 0 -1.57"/>
+     <origin xyz="0 -.15 -.015" rpy="0 0 -1.57"/>
      <parent link="base_link"/>
      <child link="camera_link"/>
      <axis xyz="1 0 0" />
@@ -539,5 +586,81 @@
       </plugin>
     </sensor>
   </gazebo> 
-</robot>
 
+
+<!-- Kinect -->
+  <joint name="kinect_joint" type="fixed">
+     <origin xyz="0 -.1 .04" rpy="0 0 -1.57"/>
+     <parent link="base_link"/>
+     <child link="kinect_link"/>
+     <axis xyz="1 0 0" />
+  </joint>
+ 
+  <link name="kinect_link">
+    <inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.025 0.1 0.025"/>
+      </geometry>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.1 0.025 0.025"/>
+      </geometry>
+    </collision> 
+  </link>
+
+<gazebo reference="kinect_link">
+    <sensor type="depth" name="kinect">       
+        <always_on>1</always_on>
+        <visualize>true</visualize>             
+        <camera>
+            <horizontal_fov>1.047</horizontal_fov>  
+            <image>
+                <width>640</width>
+                <height>480</height>
+                <format>R8G8B8</format>
+            </image>
+            <depth_camera>
+
+            </depth_camera>
+            <clip>
+                <near>0.1</near>
+                <far>100</far>
+            </clip>
+        </camera>
+        <plugin name="kinect_controller" filename="libgazebo_ros_openni_kinect.so">
+            <alwaysOn>true</alwaysOn>
+            <updateRate>10.0</updateRate>
+            <cameraName>robot/kinect</cameraName>
+            <frameName>kinect_link</frameName>                   
+            <imageTopicName>rgb/image_raw</imageTopicName>
+            <depthImageTopicName>depth/image_raw</depthImageTopicName>
+            <pointCloudTopicName>depth/points</pointCloudTopicName>
+            <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>              
+            <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>            
+            <pointCloudCutoff>0.4</pointCloudCutoff>                
+            <hackBaseline>0.07</hackBaseline>
+            <distortionK1>0.0</distortionK1>
+            <distortionK2>0.0</distortionK2>
+            <distortionK3>0.0</distortionK3>
+            <distortionT1>0.0</distortionT1>
+            <distortionT2>0.0</distortionT2>
+            <CxPrime>0.0</CxPrime>
+            <Cx>0.0</Cx>
+            <Cy>0.0</Cy>
+            <focalLength>0.0</focalLength>
+        </plugin>
+    </sensor>
+</gazebo>
+
+
+</robot>
