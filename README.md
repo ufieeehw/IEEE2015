@@ -60,3 +60,41 @@ Th-th-th-that's all folks!
 * When publishing and subscribing to measured topics, ALWAYS SPECIFY UNITS AND A REFERENCE FRAME!
 
 * Indent with 4 spaces
+
+
+## Controlling the Robot in Gazebo
+
+* You should already have gazebo installed previously, you also need to install ros_control:
+  ```sudo apt-get install ros-indigo-ros-control ros-indigo-ros-controllers```
+
+* To launch gazebo and set up the robot:
+
+  ```roscore```
+  Seperate window:
+  ```roslaunch robot_control robot_control.launch```
+  Seperate window:
+  ```roslaunch ieee2015_gazebo_sim gazebo.launch```
+
+  You should now see the robot standing on the starting position in Gazebo.
+
+
+* To move the robot:
+  Type the command rostopic pub /desired_velocity geometry_msgs/Twist then hit Tab twice, it should bring up a list    of x y z under Linear and Angular, use linear x y to move the robot, and angular z to turn it.
+  Should look something like this:
+  ```rostopic pub /desired_velocity geometry_msgs/Twist "linear:```
+
+  ``` x: 0.0```
+  ``` y: 0.0```
+  ``` z: 0.0```
+  ```angular:```
+  ``` x: 0.0```
+  ``` y: 0.0```
+  ``` z: 0.0" ```
+
+* To move the arm:
+  Base:
+  ```rostopic pub -1 /robot/joint1_position_controller/command std_msgs/Float64 "data: 1.5"```
+  "Bicep":
+  ```rostopic pub -1 /robot/joint2_position_controller/command std_msgs/Float64 "data: 1.5"```
+  "Forearm":
+  ```rostopic pub -1 /robot/joint3_position_controller/command std_msgs/Float64 "data: 1.5"```
