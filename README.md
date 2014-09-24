@@ -68,7 +68,6 @@ Th-th-th-that's all folks!
   ```sudo apt-get install ros-indigo-ros-control ros-indigo-ros-controllers```
 
 * To launch gazebo and set up the robot:
-
   ```roscore```
   Seperate window:
   ```roslaunch robot_control robot_control.launch```
@@ -77,19 +76,8 @@ Th-th-th-that's all folks!
 
   You should now see the robot standing on the starting position in Gazebo.
 
-
 * To move the robot:
-  Type the command rostopic pub /desired_velocity geometry_msgs/Twist then hit Tab twice, it should bring up a list    of x y z under Linear and Angular, use linear x y to move the robot, and angular z to turn it.
-  Should look something like this:
-  ```rostopic pub /desired_velocity geometry_msgs/Twist "linear:```
-
-  ``` x: 0.0```
-  ``` y: 0.0```
-  ``` z: 0.0```
-  ```angular:```
-  ``` x: 0.0```
-  ``` y: 0.0```
-  ``` z: 0.0" ```
+  Type the command ```rostopic pub /desired_velocity geometry_msgs/Twist``` then hit Tab twice, it should bring up a   list of x y z under Linear and Angular, use linear x y to move the robot, and angular z to turn it.
 
 * To move the arm:
   Base:
