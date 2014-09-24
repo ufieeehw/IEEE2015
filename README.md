@@ -68,11 +68,11 @@ Th-th-th-that's all folks!
   ```sudo apt-get install ros-indigo-ros-control ros-indigo-ros-controllers```
 
 * To launch gazebo and set up the robot:
-  ```roscore```
+  `roscore`
   Seperate window:
-  ```roslaunch robot_control robot_control.launch```
+  `roslaunch robot_control robot_control.launch`
   Seperate window:
-  ```roslaunch ieee2015_gazebo_sim gazebo.launch```
+  `roslaunch ieee2015_gazebo_sim gazebo.launch`
 
   You should now see the robot standing on the starting position in Gazebo.
 
