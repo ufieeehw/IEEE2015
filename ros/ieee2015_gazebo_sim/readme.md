@@ -2,9 +2,9 @@
 
 ## Installation
 
-```sudo apt-get install ros-indigo-gazebo-ros-pkgs
+```sudo apt-get install ros-indigo-gazebo-ros-pkgs```
 
-echo "export GAZEBO_MODEL_PATH=~/catkin_ws/src/IEEE2015/ros/ieee2015_gazebo_sim/" >> ~/.bashrc```
+```echo "export GAZEBO_MODEL_PATH=~/catkin_ws/src/IEEE2015/ros/ieee2015_gazebo_sim/" >> ~/.bashrc```
 
 Where ~/catkin_ws is the path to your ros workspace. (If you followed the first few ROS tutorials, this should be the exact path)
 
