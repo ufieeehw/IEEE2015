@@ -13,8 +13,6 @@
 #define OK                    0x00
 #define QUEUE_FULL_TYPE       0x30
 #define QUEUE_EMPTY_TYPE      0x31
-#define BUFFER_FULL_TYPE      0x32
-#define BUFFER_EMPTY_TYPE     0x33
 
 //"JOSH IS COOL" message type, makes host computer print "JOSH IS COOL"
 #define JOSHISCOOL_TYPE       0xFE

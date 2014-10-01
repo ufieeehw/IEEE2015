@@ -16,11 +16,11 @@ Message* out_queue_end = 0;
 int queue_pop(Message* m, int direction){
   //determine the proper queue
   if(!direction){               //in queue
-    if(!in_queue) return QUEUE_EMPTY_TYPE;  //queue is empty
+    if(!in_queue) return MESSAGE_ERROR_TYPE;  //queue is empty
     m->next = in_queue;         //add the node
-    in_queue = m;               //redefine the tail
+    in_queue = m;               //redefine the head
   } else{                       //out queue
-    if(!out_queue) return QUEUE_EMPTY_TYPE;
+    if(!out_queue) return MESSAGE_ERROR_TYPE;
     m->next = out_queue;
     out_queue = m;
   }
@@ -30,7 +30,7 @@ int queue_pop(Message* m, int direction){
 /* Function will add message to selected queue
  * Returns 0 if successfull */
 int queue_push(Message* m, int direction){
-  if(MAX_MESSAGE >= message_count) return QUEUE_FULL_TYPE;  //no more space
+  if(MAX_MESSAGE >= message_count) return MESSAGE_ERROR_TYPE;  //no more space
   
   m->next = 0;  //set the next pointer to null
   

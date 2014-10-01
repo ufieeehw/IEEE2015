@@ -9,13 +9,20 @@
 #define DATA_2B_TYPE          0x80
 #define DATA_NB_TYPE          0xC0
 
-//Error Handling Types
-#define OK                    0x00
-#define QUEUE_FULL_TYPE       0x30
-#define QUEUE_EMPTY_TYPE      0x31
 
-//"JOSH IS COOL" message type, makes host computer print "JOSH IS COOL"
-#define JOSHISCOOL_TYPE       0xFE
+//Error Types must have 11 as bits 6 and 5 (3)
+#define ERROR_MASK            0x30
+#define ERROR_TYPE            0x30
+#define IS_ERROR_TYPE(x)      ((x & ERROR_MASK) == ERROR_TYPE)
+
+//Error Type Definitions (should represent an entire subsystem)
+#define OK                    0x00
+#define MESSAGE_ERROR_TYPE    0x30
+#define BUFFER_ERROR_TYPE     0x31
+#define VECTOR_ERROR_TYPE     0xF0
+
+//Example: "JOSH IS COOL" message type, makes host computer print "JOSH IS COOL"
+#define JOSHISCOOL_TYPE       0x01
 
 
 
