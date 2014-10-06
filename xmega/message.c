@@ -15,14 +15,14 @@ Message* out_queue_end = 0;
  * Returns 0 (OK) if successful */
 int queue_pop(Message* m, int direction){
   //determine the proper queue
-  if(!direction){               //in queue
+  if(IN_QUEUE == direction){               //in queue
     if(!in_queue) return MESSAGE_ERROR_TYPE;  //queue is empty
-    m->next = in_queue;         //add the node
-    in_queue = m;               //redefine the head
+    m = in_queue;               //add the node
+    in_queue = in_queue->next;  //redefine the head
   } else{                       //out queue
     if(!out_queue) return MESSAGE_ERROR_TYPE;
-    m->next = out_queue;
-    out_queue = m;
+    m = out_queue;
+    out_queue = out_queue->next;
   }
   return OK;
 }
@@ -30,17 +30,27 @@ int queue_pop(Message* m, int direction){
 /* Function will add message to selected queue
  * Returns 0 if successfull */
 int queue_push(Message* m, int direction){
-  if(MAX_MESSAGE >= message_count) return MESSAGE_ERROR_TYPE;  //no more space
+  if(MAX_MESSAGE <= message_count) return MESSAGE_ERROR_TYPE;  //no more space
   
   m->next = 0;  //set the next pointer to null
   
   //determine the proper queue
-  if(!direction){               //incoming
-    in_queue_end->next = m;     //add the node
-    in_queue_end = m;           //redefine the tail
+  if(IN_QUEUE == direction){     //incoming
+    if(!in_queue){ //special case if queue is empty
+      in_queue = m;
+      in_queue_end = m;
+    } else {  //normal execution   
+      in_queue_end->next = m;     //add the node
+      in_queue_end = m;           //redefine the tail
+    }
   } else {                      //out
-    out_queue_end->next = m;
-    out_queue_end = m;
+    if(!out_queue){ //check if queue is empty
+      out_queue = m;
+      out_queue_end = m;
+    } else {  //normal execution   
+      out_queue_end->next = m;     //add the node
+      out_queue_end = m;           //redefoute the tail
+    }
   }
   return OK;
 }

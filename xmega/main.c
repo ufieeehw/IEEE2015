@@ -59,6 +59,7 @@ int main(){
         m->type = (uint8_t) status; //set the type to the error code
         queue_push(m,OUT_QUEUE); //report errors to host computer
       }
+      free(m);  //free the memory
     }
   }
 }

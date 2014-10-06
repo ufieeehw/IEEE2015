@@ -9,7 +9,7 @@ Message topics are defined in types.h.
  -To subscribe to a message topic, create a function and add it to the list in table.c with the same value as the topic
   --Your function must accept only a message pointer as an argument, and must return an integer error code (OK is the norm)
 
-*ALWAYS* free the memory when done reading a message, and make sure to use calloc() to create a new message.
+*NEVER* free the memory when passed a message (parent will handle it), and make sure to use calloc() to allocate a new message for sending.
 
 To send a message, call queue_push(Message *m, int direction).
  -Dierction should either be IN_QUEUE (for internally handled messages) or OUT_QUEUE(for computer bound messages)
