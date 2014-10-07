@@ -22,19 +22,45 @@ to start the simulation. You should see the robot (with some orange and blue col
 * `desired_velocity` sets a Twist velocity command in the robot frame
 * `odom` publishes simulated robot odometry
 * `robot/camera1/image` publishes images from the forward camera, view it using ```rosrun image_view image_view image:=/robot/camera1/image```
-
-We don't yet have a correct position publisher
+* `/robot/jointX_position_controller/command std_msgs/Float64` Where x is a value between 1-3 for the 3 joints of the arm, sets the position of the joint to the radian value.  See use a little furthur down.
 
 #### Unsimulated
 
 * The mecanum drive is not simulated, instead the desired velocity is immediately achieved
 
 
-### The Arm
-Coming soon!
 
-#### Joint Control Topics
-Coming Soon!
+## Controlling the Robot in Gazebo
+
+* You should already have gazebo installed previously, you also need to install ros_control:
+  ```sudo apt-get install ros-indigo-ros-control ros-indigo-ros-controllers```
+
+* To launch gazebo and set up the robot:
+  `roscore`
+  Seperate window:
+  `roslaunch robot_control robot_control.launch`
+  Seperate window:
+  `roslaunch ieee2015_gazebo_sim gazebo.launch`
+
+  You should now see the robot standing on the starting position in Gazebo.
+
+* To move the robot:
+  Type the command ```rostopic pub /desired_velocity geometry_msgs/Twist``` then hit Tab twice, it should bring up a   list of x y z under Linear and Angular, use linear x y to move the robot, and angular z to turn it.
+
+* To move the arm:
+  Base:
+  ```rostopic pub -1 /robot/joint1_position_controller/command std_msgs/Float64 "data: 1.5"```
+  "Bicep":
+  ```rostopic pub -1 /robot/joint2_position_controller/command std_msgs/Float64 "data: 1.5"```
+  "Forearm":
+  ```rostopic pub -1 /robot/joint3_position_controller/command std_msgs/Float64 "data: 1.5"```
+  The "data" is a radian value for the arm position
+
+* New feature! Move the arm without stupid commands!
+  Do the previous stated setup procedure.
+  Go to ```"Your workspace"/IEEE2015/ros/ieee2015_controller/src``` and run ```./arm_controller.py```
+  Go to ```"Your workspace"/IEEE2015/ros/ieee2015_simulator/scripts``` and run ```./arm_simulator.py```
+  Have fun clicking stuff instead of typing! Left side of the window is the front of the arm.
 
 ## Notes
 
