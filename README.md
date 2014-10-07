@@ -30,7 +30,9 @@ then run
 ```catkin_make -C ~/catkin_ws```
 
 
-##**Git Best Practices**
+## **Git Best Practices**
+
+* When you commit something, the message should be of format "TOPIC: Verb action" - ex: "VISION: Add etch-a-sketch detection". This is important so that we can see a chronological list of commits and know what has caused changes
 
 * Please include a readme.md with any new package. It should describe:
     * The topics it publishes to and listens to
