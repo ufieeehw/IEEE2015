@@ -7,7 +7,7 @@ import rospy
 import tf.transformations as tf_trans
 import tf
 ## Ros Msgs
-from std_msgs.msg import Header, Float32
+from std_msgs.msg import Header, Float32, Float64
 from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
 
 
@@ -26,7 +26,9 @@ class SCARA_Controller(object):
         self.pose_sub = rospy.Subscriber('arm_des_pose', PointStamped, self.got_des_pose)
 
         self.elbow_pub = rospy.Publisher('arm_elbow_angle', Float32, queue_size=1)
+        self.elbow_pub2 = rospy.Publisher('robot/joint3_position_controller/command', Float64, queue_size=2)
         self.base_pub = rospy.Publisher('arm_base_angle', Float32, queue_size=1)
+        self.base_pub2 = rospy.Publisher('robot/joint2_position_controller/command', Float64, queue_size=2)
         self.des_position = None
 
     def got_des_pose(self, msg):
@@ -41,8 +43,24 @@ class SCARA_Controller(object):
     def publish_angles(self, base, elbow):
         '''This should be goddamn obvious'''
         print("Targeting angles base: {0:0.2f} (rad), elbow: {0:0.2f} (rad)".format(base, elbow))
+        print(base)
+        print(elbow)
+
+        if base >= 0:
+            base2 = np.pi - base
+        else:
+            base2 = -np.pi - base
+
+        '''if elbow >= 0:
+            elbow2 = np.pi - elbow
+        else:
+            elbow2 = np.pi - elbow'''
+        elbow2 = elbow
+
         self.base_pub.publish(Float32(data=base))
+        self.base_pub2.publish(Float64(data=-base2))
         self.elbow_pub.publish(Float32(data=elbow))
+        self.elbow_pub2.publish(Float64(data=elbow2))
 
     def solve_angles(self, pt):
         '''2DOF has a closed form solution, this method only slightly extends to higher DOF, where there is not a closed form
@@ -56,11 +74,18 @@ class SCARA_Controller(object):
             return None
 
         base_angle = np.arctan2(y, x) - np.arccos(distance / (2 * self.length_1))
+        if base_angle < -1.57:
+            base_angle = base_angle + 2*np.pi
+            if base_angle > 3.14:
+                base_angle = 3.14
+        if base_angle > -1.57 and base_angle < 0:
+                base_angle = 0
         abs_joint_angle = np.arctan2(y - (self.length_1 * np.sin(base_angle)),
                                      x - (self.length_1 * np.cos(base_angle)))
         joint_angle = abs_joint_angle - base_angle
-        return (normalize_angle(base_angle + np.pi), normalize_angle(np.pi + joint_angle))
 
+        '''return (normalize_angle(base_angle + np.pi), normalize_angle(np.pi + joint_angle))'''
+        return (base_angle, normalize_angle(np.pi + joint_angle))
 
 if __name__ == '__main__':
     tests = map(
