@@ -25,8 +25,8 @@ class SCARA_Controller(object):
 
         self.pose_sub = rospy.Subscriber('arm_des_pose', PointStamped, self.got_des_pose)
 
-        self.elbow_pub = rospy.Publisher('arm_elbow_angle', Float32)
-        self.base_pub = rospy.Publisher('arm_base_angle', Float32)
+        self.elbow_pub = rospy.Publisher('arm_elbow_angle', Float32, queue_size=1)
+        self.base_pub = rospy.Publisher('arm_base_angle', Float32, queue_size=1)
         self.des_position = None
 
     def got_des_pose(self, msg):
