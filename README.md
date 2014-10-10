@@ -30,7 +30,9 @@ then run
 ```catkin_make -C ~/catkin_ws```
 
 
-##**Git Best Practices**
+## **Git Best Practices**
+
+* When you commit something, the message should be of format "TOPIC: Verb action" - ex: "VISION: Add etch-a-sketch detection". This is important so that we can see a chronological list of commits and know what has caused changes
 
 * Please include a readme.md with any new package. It should describe:
     * The topics it publishes to and listens to
@@ -61,29 +63,3 @@ Th-th-th-that's all folks!
 
 * Indent with 4 spaces
 
-
-## Controlling the Robot in Gazebo
-
-* You should already have gazebo installed previously, you also need to install ros_control:
-  ```sudo apt-get install ros-indigo-ros-control ros-indigo-ros-controllers```
-
-* To launch gazebo and set up the robot:
-  `roscore`
-  Seperate window:
-  `roslaunch robot_control robot_control.launch`
-  Seperate window:
-  `roslaunch ieee2015_gazebo_sim gazebo.launch`
-
-  You should now see the robot standing on the starting position in Gazebo.
-
-* To move the robot:
-  Type the command ```rostopic pub /desired_velocity geometry_msgs/Twist``` then hit Tab twice, it should bring up a   list of x y z under Linear and Angular, use linear x y to move the robot, and angular z to turn it.
-
-* To move the arm:
-  Base:
-  ```rostopic pub -1 /robot/joint1_position_controller/command std_msgs/Float64 "data: 1.5"```
-  "Bicep":
-  ```rostopic pub -1 /robot/joint2_position_controller/command std_msgs/Float64 "data: 1.5"```
-  "Forearm":
-  ```rostopic pub -1 /robot/joint3_position_controller/command std_msgs/Float64 "data: 1.5"```
-  The "data" is a radian value for the arm position

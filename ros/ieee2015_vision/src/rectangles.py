@@ -13,7 +13,7 @@ from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
 import cv2
 
 class RectangleFinder(object):
-    '''
+    '''Rectangle Finder Class
     Implementing
     [1] http://www.zemris.fer.hr/~ssegvic/pubs/sikiric10mipro.pdf
     [2] http://stackoverflow.com/questions/6606891/
