@@ -30,8 +30,8 @@ extern Message* out_queue_end;
 #define IN_QUEUE      0x00
 
 //queue interaction functions (in = 0)
-int queue_pop(Message* m, int direction);  //get a message from the queue
-int queue_push(Message* m, int direction); //add a message to the queue
+int queue_pop(Message* m, int direction); //get a message from the queue
+int queue_push(Message m, int direction); //add a message to the queue
 
 #endif
 

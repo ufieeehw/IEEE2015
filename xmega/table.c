@@ -11,7 +11,7 @@
 #include "table.h"
  
 //NO_DATA_TYPE function pointers (messages with only a type field)
-int (*no_data_func[NO_DATA_ARRAY_SIZE]) (Message* m) = {
+int (*no_data_func[NO_DATA_ARRAY_SIZE]) (Message m) = {
   no_func,    //0x00 - reserved (OK)
   no_func,    //0x01 - unused
   no_func,    //0x02 - unused
@@ -19,7 +19,7 @@ int (*no_data_func[NO_DATA_ARRAY_SIZE]) (Message* m) = {
 };
  
 //DATA_1B_TYPE function pointers (messages with 1 byte of data)
-int (*data_1b_func[DATA_1B_ARRAY_SIZE]) (Message* m) = {
+int (*data_1b_func[DATA_1B_ARRAY_SIZE]) (Message m) = {
   no_func,    //0x40 - unused
   no_func,    //0x41 - unused
   no_func,    //0x42 - unused
@@ -28,7 +28,7 @@ int (*data_1b_func[DATA_1B_ARRAY_SIZE]) (Message* m) = {
 
 
 //DATA_2B_TYPE function pointers (messaegs with 2 bytes of data)
-int (*data_2b_func[DATA_2B_ARRAY_SIZE]) (Message* m) = {
+int (*data_2b_func[DATA_2B_ARRAY_SIZE]) (Message m) = {
   no_func,    //0x80 - unused
   no_func,    //0x81 - unused
   no_func,    //0x82 - unused
@@ -37,7 +37,7 @@ int (*data_2b_func[DATA_2B_ARRAY_SIZE]) (Message* m) = {
 
 
 //DATA_NB_TYPE function pointers (arbitrary length messages)
-int (*data_nb_func[DATA_NB_ARRAY_SIZE]) (Message* m) = {
+int (*data_nb_func[DATA_NB_ARRAY_SIZE]) (Message m) = {
   no_func,    //0xC0 - unused
   no_func,    //0xC1 - unused
   no_func,    //0xC2 - unused
@@ -46,22 +46,22 @@ int (*data_nb_func[DATA_NB_ARRAY_SIZE]) (Message* m) = {
  
  
 //placeholder function will report errors, returns queue status (also good example function)
-int no_func(Message* m){
-  if(IS_ERROR_TYPE(m->type)){
+int no_func(Message m){
+  if(IS_ERROR_TYPE(m.type)){
     return queue_push(m,OUT_QUEUE); //misdirected error, bounce to outgoing queue
   }
   
   //otherwise pack new error message
-  Message* m_out = calloc(1,sizeof(Message)); //allocate space
-  m_out->type = VECTOR_ERROR_TYPE;  //set type
-  m_out->size = ((m->type & DATA_MASK) == DATA_NB_TYPE)? m->size+2 : m->size+1;  //get the size
-  m_out->data = malloc(m_out->size);  //allocate space
-  m_out->data[0] = m->type;  //copy the type field
-  if((m->type & DATA_MASK) == DATA_NB_TYPE){  //NB_types send a size field
-    m_out->data[1] = m->size;
-    memcpy(m_out->data+2,m->data,m_out->size-2);
+  Message m_out;
+  m_out.type = VECTOR_ERROR_TYPE;  //set type
+  m_out.size = ((m.type & DATA_MASK) == DATA_NB_TYPE)? m.size+2 : m.size+1;  //get the size
+  m_out.data = malloc(m_out.size);  //allocate space
+  m_out.data[0] = m.type;  //copy the type field
+  if((m.type & DATA_MASK) == DATA_NB_TYPE){  //NB_types send a size field
+    m_out.data[1] = m.size;
+    memcpy(m_out.data+2,m.data,m_out.size-2);
   } else {  //other types don't send size field
-    memcpy(m_out->data+1,m->data,m_out->size-1);
+    memcpy(m_out.data+1,m.data,m_out.size-1);
   }
   
   return queue_push(m_out,OUT_QUEUE);  //add the message to the queue
