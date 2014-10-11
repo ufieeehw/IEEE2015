@@ -69,7 +69,8 @@ void resolve_buffers(int bytes){
   int turn = IN_QUEUE;  //keep track of who's turn it is
 
   //loop while there's work available and we're under the byte cap (timesharing)
-  while((in_buffer->start != in_buffer->end || ((out_buffer->start != (out_buffer->end+1)%MAX_BUFFER_LENGTH) && out_queue)) && bytes > 0){
+  //loop while: (in buffer is not empty || (out buffer is not full && (there is an outgoing message || we're processing one))) && we're still allowed to
+  while((in_buffer->start != in_buffer->end || ((out_buffer->start != (out_buffer->end+1)%MAX_BUFFER_LENGTH) && (out_queue || out_count))) && bytes > 0){
     //go until in buffer is empty and output buffer is full or there are no more messages
     //decide who's turn it is (alternate unless somebody is full/empty)
     if(in_buffer->start == in_buffer->end) turn = OUT_QUEUE; //if in_buffer is empty, it's out buffer's turn
@@ -98,10 +99,9 @@ void resolve_single_input(){
   uint8_t data;
     
   buffer_pop(in_buffer, &data); //read a byte from the buffer
-  in_count++; //new byte, increment count
   
   //preform different actions based on the byte count
-  if(1 == in_count){  //type field
+  if(0 == in_count){  //type field
     m_in.type = data; //get the data
     m_in.data = 0;    //null pointer
     if((m_in.type & DATA_MASK ) == NO_DATA_TYPE){  //determine the size
@@ -112,53 +112,56 @@ void resolve_single_input(){
     } else if((m_in.type & DATA_MASK ) == DATA_2B_TYPE){
       m_in.size = 2;
       m_in.data = (uint8_t*) malloc(2);  //allocate 2B for data
-    } else if((m_in.type & DATA_MASK ) == DATA_NB_TYPE) m_in.size = 0;  //size is not here yet
-  } else if (2 == in_count && ((m_in.type & DATA_MASK ) == DATA_NB_TYPE)){
+    } else if((m_in.type & DATA_MASK ) == DATA_NB_TYPE) m_in.size = 2;  //size is not here yet
+  } else if (1 == in_count && ((m_in.type & DATA_MASK ) == DATA_NB_TYPE)){
     m_in.size = data;  //get the size
     m_in.data = (uint8_t*) malloc(m_in.size); //allocate the requested amount of data
   } else {  //byte is data
     offset = ((m_in.type & DATA_MASK ) == DATA_NB_TYPE)? in_count - 2: in_count - 1;
     *((m_in.data)+offset) = data;  //store the byte
   }
-  if(offset == m_in.size){  //check if we've got the whole message
+  if(((m_in.type & DATA_MASK) == NO_DATA_TYPE) || offset+1 == m_in.size){  //check if we've got the whole message
     if(OK != queue_push(m_in,IN_QUEUE))  //try to push the incoming message to the queue
       error = MESSAGE_ERROR_TYPE; //report the error on failure
     in_count = 0; //reset the counter
-  }
+  } else in_count++; //new byte, increment count
 }
 
 /* function will place a single output byte in the buffer */
 void resolve_single_output(){
   uint8_t data; //the data to buffer
-  int offset = 0;   //offset into the data field
-  ++out_count;  //incremet this message's sent byte count
+  int offset = -2;   //offset into the data field
   
-  if(1 == out_count){ //new message, send type
+  if(0 == out_count){ //new message, send type
     if(OK != queue_pop(&m_out,OUT_QUEUE)){ //get the next message in the queue
       out_count = 0;  //no message, shut the whole thing down
       return; 
     }
     data = m_out.type;  //send the type field
-  } else if(((m_out.type & DATA_MASK ) == DATA_NB_TYPE) && out_count == 2) data = m_out.size; //send the size
-  else { //send the data
+    if((m_out.type & DATA_MASK ) != DATA_NB_TYPE) m_out.size = m_out.type >> 6; //make sure size is correct
+  } else if(((m_out.type & DATA_MASK ) == DATA_NB_TYPE) && out_count == 1){
+    data = m_out.size; //send the size
+  } else { //send the data
     offset = ((m_out.type & DATA_MASK ) == DATA_NB_TYPE)? out_count - 2 : out_count - 1;
-    data = m_out.data[offset];
+    data = *(m_out.data + offset);
   }
     
   buffer_push(out_buffer, data);  //place the data in the buffer
+  ++out_count;  //incremet this message's sent byte count
   
   if(!usart_busy_flag){ //check if interrupt is disabled
     usart_busy_flag = 1;  //usart is now busy
     USARTC0.CTRLA = USART_RXCINTLVL_HI_gc || USART_DREINTLVL_MED_gc;	//enable the interrupt
   }
   
-  if(offset == m_out.size){  //check if message is done
+  if(((m_out.type & DATA_MASK) == NO_DATA_TYPE) || offset+1 == m_out.size){  //check if message is done
+    if((m_out.type & DATA_MASK) != NO_DATA_TYPE) free(m_out.data);  //free the buffer
     out_count = 0;  //clear the count
   }
 }
 
 ISR(USARTC0_RXC_vect){
-	int status = buffer_push(in_buffer,USARTC0.DATA);
+  int status = buffer_push(in_buffer,USARTC0.DATA);
   if(status != OK) error = status; //report error (full buffer)
 }
 

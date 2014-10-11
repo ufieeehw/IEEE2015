@@ -47,8 +47,14 @@ int (*data_nb_func[DATA_NB_ARRAY_SIZE]) (Message m) = {
  
 //placeholder function will report errors, returns queue status (also good example function)
 int no_func(Message m){
-  if(IS_ERROR_TYPE(m.type)){
-    return queue_push(m,OUT_QUEUE); //misdirected error, bounce to outgoing queue
+  if(IS_ERROR_TYPE(m.type)){  //misdirected error, bounce to out_queue
+    //need to copy the data buffer otherwise it will be deleted on return
+    Message m_out = m;  //create a copy of the message
+    if((m.type & DATA_MASK) != NO_DATA_TYPE){
+      m_out.data = malloc(m.size);  //allocate new buffer space
+      memcpy(m_out.data, m.data, m.size); //copy data
+    }
+    return queue_push(m,OUT_QUEUE); //bounce to outgoing queue
   }
   
   //otherwise pack new error message

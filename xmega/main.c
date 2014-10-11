@@ -61,12 +61,14 @@ int main(){
           if(index < DATA_NB_ARRAY_SIZE) status = (*data_nb_func[index])(m);
           break;
       }
+      if(VECTOR_ERROR_TYPE == status) status = no_func(m); //report bad vectors
+      if((m.type & DATA_MASK) && m.size) free(m.data); //free data memory if it exists
       if(status != OK && status < 0x40){ //report single byte errors
         Message err; //create a message
         err.type = (uint8_t) status; //set the type to the error code
+        err.size = 0;
         queue_push(err,OUT_QUEUE);  //report errors to host computer
-      }
-      if(m.type & DATA_MASK && m.size) free(m.data); //free data memory if it exists
+      } 
     }
   }
 }
