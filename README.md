@@ -2,7 +2,7 @@ IEEE2015
 ========
 
 This is the code for the University of Florida's 2015 IEEE Robot.
-You need Ubuntu 14.04, and ROS Indigo. For some installation instructions, see github.com/uf-mil/getting_
+You need Ubuntu 14.04, and ROS Indigo. For some installation instructions, see github.com/uf-mil/getting_started
 
 ## Getting started
 
@@ -14,14 +14,16 @@ git clone git@github.com:ufieeehw/IEEE2015.git```
 
 Your directory structure should like like "... /catkin_ws/src/IEEE2015/ros/"
 
+
+### Simulators
 To use the 2D Simulators/Visualizers, you need pygame
 ```sudo apt-get install pygame```
 
 If you want to use the simulator, you need some Gazebo packages
 
-```sudo apt-get install ros-indigo-gazebo-ros-pkgs
-sudo apt-get install ros-indigo-ros-control ros-indigo-ros-controllers```
+```sudo apt-get install ros-indigo-gazebo-ros-pkgs ros-indigo-ros-control ros-indigo-ros-controllers```
 
+### Install Pre-Requisites
 
 To get everything without any effort, do:
 ```sudo apt-get install pygame ros-indigo-gazebo-ros-pkgs ros-indigo-ros-control ros-indigo-ros-controllers```
