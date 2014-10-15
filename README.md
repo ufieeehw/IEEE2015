@@ -8,6 +8,8 @@ You need Ubuntu 14.04, and ROS Indigo. For some installation instructions, see g
 
 All of this is written for Ubuntu 14.04 (Trusty Tahr) and ROS Indigo (ros.org/install)
 
+A good linux tutorial is [here](http://info.ee.surrey.ac.uk/Teaching/Unix/)
+
 Once you make your catkin workspace (the ROS tutorials will teach you how to do this), go to the src folder, and clone this repository
 ```cd ~/catkin_ws/src
 git clone git@github.com:ufieeehw/IEEE2015.git```
