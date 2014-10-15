@@ -6,27 +6,32 @@ You need Ubuntu 14.04, and ROS Indigo. For some installation instructions, see g
 
 ## Getting started
 
-All of this is written for Ubuntu 14.04 (Trusty Tahr) and ROS Indigo (ros.org/install)
+All of this is written for Ubuntu 14.04 (Trusty Tahr) and ROS Indigo (ros.org/install) - get the desktop-full version.
+
+First, follow [this tutorial](https://help.github.com/articles/generating-ssh-keys/) for setting up git. Then follow the first three ROS tutorials, and make your catkin workspace.
 
 Once you make your catkin workspace (the ROS tutorials will teach you how to do this), go to the src folder, and clone this repository
 ```cd ~/catkin_ws/src
+
 git clone git@github.com:ufieeehw/IEEE2015.git```
 
-Your directory structure should like like "... /catkin_ws/src/IEEE2015/ros/"
+Your directory structure should like like "~/catkin_ws/src/IEEE2015/ros/"
 
 
 ### Simulators
 To use the 2D Simulators/Visualizers, you need pygame
-```sudo apt-get install pygame```
+```sudo apt-get install python-pygame```
 
-If you want to use the simulator, you need some Gazebo packages
+If you want to use the 3D simulator, you need some Gazebo packages
 
 ```sudo apt-get install ros-indigo-gazebo-ros-pkgs ros-indigo-ros-control ros-indigo-ros-controllers```
 
 ### Install Pre-Requisites
 
 To get everything without any effort, do:
-```sudo apt-get install pygame ros-indigo-gazebo-ros-pkgs ros-indigo-ros-control ros-indigo-ros-controllers```
+```sudo apt-get install aptitude```
+
+```sudo aptitude install python-pygame ros-indigo-pcl-ros ros-indigo-gazebo-ros-pkgs ros-indigo-ros-control ros-indigo-ros-controllers```
 
 then run 
 ```catkin_make -C ~/catkin_ws```
