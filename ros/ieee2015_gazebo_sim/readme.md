@@ -28,8 +28,6 @@ to start the simulation. You should see the robot (with some orange and blue col
 
 * The mecanum drive is not simulated, instead the desired velocity is immediately achieved
 
-
-
 ## Controlling the Robot in Gazebo
 
 * You should already have gazebo installed previously, you also need to install ros_control:
@@ -46,7 +44,7 @@ to start the simulation. You should see the robot (with some orange and blue col
 
 * To move the robot:
   Type the command ```rostopic pub /desired_velocity geometry_msgs/Twist``` then hit Tab twice, it should bring up a   list of x y z under Linear and Angular, use linear x y to move the robot, and angular z to turn it.
-
+apt-get
 * To move the arm:
   Base:
   ```rostopic pub -1 /robot/joint1_position_controller/command std_msgs/Float64 "data: 1.5"```

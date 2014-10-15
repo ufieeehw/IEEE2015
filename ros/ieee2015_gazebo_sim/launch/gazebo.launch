@@ -2,6 +2,9 @@
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find ieee2015_gazebo_sim)/media/ieee.world"/>
   </include>
+  
+  <node name="ros_control" pkg="rospy_tutorials" type="talker" />
+
   <node
     name="tf_footprint_base"
     pkg="tf"
