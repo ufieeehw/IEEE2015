@@ -1,5 +1,6 @@
 import numpy as np
 from copy import deepcopy
+from numpy.linalg import inv
 import cv2
 
 
@@ -32,7 +33,7 @@ class VisualCortex:
 		#get the transform matrix
 		M = self.getForwardMatrix(viewCoordinates , mapCoordinates);
 		self._perspectiveMatrix = M;
-		print self._perspectiveMatrix;
+
 
 
 	####################################
@@ -61,7 +62,41 @@ class VisualCortex:
 		# Sort them in the order of their distance.
 		matches = sorted(matches, key = lambda x:x.distance)
 
-		return matches;
+		#end of orginial return matches;
+		
+		# store all the good matches as per Lowe's ratio test.
+		good = []
+		for m in matches:
+			#if m.distance < 0.7*n.distance: #good wiTH THis cutoff ratio?
+				good.append(m)
+
+		if len(good)>0:
+			src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
+			dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
+
+			M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+			matchesMask = mask.ravel().tolist()
+
+			#h,w = img1.shape
+			#pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
+			#dst = cv2.perspectiveTransform(pts,M)
+
+			#img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
+
+		else:
+				print "Not enough matches are found - %d/%d" % (len(good), 10)
+				matchesMask = None
+				M = None
+    	#im going to assume Matt's stuff takes care of this
+    	#draw_params = dict(matchColor = (0,255,0), # draw matches in green color
+         #          singlePointColor = None,
+          #         matchesMask = matchesMask, # draw only inliers
+           #        flags = 2)
+
+		#img3 = drawMatches(img1,kp1,img2,kp2,good,None,**draw_params)
+		return M, matchesMask, good
+		##############################need to return something of matches type##################################
+		#plt.imshow(img3, 'gray'),plt.show()
 
 
 	#use SIFT/SURF/ORB/other for determining the Rotation and Position of the robot
@@ -187,35 +222,40 @@ class VisualCortex:
 
 		return;
 
-	#this should display the two images superimposed on top of each other as if they were stitched
-	def superimposeImages(self,img1,img2,kp1,kp2,matches):
-		point1 = 200;
-		point2 = 201;
-		point3 = 203;
+	#this should display the two images superimposed on top of each other as if they were stitched, using 3 random points
+	def superimposeImages1(self,img1,img2,kp1,kp2,matches):
+		# indices of which points in "matches" to use
+		point1 = 0;
+		point2 = 1;
+		point3 = 2;
 		#pull out the indices that we matched up from the train
 		trainIndices = [matches[point1].trainIdx, matches[point2].trainIdx, matches[point3].trainIdx];
 		#pull out the indices that we matched up from the query
 		queryIndices = [matches[point1].queryIdx, matches[point2].queryIdx, matches[point3].queryIdx];
 
 		#gather the coordinates in train that we go TO
-		trainPts = np.float32([ kp1[trainIndices[0]].pt,
-								kp1[trainIndices[1]].pt,
-								kp1[trainIndices[2]].pt]);
+		trainPts = np.float32([ kp2[trainIndices[0]].pt,
+								kp2[trainIndices[1]].pt,
+								kp2[trainIndices[2]].pt]);
 		#gather the coordinates in query that we come FROM
-		queryPts = np.float32([ kp2[queryIndices[0]].pt,
-								kp2[queryIndices[1]].pt,
-								kp2[queryIndices[2]].pt]);
-
+		queryPts = np.float32([ kp1[queryIndices[0]].pt,
+								kp1[queryIndices[1]].pt,
+								kp1[queryIndices[2]].pt]);
 		#transform the query image
 		M = cv2.getAffineTransform(queryPts,trainPts);
-		rows,cols = img2.shape;
-		fullimg2 = cv2.warpAffine(img2,M,(cols,rows));
+		print M
+		rows1,cols1 = img1.shape;
+		rows2,cols2 = img2.shape;
+		rows = max(rows1,rows2)
+		cols = max(cols1,cols2)
+		fullimg1 = cv2.warpAffine(img1,M,(cols,rows));
+
 
 		#get ready to add it to the train image
-		fullimg1 = np.zeros((rows,cols), np.uint8);
-		for x in range(0,img1.shape[0]):
-			for y in range(0,img1.shape[1]):
-				fullimg1[x,y] = img1[x,y];
+		fullimg2 = np.zeros((rows,cols), np.uint8);
+		for x in range(0,img2.shape[0]):
+			for y in range(0,img2.shape[1]):
+				fullimg2[x,y] = img2[x,y];
 
 		superimposed = fullimg1/2 + fullimg2/2;
 
@@ -224,6 +264,31 @@ class VisualCortex:
 		while(1):
 		    cv2.imshow('query',fullimg2);
 		    cv2.imshow('train',fullimg1);
+		    cv2.imshow('both',superimposed);
+
+		    if cv2.waitKey(20) & 0xFF == 27:
+		        break
+		cv2.destroyAllWindows()
+
+		return;
+
+
+
+	#this should display the two images superimposed on top of each other as if they were stitched, using the BF M
+	def superimposeImages(self,img1,img2,M):
+		h,w = img1.shape
+		#M = inv(M)
+		fullimg2 = cv2.warpPerspective(img1,M,(w,h), flags = 1, borderMode = 0, borderValue = (255,0,0))
+
+
+
+		superimposed = fullimg2/2 + img1/2;
+
+
+
+		while(1):
+		    cv2.imshow('img1',img1);
+		    cv2.imshow('fullimg2',fullimg2);
 		    cv2.imshow('both',superimposed);
 
 		    if cv2.waitKey(20) & 0xFF == 27:
@@ -251,16 +316,14 @@ class VisualCortex:
 		#plot the keypoint matches
 		for i in range(0,numberofpoints):
 			#get indices of matched points in the kp arrays
-			index1 = matches[i].trainIdx;
-			index2 = matches[i].queryIdx;
+			index1 = matches[i].queryIdx;
+			index2 = matches[i].trainIdx;
 			#extract coordinates of these keypoints
 			feature1 = kp1[index1].pt;
 			feature2 = kp2[index2].pt;
-			print feature2;
 			#offset feature2
 			feature1 = tuple([int(feature1[0]), int(feature1[1])]);
 			feature2 = tuple([int(feature2[0] + cols1 + 5), int(feature2[1])]);
-			print feature2;
 			#put dots on these features
 			cv2.circle(fullimg, feature1, 2, (0,255,0), -1);
 			cv2.circle(fullimg, feature2, 2, (0,255,0), -1);
@@ -275,34 +338,43 @@ class VisualCortex:
 		cv2.destroyAllWindows()
 		return;
 
+	# given the mask generated from BF, use it to filter out the outliers from matches list
+	def filterMatches(self, good, matchesMask):
+		removeAt = []; 
+		count = 0;
+		for i in matchesMask:
+			if i == 0:
+				removeAt.append(count)
+			count = count + 1
+		for i in reversed(removeAt):
+			good.pop(i)
+		return good
 
 
 	#for testing the feature_detect and feature_match methods
-	def test_feature_map(self):
+	def test_feature_map(self,smallimg,bigimg):
 		#load images
-		img1 = cv2.imread('piece1.jpg',0) # trainImage
-		img2 = cv2.imread('piece2.jpg',0) # queryImage
+		# SMALL IMAGE MUST BE IMG2!!!!!!!!!!!!
+		#img1 = cv2.imread('Guyinfield.jpg',0) # queryImage
+		#img2 = cv2.imread('field.jpg',0) # trainImage
+		img1 = bigimg
+		img2 = smallimg
 
 		#get orb output
+		# I SWITCHED THE INDICES HERE.  BE CAREFUL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		kp1, des1 = VC.Feature_Detect(img1,None);
 		kp2, des2 = VC.Feature_Detect(img2,None);
 
 		#get matches matrix
-		matches = VC.Feature_Match(kp1,kp2,des1,des2);
+		M, matchesMask, good = VC.Feature_Match(kp1,kp2,des1,des2);
 
-		# Draw first 10 matches.
-		print len(matches);
-		print "number of features in 1 " + str(len(kp1));
-		print "number of features in 2 " + str(len(kp2));
-		for i in range(0,len(matches)):
-			print "we matched train index " + str(matches[i].trainIdx) + " with " + str(matches[i].queryIdx) + " and they had a weight of " + str(matches[i].distance);
-		print kp1[0].pt;
+		newgood = self.filterMatches(good,matchesMask)
 
 		#plot both images and then superimpose them on each other by matching three points
-		self.superimposeImages(img1,img2,kp1,kp2,matches);
+		#self.superimposeImages(img1,img2,M);
+		self.superimposeImages1(img1,img2,kp1,kp2,newgood)
 		#plot both images side by side and draw lines between matched points
-		self.drawMatches(img1,img2,kp1,kp2,matches,20);
-
+		self.drawMatches(img1,img2,kp1,kp2,newgood,3);
 
 
 		return;
@@ -333,14 +405,20 @@ mapCoordinates = np.float32([[556,481],[556,254],[783,481],[783,254]])
 VC = VisualCortex(viewCoordinates,mapCoordinates);
 #VC.test_transform_image(VC._perspectiveMatrix);
 
+#read world map
+img_location = 'template.jpg'
+worldmap = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
+print worldmap.shape
+
 #set filename and read it into an opencv object
-img_location = 'course.jpeg'
-img = cv2.imread(img_location)
+img_location = 'course.jpg'
+img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
+print img.shape
 #transform the camera view
 imgx = VC.Transform_Image(img,VC._perspectiveMatrix);
 
 #Use orb to find the features and descriptors (ignore ROI for now)
-VC.test_feature_map();
+VC.test_feature_map(imgx,worldmap);
 
 
 
@@ -350,4 +428,3 @@ VC.test_feature_map();
 
 
 #ORB stuff
-
