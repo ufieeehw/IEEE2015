@@ -1,5 +1,3 @@
-**Work in progress**
-
 --- Instructions for using API ---
 Everything in the robot will run off of messages sent by the computer or hardware/timing interrupts.
 Message topics are defined in types.h.
