@@ -54,7 +54,7 @@ int no_func(Message m){
       m_out.data = malloc(m.size);  //allocate new buffer space
       memcpy(m_out.data, m.data, m.size); //copy data
     }
-    return queue_push(m,OUT_QUEUE); //bounce to outgoing queue
+    return queue_push(m_out,OUT_QUEUE); //bounce to outgoing queue
   }
   
   //otherwise pack new error message
