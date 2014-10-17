@@ -1,3 +1,6 @@
+//add a mesage to the appropriate section
+//register at the start of the range for incoming/mixed message types
+//register at the end of the range for outgoing only types
 /*Message Types, Mask Definitions, and Macros */
 #ifndef _IEEE_TYPES_H_
 #define _IEEE_TYPES_H_
@@ -22,13 +25,15 @@
 
 
 //DATA_1B_TYPE messages [0x40-0x6F]
+#define DEBUG_TYPE            0x40
 
 
 //DATA_2B_TYPE messages [0x80-0xAF]
 
 
 //DATA_NB_TYPE messages [0xC0-0xEF]
-#define IMU_DATA_TYPE         0x80
+
+#define IMU_DATA_TYPE         0xEF
 
 
 /*Error Type Definitions (should represent an entire subsystem) */
