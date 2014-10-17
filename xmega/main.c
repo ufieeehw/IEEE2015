@@ -9,6 +9,7 @@
 #include "message.h"
 #include "usart.h"
 #include "table.h"
+#include "debug.h"
 
 //Quantum definitions (how many buffer operations per function call)
 #define BUFFER_ALLOWED  16
