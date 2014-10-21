@@ -173,6 +173,8 @@ class VisualCortex:
 		yint = (m1*xint+b1)
 		cv2.line(imgx, (int(newpoints[0,0]),int(newpoints[1,0])) , (int(xint),int(yint)) , (0,0,255),1)
 		cv2.line(imgx, (int(newpoints[0,2]),int(newpoints[1,2])) , (int(xint),int(yint)) , (0,0,255),1)
+		print "here is vertex"
+		print xint, yint
 		return xint, yint
 
 
@@ -226,8 +228,8 @@ class VisualCortex:
 	def superimposeImages1(self,img1,img2,kp1,kp2,matches):
 		# indices of which points in "matches" to use
 		point1 = 0;
-		point2 = 1;
-		point3 = 2;
+		point2 = 3;
+		point3 = 8;
 		#pull out the indices that we matched up from the train
 		trainIndices = [matches[point1].trainIdx, matches[point2].trainIdx, matches[point3].trainIdx];
 		#pull out the indices that we matched up from the query
@@ -243,7 +245,6 @@ class VisualCortex:
 								kp1[queryIndices[2]].pt]);
 		#transform the query image
 		M = cv2.getAffineTransform(queryPts,trainPts);
-		print M
 		rows1,cols1 = img1.shape;
 		rows2,cols2 = img2.shape;
 		rows = max(rows1,rows2)
@@ -259,8 +260,6 @@ class VisualCortex:
 
 		superimposed = fullimg1/2 + fullimg2/2;
 
-
-
 		while(1):
 		    cv2.imshow('query',fullimg2);
 		    cv2.imshow('train',fullimg1);
@@ -270,7 +269,12 @@ class VisualCortex:
 		        break
 		cv2.destroyAllWindows()
 
-		return;
+		frameLoc = [[400],[800],[1]];
+		robotLoc = np.dot(M,frameLoc);
+		print "Robot's position is:"
+		print robotLoc
+
+		return robotLoc;
 
 
 
@@ -354,11 +358,10 @@ class VisualCortex:
 	#for testing the feature_detect and feature_match methods
 	def test_feature_map(self,smallimg,bigimg):
 		#load images
-		# SMALL IMAGE MUST BE IMG2!!!!!!!!!!!!
-		#img1 = cv2.imread('Guyinfield.jpg',0) # queryImage
-		#img2 = cv2.imread('field.jpg',0) # trainImage
-		img1 = bigimg
-		img2 = smallimg
+		#img1 = cv2.imread('picasso3.jpg',0) # queryImage
+		#img2 = cv2.imread('picasso2.jpg',0) # trainImage
+		img2 = bigimg
+		img1 = smallimg
 
 		#get orb output
 		# I SWITCHED THE INDICES HERE.  BE CAREFUL!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -374,7 +377,7 @@ class VisualCortex:
 		#self.superimposeImages(img1,img2,M);
 		self.superimposeImages1(img1,img2,kp1,kp2,newgood)
 		#plot both images side by side and draw lines between matched points
-		self.drawMatches(img1,img2,kp1,kp2,newgood,3);
+		self.drawMatches(img1,img2,kp1,kp2,newgood,len(newgood)-1);
 
 
 		return;
@@ -408,14 +411,13 @@ VC = VisualCortex(viewCoordinates,mapCoordinates);
 #read world map
 img_location = 'template.jpg'
 worldmap = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
-print worldmap.shape
 
 #set filename and read it into an opencv object
 img_location = 'course.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
-print img.shape
 #transform the camera view
 imgx = VC.Transform_Image(img,VC._perspectiveMatrix);
+VC.find_vertex(VC._perspectiveMatrix,imgx)
 
 #Use orb to find the features and descriptors (ignore ROI for now)
 VC.test_feature_map(imgx,worldmap);
