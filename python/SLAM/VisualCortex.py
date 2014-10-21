@@ -236,21 +236,6 @@ class VisualCortex:
     									)
     	return;
 
-    # TODO: This method is probably obsolete...
-    # Scale the transformed image so its dimensions are equal to the template
-    # find the current size of a feature in px and then state the desired size 
-    # of this feature in the given template, a square is 53px (so we 
-    # put in 53 for desired)
-    def _scale_image(self, imgx,current,desired):
-        factor = desired/current
-        print factor
-        rows,cols,ch = imgx.shape
-        scaledimg = np.zeros((np.floor(rows*factor), 
-        	np.floor(cols*factor) , 3) , np.uint8)
-        scaledimg = cv2.resize(imgx,(int(rows*factor),
-        	int(cols*factor)), interpolation=cv2.INTER_AREA)
-        return scaledimg
-
     # Figure out the dimensions of the image that the perspective transform
     # maps to.
     def _get_bird_dims(self,shape):
@@ -272,118 +257,12 @@ class VisualCortex:
     	self.bird_y = corner[1] / corner[2]
     	return
 
+    # TODO: Make this method actually work...
     # Applies a range-of-interest mask over the kp and des because
     # we don't want the corners of the transformed trapezoid to show 
     # up as features
     def _apply_roi(self,kp,des):
     	return kp, des
-
-    # TODO: This method is probably obsolete...
-    # Calculate where the cone of vision has a vertex (your location)
-    # and draw lines on the image to help visualize this
-    def _find_vertex(self,M,imgx):
-        # Initialize boundary points
-        points = np.matrix([[0,   0    , 800, 800],
-                            [600, 800  , 600, 800],
-                            [1, 1    , 1  , 1  ]])
-        # Calculate transformed points (in homogeneous coordinates)
-        homopoints = M * points
-        # Convert homogeneous points to xy
-        newpoints = np.zeros((2,4))
-        for i in range(0,2):
-            for j in range(0,4):
-                newpoints[i,j] = homopoints[i,j]/homopoints[2,j]
-        # Calculate line parameters for both boundaries
-        m1 = (newpoints[1,1]-newpoints[1,0]) / (newpoints[0,1]-newpoints[0,0])
-        m2 = (newpoints[1,3]-newpoints[1,2]) / (newpoints[0,3]-newpoints[0,2])
-        b1 = newpoints[1,0] - m1*newpoints[0,0]
-        b2 = newpoints[1,2] - m2*newpoints[0,2]
-        # Calculate intersection point of these lines
-        xint = (b1-b2)/(m2-m1)
-        yint = (m1*xint+b1)
-        cv2.line(imgx, (int(newpoints[0,0]),int(newpoints[1,0])),
-        	(int(xint),int(yint)) , (0,0,255),1)
-        cv2.line(imgx, (int(newpoints[0,2]),int(newpoints[1,2])),
-        	(int(xint),int(yint)) , (0,0,255),1)
-        print "here is vertex"
-        print xint, yint
-        return xint, yint
-
-    # TODO: This method is probably obsolete because I moved its guts to the
-    # public section
-    # This should display the two images superimposed on top of each other 
-    # as if they were stitched, using 3 random points
-    def _superimpose_images1(self, img1, img2, kp1, kp2, matches, points):
-        # Indices of which points in "matches" to use
-        point1 = points[0];
-        point2 = points[1];
-        point3 = points[2];
-        # Pull out the indices that we matched up from the train
-        _train_indices = [matches[point1].trainIdx, matches[point2].trainIdx, 
-        	matches[point3].trainIdx];
-        # Pull out the indices that we matched up from the query
-        _query_indices = [matches[point1].queryIdx, matches[point2].queryIdx, 
-        	matches[point3].queryIdx];
-
-        # Gather the coordinates in train that we go TO
-        trainPts = np.float32([ kp2[_train_indices[0]].pt,
-                                kp2[_train_indices[1]].pt,
-                                kp2[_train_indices[2]].pt]);
-        # Gather the coordinates in query that we come FROM
-        queryPts = np.float32([ kp1[_query_indices[0]].pt,
-                                kp1[_query_indices[1]].pt,
-                                kp1[_query_indices[2]].pt]);
-        # Transform the query image
-        M = cv2.getAffineTransform(queryPts,trainPts);
-        rows1,cols1 = img1.shape;
-        rows2,cols2 = img2.shape;
-        rows = max(rows1,rows2)
-        cols = max(cols1,cols2)
-        fullimg1 = cv2.warpAffine(img1,M,(cols,rows));
-
-        # Get ready to add it to the train image
-        fullimg2 = np.zeros((rows,cols), np.uint8);
-        for x in range(0,img2.shape[0]):
-            for y in range(0,img2.shape[1]):
-                fullimg2[x,y] = img2[x,y];
-
-        superimposed = fullimg1/2 + fullimg2/2;
-        dump,superimposed = cv2.threshold(superimposed, 50, 255,
-        	cv2.THRESH_BINARY)
-        #superimposed = cv2.resize(superimposed,(0,0), fx=.25, fy=.25)
-        
-        while(1):
-            cv2.imshow('both',superimposed);
-
-            if cv2.waitKey(20) & 0xFF == 27:
-                break
-        cv2.destroyAllWindows()
-
-        frameLoc = [[400],[800],[1]];
-        robotLoc = np.dot(M,frameLoc);
-        self.full_map = superimposed
-        print "Robot's position is:"
-        print robotLoc
-        return robotLoc;
-
-    # TODO: I'm pretty sure this method is extremely obsolete
-    # This should display the two images superimposed on top of each other 
-    # as if they were stitched, using the BF M
-    def _superimpose_images(self,img1,img2,M):
-        h,w = img1.shape
-        #M = inv(M)
-        fullimg2 = cv2.warpPerspective(img1,M,(w,h), flags=1, borderMode=0,
-        							   borderValue=(255,0,0))
-        superimposed = fullimg2/2 + img1/2;
-        while(1):
-            cv2.imshow('img1',img1);
-            cv2.imshow('fullimg2',fullimg2);
-            cv2.imshow('both',superimposed);
-
-            if cv2.waitKey(20) & 0xFF == 27:
-                break
-        cv2.destroyAllWindows()
-        return;
 
     # Useful tool for drawing matches between two images
     def _draw_matches(self, img1, img2, kp1, kp2, matches, numberofpoints):
@@ -438,70 +317,6 @@ class VisualCortex:
             good.pop(i)
         return good
 
-    # For testing the feature_detect and feature_match methods
-    def test_feature_map(self, smallimg, points, drawmatch):
-        # Load images
-        #img1 = cv2.imread('picasso3.jpg',0) # queryImage
-        #img2 = cv2.imread('picasso2.jpg',0) # trainImage
-        img2 = self.full_map
-        img1 = smallimg
-
-        # Get orb output
-        kp1, des1 = VC.feature_detect(img1,None);
-        kp2, des2 = VC.feature_detect(img2,None);
-
-        # Get matches matrix
-        M, matches_mask, good = VC.feature_match(kp1,kp2,des1,des2);
-
-        newgood = self._filter_matches(good,matches_mask)
-
-        # Plot both images and then superimpose them on each other by 
-        # matching three points
-        #self._superimpose_images(img1,img2,M);
-        self._superimpose_images1(img1,img2,kp1,kp2,newgood,points)
-        # Plot both images side by side and draw lines between matched points
-        if (drawmatch == 1):
-            self._draw_matches(img1,img2,kp1,kp2,newgood,points);
-
-        return;
-
-    # Some code that I was using to test the perspective transform, 
-    # put in a method to avoid clutter
-    def test_transform_image(self, _perspective_matrix):
-        # Set filename and read it into an opencv object
-        img_location = 'course.jpeg'
-        img = cv2.imread(img_location)
-
-        # If the following gives an error, you are probably screwing up the filename
-        rows,cols,ch = img.shape
-        print rows, cols, ch
-
-        # Remap original image by applying transform matrix
-        imgx = cv2.warpPerspective(img,_perspective_matrix,(800,800), flags=1,
-        						   borderMode=0, borderValue=(255,0,0))
-
-        # Figure out if the vertex is in the right location 
-        # and draw helpful lines
-        xint, yint = self._find_vertex(_perspective_matrix,imgx)
-        print xint, yint
-
-        # Resize this image
-        scaledimgx = self._scale_image(imgx,np.floor(.4*227) ,53)
-
-        # Write imageb
-        cv2.imwrite('xformed.png',imgx)
-        cv2.imwrite('scaledxform.png',scaledimgx)
-
-        while(1):
-            cv2.imshow('image',img)
-            cv2.imshow('scaledxform',scaledimgx)
-
-            if cv2.waitKey(20) & 0xFF == 27:
-                break
-        cv2.destroyAllWindows()
-
-        return;
-
 
     ####################################
     #####     5. DEBUG/TESTING     #####
@@ -528,10 +343,3 @@ while(1):
     if cv2.waitKey(20) & 0xFF == 27:
         break;
 cv2.destroyAllWindows()
-
-points = [8,9,17]
-
-
-points = [14,16,7]
-
-points = [10,11,12]
