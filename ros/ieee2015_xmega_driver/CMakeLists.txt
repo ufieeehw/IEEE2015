@@ -8,9 +8,9 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   rospy
   std_msgs
+  sensor_msgs
   message_generation
   message_runtime
-
 )
 
 ## System dependencies are found with CMake's conventions
@@ -71,6 +71,7 @@ generate_messages(
   DEPENDENCIES
   geometry_msgs
   std_msgs
+  sensor_msgs
 )
 
 ###################################
@@ -85,7 +86,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES ieee2015_xmega_driver
- CATKIN_DEPENDS geometry_msgs rospy std_msgs message_runtime
+ CATKIN_DEPENDS geometry_msgs rospy std_msgs sensor_msgs message_runtime
 #  DEPENDS system_lib
 )
 
