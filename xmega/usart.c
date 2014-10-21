@@ -95,7 +95,8 @@ void resolve_buffers(int bytes){
 
 /* function will resolve a single input byte from the buffer */
 void resolve_single_input(){
-  int offset = 0;
+  int offset = -3;
+  int done = 0;
   uint8_t data;
     
   buffer_pop(in_buffer, &data); //read a byte from the buffer
@@ -119,8 +120,9 @@ void resolve_single_input(){
   } else {  //byte is data
     offset = ((m_in.type & DATA_MASK ) == DATA_NB_TYPE)? in_count - 2: in_count - 1;
     *((m_in.data)+offset) = data;  //store the byte
+    if(((m_in.type & DATA_MASK ) == DATA_NB_TYPE)? offset+2: offset+1 == m_in.size) done = 1;  //check if done
   }
-  if(((m_in.type & DATA_MASK) == NO_DATA_TYPE) || offset+1 == m_in.size){  //check if we've got the whole message
+  if(((m_in.type & DATA_MASK) == NO_DATA_TYPE) || done){  //check if we've got the whole message
     if(OK != queue_push(m_in,IN_QUEUE))  //try to push the incoming message to the queue
       error = MESSAGE_ERROR_TYPE; //report the error on failure
     in_count = 0; //reset the counter

@@ -9,11 +9,10 @@
 #include "message.h"
 #include "usart.h"
 #include "table.h"
+#include "debug.h"
 
 //Quantum definitions (how many buffer operations per function call)
 #define BUFFER_ALLOWED  16
-
-void debug();
 
 /* initialization function for the robot, add your own code */
 void init(){
@@ -28,8 +27,6 @@ void init(){
   
   //initialize communications
   initialize_usart();
-  
-  debug();
   
   //finally, enable interrupts
   PMIC.CTRL = 7; //enable all interrupt levels
@@ -46,7 +43,7 @@ int main(){
       Message m; //set pointer to null
       int status = VECTOR_ERROR_TYPE;	//default to error
       queue_pop(&m, IN_QUEUE); //get incoming message
-      int index = m.type & 0x3F; //index is last 6 bits of message type
+      uint8_t index = m.type & 0x3F; //index is last 6 bits of message type
       switch(m.type >> 6){ //determine data type (first 2 bits)
         case 0: //no data type
           if(index < NO_DATA_ARRAY_SIZE) status = (*no_data_func[index])(m);
@@ -71,36 +68,4 @@ int main(){
       } 
     }
   }
-}
-
-//fill buffers with things to see what happens
-void debug(){
-  //load some messages into the output buffer (should output on console immediatley)
-  buffer_push(out_buffer, '0'); //0x30, no_data message
-  buffer_push(out_buffer, 'a'); //0x70, 1b_type message part 1
-  buffer_push(out_buffer, 'b'); //0x71, 1b_type message part 2
-  
-  //write some output messages (should output after working through buffer)
-  Message m; //create pointer
-  m.type = '1';  //0x31, no_data message
-  queue_push(m,OUT_QUEUE);
-  m.type = 'A';  //0x41, 1b_type message part 1
-  m.size = 1;
-  m.data = (uint8_t*) malloc(sizeof(uint8_t));  //create the data buffer
-  *(m.data) = 'B';  //0x42, 1b_type message part 2
-  queue_push(m,OUT_QUEUE);  //copy to output queue
-  
-  //write some input messages (should get bounced to input queue after error tagging)
-  m.type = '2';  //0x32, no_data message
-  queue_push(m,IN_QUEUE);
-  m.type = 'p';  //0x41, 1b_type message part 1
-  m.size = 1;
-  m.data = (uint8_t*) malloc(sizeof(uint8_t));  //create the data buffer
-  *(m.data) = 'q';  //0x42, 1b_type message part 2
-  queue_push(m,IN_QUEUE);  //copy to output queue
-  
-  //add some messages to the input queue, if everything works, these should get outputted last
-  buffer_push(in_buffer, '3'); //0x33, no_data message
-  buffer_push(in_buffer, 'P'); //0x50, 1b_type message part 1
-  buffer_push(in_buffer, 'Q'); //0x51, 1b_type message part 2
 }

@@ -18,7 +18,7 @@ int queue_pop(Message* m, int direction){
   //determine the proper queue
   if(IN_QUEUE == direction){               //in queue
     if(!in_queue) return MESSAGE_ERROR_TYPE;  //queue is empty
-    *m = *in_queue;               //add the node
+    *m = *in_queue;               //copy the node
     Message *next = in_queue->next; //store next node
     free(in_queue);  //free the memory
     in_queue = next;  //advance queue
@@ -29,6 +29,7 @@ int queue_pop(Message* m, int direction){
     free(out_queue);  //free the memory
     out_queue = next;  //advance queue
   }
+  message_count--;
   return OK;
 }
 
@@ -37,7 +38,7 @@ int queue_pop(Message* m, int direction){
 int queue_push(Message m, int direction){
   if(MAX_MESSAGE <= message_count) return MESSAGE_ERROR_TYPE;  //no more space
   
-  Message* new_msg = calloc(1,sizeof(Message));  //create Message storage
+  Message* new_msg = malloc(sizeof(Message));  //create Message storage
   *new_msg = m;  //copy the data
   new_msg->next = 0;  //make sure pointer is null
   
@@ -59,6 +60,7 @@ int queue_push(Message m, int direction){
       out_queue_end = new_msg;           //redefoute the tail
     }
   }
+  message_count++;
   return OK;
 }
 
