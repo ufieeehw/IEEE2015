@@ -15,7 +15,7 @@ Message topics are defined in types.h.
 To send a message, call queue_push(Message *m, int direction).
 * Direction should either be IN_QUEUE (for internally handled messages) or OUT_QUEUE(for computer bound messages)
 * Function will create a new copy of the message, but not the data (Message->data). 
-* *DATA BUFFER MUST BE DYNAMICALLY ALLOCATED* I reccomend: msg->data = (uint8_t*)malloc(msg->size)
+* Use get_msg(type, size) to allocate messages
 
 If you need to do Initializations (ie for interrupts)
 * Put a function call to your initialization method in main.c's init() function.

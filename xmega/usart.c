@@ -4,10 +4,11 @@
 #include <stdlib.h>
 #include "types.h"
 #include "message.h"
+#include "meta.h"
 #include "usart.h"
 
 int usart_busy_flag = 0;  //define the global flag
-Buffer* in_buffer;         //define the buffers
+Buffer* in_buffer;        //define the buffers
 Buffer* out_buffer;
 static int error = OK;    //flag for error handling
 
@@ -62,6 +63,17 @@ int buffer_pop(Buffer* b, uint8_t* data){
   return OK;
 }
 
+//wipe all pending buffer data
+void wipe_in_buffer(){
+  in_buffer->start = in_buffer->end;  //clear the queue
+  in_count = 0; //stop processing current message
+}
+
+void wipe_out_buffer(){
+  out_buffer->start = out_buffer->end;  //clear queue
+  out_count = 0;  //stop processing the message
+}
+
 /* function will alternate between buffers until both are full/empty, or until 
  * a specified number of bytes. Will also handle error flags from interrupts.
  * Should be run often. */
@@ -69,12 +81,16 @@ void resolve_buffers(int bytes){
   int turn = IN_QUEUE;  //keep track of who's turn it is
 
   //loop while there's work available and we're under the byte cap (timesharing)
-  //loop while: (in buffer is not empty || (out buffer is not full && (there is an outgoing message || we're processing one))) && we're still allowed to
-  while((in_buffer->start != in_buffer->end || ((out_buffer->start != (out_buffer->end+1)%MAX_BUFFER_LENGTH) && (out_queue || out_count))) && bytes > 0){
+  //loop while: (in buffer is not empty || 
+  //  (out buffer is not full && (there is an outgoing message || we're processing one) 
+  //  && (we've started sending)) && we're still allowed to)
+  while((in_buffer->start != in_buffer->end || \
+    ((out_buffer->start != (out_buffer->end+1)%MAX_BUFFER_LENGTH)\
+    && (out_queue || out_count) && start_ok)) && bytes > 0){
     //go until in buffer is empty and output buffer is full or there are no more messages
     //decide who's turn it is (alternate unless somebody is full/empty)
-    if(in_buffer->start == in_buffer->end) turn = OUT_QUEUE; //if in_buffer is empty, it's out buffer's turn
-    else if((out_buffer->start == (out_buffer->end+1)%MAX_BUFFER_LENGTH) || !out_queue) turn  = IN_QUEUE; //and vice versa
+    if(in_buffer->start == in_buffer->end) turn = OUT_QUEUE; //determine if somebody isn't allowed to go
+    else if((out_buffer->start == (out_buffer->end+1)%MAX_BUFFER_LENGTH) || !out_queue || !start_ok) turn  = IN_QUEUE;
     else turn = (turn+1)%2; //otherwise alternate
 
     //throw to individualized methods
