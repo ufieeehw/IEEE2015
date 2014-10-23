@@ -21,7 +21,9 @@
 
 /* Message Type Definitions */
 //NO_DATA_TYPE messages [0x01-0x2F]
-#define IMU_NOTIFY_TYPE       0x01
+#define KILL_TYPE             0x01
+#define START_TYPE            0x02
+#define IMU_NOTIFY_TYPE       0x03
 
 
 //DATA_1B_TYPE messages [0x40-0x6F]
