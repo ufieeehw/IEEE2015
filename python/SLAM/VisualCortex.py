@@ -3,7 +3,8 @@ from copy import deepcopy
 from numpy.linalg import inv
 import cv2
 
-
+# TODO: Make nonchanging variables properties.  Make changing variables
+# non-properties
 class VisualCortex:
 
     
@@ -62,6 +63,7 @@ class VisualCortex:
         self._initialize_cam_dimensions(img)
 
         # Get the perspec transform matrix
+        # TODO: Get a more accurate transform
         self._perspective_matrix = self._get_perspective_matrix(
                                         view_coordinates, map_coordinates);
         # Now that we have a matrix, get the bird's eye image dimensions
@@ -86,15 +88,20 @@ class VisualCortex:
         # Extract features from this image
         kp1, des1 = self.feature_detect(imgx)
         kp1, des1 = self._apply_roi(kp1, des1)
+        self._draw_features(imgx,kp1)
         # TODO: Use a database rather than re-ORBing on the full map
         # Extract features from the full_map
         kp2, des2 = self.feature_detect(self.full_map)
         # Match features between imgx and full_map
+        # TODO: Do we need to input kp1 and kp2?
         M, matches = self.feature_match(kp1, kp2, des1, des2)
         self._draw_matches(imgx,self.full_map,kp1,kp2,matches,[0,1,2,3])
         # Use matches to get the affine transform
+        # TODO: Make affine matrix a variable and not a property, since
+        # it always changes at this point
         self.get_affine_matrix(kp1, kp2, matches)
         # Use this affine matrix to update robot position
+        # TODO: Make position/rotation a property
         self.localize()
         # Use this affine matrix to update full_map
         self.stitch(imgx)
@@ -139,30 +146,31 @@ class VisualCortex:
         matches = sorted(matches, key = lambda x: x.distance)
 
         # Optionally store all the good matches as per Lowe's ratio test.
-        good = []
+        good_matches = []
         for m in matches:
             #if m.distance < 0.7*n.distance:
-                good.append(m)
+                good_matches.append(m)
 
         # Make sure we found matches, and then use the matches objects to 
         # extract lists of points that correspond to the matches and
         # determine the mask array based on locations.  Use this mask to
         # filter the full list of matches
-        if len(good)>0:
+        if len(good_matches)>0:
+            # TODO: 'splain the following 4 lines of code
             query_pts = np.float32(
-                [ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
+                [ kp1[m.queryIdx].pt for m in good_matches ]).reshape(-1,1,2)
             train_pts = np.float32(
-                [ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
+                [ kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1,1,2)
             # Run regression on the matches to filter outliers
             M, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC,20.0)
             matches_mask = mask.ravel().tolist()
-            # Use this mask immediately to get the good matches
-            good = self._filter_matches(good, matches_mask)
+            # Use this mask immediately to get the good_matches matches
+            good_matches = self._filter_matches(good_matches, matches_mask)
         else:
-                print "Not enough matches are found - %d/%d" % (len(good), 10)
+                print "Not enough matches are found - %d/%d" % (len(good_matches), 10)
                 matches_mask = None
                 M = None
-        return M, good
+        return M, good_matches
 
     """Using the matches and mask between the full_map and perspec transformed
     image, determine the affine transformation that will map the smaller
@@ -170,7 +178,7 @@ class VisualCortex:
     """
     def get_affine_matrix(self, kp1, kp2, matches):
         # Indices of which points in "matches" to use
-        point1 = 0;
+        point1 = 3;
         point2 = 1;
         point3 = 2;
         # Gather the coordinates in train img that we go TO
@@ -206,6 +214,7 @@ class VisualCortex:
         fullimgx = cv2.warpAffine(imgx, self._affine_matrix, (cols,rows))
         fullimg2 = self.full_map
         # Add the images together
+        # TODO: Use "blip" or something to add the images together
         self.full_map = fullimgx/2 + self.full_map/2;
         # Clean up the "ghosting" on the resulting image
         dump, self.full_map = cv2.threshold(self.full_map, 50, 255,
@@ -217,6 +226,24 @@ class VisualCortex:
     ####################################
     #####    4. PRIVATE METHODS    #####
     ####################################
+
+    # Put green dots on each of the features
+    def _draw_features(self, image, kp):
+        # Plot the keypoints
+        for i in range(0,len(kp)):
+            # Extract coordinates of these keypoints
+            feature1 = kp[i].pt;
+            # Offset feature2
+            feature1 = tuple([int(feature1[0]), int(feature1[1])]);
+            # Put dots on these features
+            cv2.circle(image, feature1, 4, (0,255,0), -1);
+
+        while(1):
+            cv2.imshow('full',image);
+
+            if cv2.waitKey(20) & 0xFF == 27:
+                break;
+        cv2.destroyAllWindows()
 
     # Read off the dimensions of an image
     def _initialize_cam_dimensions(self, image):
@@ -242,6 +269,7 @@ class VisualCortex:
             newpoints[n][1] = avg_y - (avg_y - points[n][1])*scale + translate[1]
         return newpoints
 
+    # TODO: Or do we want to initialize this with the self.position
     def _initialize_affine_matrix(self):
         self._affine_matrix = np.float32([[1, 0, (self.full_map_x-self.bird_x)/2],
                                           [0, 1, (self.full_map_y-self.bird_y)/2]
