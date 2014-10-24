@@ -534,7 +534,7 @@
 
   <!-- Camera -->
   <joint name="camera_joint" type="fixed">
-     <origin xyz="0 -.15 -.015" rpy="0 0 -1.57"/>
+     <origin xyz="0 -.15 .020" rpy="0 .587 -1.57"/>
      <parent link="base_link"/>
      <child link="camera_link"/>
      <axis xyz="1 0 0" />
@@ -566,10 +566,10 @@
     <sensor type="camera" name="camera1">
       <update_rate>30.0</update_rate>
       <camera name="head">
-        <horizontal_fov>1.3962634</horizontal_fov>
+        <horizontal_fov>1.36</horizontal_fov>
         <image>
-          <width>800</width>
-          <height>800</height>
+          <width>640</width>
+          <height>360</height>
           <format>R8G8B8</format>
         </image>
         <clip>
