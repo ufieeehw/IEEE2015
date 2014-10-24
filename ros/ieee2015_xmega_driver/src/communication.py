@@ -21,7 +21,7 @@ from sensor_msgs.msg import Imu
 from ieee2015_xmega_driver.msg import XMega_Message
 
 class Communicator(object):
-    def __init__(self, port, baud_rate, verbose=True):
+    def __init__(self, port, baud_rate, msg_sub_topic='robot/send_xmega_msg', verbose=True):
         '''Superclass for XMega communication
         Purpose: Communicate with an XMega via serial link
         Function:
@@ -52,21 +52,15 @@ class Communicator(object):
         # ROS Setup
         rospy.init_node('XMega_Connector')
         # Messages being sent from ROS to the XMega
-        self.send_msg_sub = rospy.Subscriber('robot/send_xmega_msg', String, self.got_poll_msg)
+        self.send_msg_sub = rospy.Subscriber(msg_sub_topic, XMega_Message, self.got_poll_msg)
 
         self.serial = serial.Serial(port, baud_rate)
         # Defines which action function to call on the received data
         self.action_dict = {
         }
-        self.type_lengths = {
-        }
-
         # Defines the relationship between poll_message names and the hex name
         self.poll_messages = {
             'example_poll_msg': '0F'
-        }
-        # 
-        self.data_messages = {
         }
         # First two bits determine the length of the message
         self.byte_type_defs = {
@@ -82,8 +76,12 @@ class Communicator(object):
             print args
 
     def got_poll_msg(self, msg):
-        print "data", msg.data
-        self.write_packet(msg.data)
+        '''Only supports 2 byte and empty messages right now!'''
+        self.err_log("Got poll message of type ", msg.type.data)
+        if msg.empty_flag.data:
+            self.write_packet(msg.type.data)
+        else:
+            self.write_packet(msg.type.data, msg.data.data)
 
     def got_data_msg(self, msg):
         print "Data message:", msg.type, "Contents:", msg.data
@@ -106,10 +104,11 @@ class Communicator(object):
 
         while True:
             # message_length = 0 # Bytes (Defaulted, indicated by message type)
-            msg_type = ord(self.serial.read(type_length))
+            shitty_type = self.serial.read(type_length)
+            self.err_log("shitty type ", shitty_type)
+            msg_type = ord(shitty_type)
             msg_byte_type = msg_type & type_mask
             b_error = (msg_type & error_mask) == error_mask
-
             self.err_log('Recieving message of type', msg_type)
 
             # Message of known length
@@ -119,8 +118,12 @@ class Communicator(object):
                     msg_data = None
                 else:
                     msg_data = self.serial.read(msg_length)
-                action_function = self.action_dict[msg_type]
-                action_function(msg_data)
+                if msg_type in self.action_dict.keys():
+
+                    action_function = self.action_dict[msg_type]
+                    action_function(msg_data)
+                else:
+                    self.err_log("No action fun for ", msg_type)
 
             # N-Byte Message
             elif msg_type in self.action_dict.keys():
@@ -141,13 +144,19 @@ class Communicator(object):
         Notes:
             type is _type because "type" is a python protected name
         '''
+        self.err_log("Processing message of type ", _type)
         if _type in self.poll_messages.keys():
             self.err_log("Write type recognized as a polling message")
             write_data = self.poll_messages[_type]
-            print write_data
-            self.serial.write(str(unichr(write_data)))
-        elif _type in self.data_messages.keys():
-            self.err_log("Write type recognized as a data message")
+            self.err_log("Writing as ", write_data)
+            self.serial.write(chr(write_data))
+            if data is not None:
+                print "Data, "
+                for character in data:
+                    self.err_log("writing character ", character)
+                    self.serial.write(character)
+            else:
+                self.err_log("No other data to write")
         else:
             self.err_log("Write type not recognized")
 
