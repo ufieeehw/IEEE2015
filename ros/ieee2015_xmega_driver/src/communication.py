@@ -194,8 +194,6 @@ class IEEE_Communicator(Communicator):
         })
         self.poll_messages.update({
             'poll_imu': 0x01,
-        })
-        self.data_messages.update({
             'debug': 0x40,
         })
 
