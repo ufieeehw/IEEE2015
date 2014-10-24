@@ -15,10 +15,6 @@ struct Buffer{
   int     end;    //end index
 };
 
-//delcare the buffers
-extern Buffer* in_buffer;
-extern Buffer* out_buffer;
-
 
 //function will configure the USART to prepare it to run
 void initialize_usart();
@@ -26,8 +22,6 @@ void initialize_usart();
 //functions for manipulating buffers (internal use only, don't actually call these)
 int buffer_push(Buffer* b, uint8_t data);
 int buffer_pop(Buffer* b, uint8_t* data);
-void wipe_in_buffer();     //clear the buffers
-void wipe_out_buffer();
 void resolve_buffers(int bytes);  //resolve bytes of buffered data
 void resolve_single_input();      //resolve one input byte
 void resolve_single_output();     //resolve one output byte

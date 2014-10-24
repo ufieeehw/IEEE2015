@@ -8,8 +8,8 @@
 #include "usart.h"
 
 int usart_busy_flag = 0;  //define the global flag
-Buffer* in_buffer;        //define the buffers
-Buffer* out_buffer;
+static Buffer in_buffer;  //define the buffers
+static Buffer out_buffer;
 static int error = OK;    //flag for error handling
 
 //static variables for resolver (needed to prevent blocking)
@@ -37,10 +37,16 @@ void initialize_usart(){
   //Finally, Turn on TX (bit 3) and RX (bit 4)
   USARTC0.CTRLB = PIN3_bm | PIN4_bm;
   
-  //initialize the buffers (calloc makes everything 0)
-  in_buffer = (Buffer*)calloc(1,sizeof(Buffer));
-  out_buffer = (Buffer*)calloc(1,sizeof(Buffer));;
-
+  //initialize the buffers (reset indexes)
+  in_buffer.start = 0; 
+  in_buffer.end = 0;
+  out_buffer.start = 0; 
+  out_buffer.end = 0;
+  
+  //wipe the message queues (mostly for resets)
+  wipe_queue(OUT_QUEUE);
+  wipe_queue(IN_QUEUE);
+  
   //initialize flags/counts/pointers
   usart_busy_flag = 0;  //usart is not busy
   in_count = 0;         //no data yet
@@ -63,17 +69,6 @@ int buffer_pop(Buffer* b, uint8_t* data){
   return OK;
 }
 
-//wipe all pending buffer data
-void wipe_in_buffer(){
-  in_buffer->start = in_buffer->end;  //clear the queue
-  in_count = 0; //stop processing current message
-}
-
-void wipe_out_buffer(){
-  out_buffer->start = out_buffer->end;  //clear queue
-  out_count = 0;  //stop processing the message
-}
-
 /* function will alternate between buffers until both are full/empty, or until 
  * a specified number of bytes. Will also handle error flags from interrupts.
  * Should be run often. */
@@ -84,13 +79,13 @@ void resolve_buffers(int bytes){
   //loop while: (in buffer is not empty || 
   //  (out buffer is not full && (there is an outgoing message || we're processing one) 
   //  && (we've started sending)) && we're still allowed to)
-  while((in_buffer->start != in_buffer->end || \
-    ((out_buffer->start != (out_buffer->end+1)%MAX_BUFFER_LENGTH)\
+  while((in_buffer.start != in_buffer.end || \
+    ((out_buffer.start != (out_buffer.end+1)%MAX_BUFFER_LENGTH)\
     && (out_queue || out_count) && start_ok)) && bytes > 0){
     //go until in buffer is empty and output buffer is full or there are no more messages
     //decide who's turn it is (alternate unless somebody is full/empty)
-    if(in_buffer->start == in_buffer->end) turn = OUT_QUEUE; //determine if somebody isn't allowed to go
-    else if((out_buffer->start == (out_buffer->end+1)%MAX_BUFFER_LENGTH) || !out_queue || !start_ok) turn  = IN_QUEUE;
+    if(in_buffer.start == in_buffer.end) turn = OUT_QUEUE; //determine if somebody isn't allowed to go
+    else if((out_buffer.start == (out_buffer.end+1)%MAX_BUFFER_LENGTH) || !out_queue || !start_ok) turn  = IN_QUEUE;
     else turn = (turn+1)%2; //otherwise alternate
 
     //throw to individualized methods
@@ -115,7 +110,7 @@ void resolve_single_input(){
   int done = 0;
   uint8_t data;
     
-  buffer_pop(in_buffer, &data); //read a byte from the buffer
+  buffer_pop(&in_buffer, &data); //read a byte from the buffer
   
   //preform different actions based on the byte count
   if(0 == in_count){  //type field
@@ -164,7 +159,7 @@ void resolve_single_output(){
     data = *(m_out.data + offset);
   }
     
-  buffer_push(out_buffer, data);  //place the data in the buffer
+  buffer_push(&out_buffer, data);  //place the data in the buffer
   ++out_count;  //incremet this message's sent byte count
   
   if(!usart_busy_flag){ //check if interrupt is disabled
@@ -179,13 +174,13 @@ void resolve_single_output(){
 }
 
 ISR(USARTC0_RXC_vect){
-  int status = buffer_push(in_buffer,USARTC0.DATA);
+  int status = buffer_push(&in_buffer,USARTC0.DATA);
   if(status != OK) error = status; //report error (full buffer)
 }
 
 ISR(USARTC0_DRE_vect){
   uint8_t data;	//have to pull the data first, won't write to address
-  int status = buffer_pop(out_buffer,&data);
+  int status = buffer_pop(&out_buffer,&data);
   if(status != OK){ //shutdown if buffer is empty
     usart_busy_flag = 0;  //usart is now not busy
     USARTC0.CTRLA = USART_RXCINTLVL_HI_gc;	//disable the DRE interrupt
