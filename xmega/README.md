@@ -3,7 +3,7 @@ XMega Communication Protocol
 
 This defines the serial interface between the XMega and the robot's main computer
 
-# Instructions for using API
+# General API Information
 Everything in the robot will run off of messages sent by the computer or hardware/timing interrupts.
 Message topics are defined in types.h.
 * Message topics are broken into 4 groups, based on the data requirements of each message (0,1,2, or N byte data packages) -The last 16 values in each group are reserved for error codes (can be more if needed).
@@ -19,6 +19,17 @@ To send a message, call queue_push(Message *m, int direction).
 
 If you need to do Initializations (ie for interrupts)
 * Put a function call to your initialization method in main.c's init() function.
+
+#How to Install Driver Code for Dummies
+1. Write your functions
+2. Create a .h file with the function prototypes
+3. Register a type in types.h (talk to Josh)
+4. Include part 2 in table.c
+5. Add your function to the array (same number as your type)
+6. Do you have initializations? If not, go to 9.
+7. Include part 2 in main.c
+8. Add your init function call to init() in the marked section.
+9. Congratulations, you've successfully installed your driver.
 
 Feel free to ask me (Josh) if you have any questions.
 
