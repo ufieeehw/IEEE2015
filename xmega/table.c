@@ -9,18 +9,19 @@
 #include "types.h"
 #include "message.h"
 #include "table.h"
+#include "meta.h"
  
 //NO_DATA_TYPE function pointers (messages with only a type field)
 int (*no_data_func[NO_DATA_ARRAY_SIZE]) (Message m) = {
-  no_func,    //0x00 - reserved (OK)
-  no_func,    //0x01 - unused
-  no_func,    //0x02 - unused
-  no_func     //0x03 - unused
+  no_func,      //0x00 - reserved (OK)
+  kill_msg,     //0x01 - kill
+  start_msg,    //0x02 - start
+  no_func       //0x03 - unused
 };
  
 //DATA_1B_TYPE function pointers (messages with 1 byte of data)
 int (*data_1b_func[DATA_1B_ARRAY_SIZE]) (Message m) = {
-  no_func,    //0x40 - unused
+  debug_msg,  //0x40 - debug
   no_func,    //0x41 - unused
   no_func,    //0x42 - unused
   no_func     //0x43 - unused
@@ -54,7 +55,7 @@ int no_func(Message m){
       m_out.data = malloc(m.size);  //allocate new buffer space
       memcpy(m_out.data, m.data, m.size); //copy data
     }
-    return queue_push(m,OUT_QUEUE); //bounce to outgoing queue
+    return queue_push(m_out,OUT_QUEUE); //bounce to outgoing queue
   }
   
   //otherwise pack new error message

@@ -32,6 +32,11 @@ extern Message* out_queue_end;
 //queue interaction functions (in = 0)
 int queue_pop(Message* m, int direction); //get a message from the queue
 int queue_push(Message m, int direction); //add a message to the queue
+Message get_msg(uint8_t type, uint8_t size);  //get a message struct with data allocation
+
+//functions that you shouldn't call
+void wipe_queue(int direction);   //wipe a queue
+void free_msg(Message m);         //free the memory in a message
 
 #endif
 

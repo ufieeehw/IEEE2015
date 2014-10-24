@@ -36,7 +36,7 @@ to start the simulation. You should see the robot (with some orange and blue col
 * To launch gazebo and set up the robot:
   `roscore`
   Seperate window:
-  `roslaunch robot_control robot_control.launch`
+  `roslaunch ieeee2015_robot robot_control.launch`
   Seperate window:
   `roslaunch ieee2015_gazebo_sim gazebo.launch`
 

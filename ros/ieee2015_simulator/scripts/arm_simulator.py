@@ -104,7 +104,7 @@ class SCARA(object):
 
         self.elbow_sub = rospy.Subscriber('arm_elbow_angle', Float32, self.got_elbow_angle)
         self.base_sub = rospy.Subscriber('arm_base_angle', Float32, self.got_base_angle)
-        self.error_sub = rospy.Subscriber('arm_des_pose', PointStamped, self.got_des_pose)
+        self.error_sub = rospy.Subscriber('arm_des_pose', Flo', PointStamped, self.got_des_pose)
 
         self.angle1, self.angle2 = 0.0 , 1.505
         self.position = None

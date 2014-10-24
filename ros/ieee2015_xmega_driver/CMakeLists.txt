@@ -1,10 +1,17 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(robot_control)
+project(ieee2015_xmega_driver)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS)
+find_package(catkin REQUIRED COMPONENTS
+  geometry_msgs
+  rospy
+  std_msgs
+  sensor_msgs
+  message_generation
+  message_runtime
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -40,11 +47,10 @@ find_package(catkin REQUIRED COMPONENTS)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  XMega_Message.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -61,10 +67,12 @@ find_package(catkin REQUIRED COMPONENTS)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  geometry_msgs
+  std_msgs
+  sensor_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -77,8 +85,8 @@ find_package(catkin REQUIRED COMPONENTS)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES robot_control
-#  CATKIN_DEPENDS ros_control ros_controllers
+#  LIBRARIES ieee2015_xmega_driver
+ CATKIN_DEPENDS geometry_msgs rospy std_msgs sensor_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -94,19 +102,19 @@ include_directories(
 )
 
 ## Declare a cpp library
-# add_library(robot_control
-#   src/${PROJECT_NAME}/robot_control.cpp
+# add_library(ieee2015_xmega_driver
+#   src/${PROJECT_NAME}/ieee2015_xmega_driver.cpp
 # )
 
 ## Declare a cpp executable
-# add_executable(robot_control_node src/robot_control_node.cpp)
+# add_executable(ieee2015_xmega_driver_node src/ieee2015_xmega_driver_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(robot_control_node robot_control_generate_messages_cpp)
+# add_dependencies(ieee2015_xmega_driver_node ieee2015_xmega_driver_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(robot_control_node
+# target_link_libraries(ieee2015_xmega_driver_node
 #   ${catkin_LIBRARIES}
 # )
 
@@ -125,7 +133,7 @@ include_directories(
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS robot_control robot_control_node
+# install(TARGETS ieee2015_xmega_driver ieee2015_xmega_driver_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -150,7 +158,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_robot_control.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_ieee2015_xmega_driver.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
