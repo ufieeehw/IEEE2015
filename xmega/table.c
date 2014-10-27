@@ -10,7 +10,7 @@
 #include "message.h"
 #include "table.h"
 #include "meta.h"
- 
+#include "IMU.h"
 //NO_DATA_TYPE function pointers (messages with only a type field)
 int (*no_data_func[NO_DATA_ARRAY_SIZE]) (Message m) = {
   no_func,        //0x00 - reserved (OK)
