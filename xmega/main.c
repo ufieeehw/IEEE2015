@@ -70,7 +70,7 @@ int main(){
       
       if(VECTOR_ERROR_TYPE == status) status = no_func(m); //report bad vectors
       
-      free_msg(m);  //free data memory
+      m = free_msg(m);  //free data memory (and cache data)
       
       if(status != OK && status < 0x40){ //report single byte errors
         Message err; //create a message
