@@ -247,6 +247,8 @@ class VisualCortex:
 
     # Put green dots on each of the features
     def _draw_features(self, image, kp):
+        # Turn this image into color so we see green dots
+        color_img = cv2.cvtColor(image , cv2.COLOR_GRAY2RGB)
         # Plot the keypoints
         for i in range(0,len(kp)):
             # Extract coordinates of these keypoints
@@ -254,10 +256,10 @@ class VisualCortex:
             # Offset feature2
             feature1 = tuple([int(feature1[0]), int(feature1[1])]);
             # Put dots on these features
-            cv2.circle(image, feature1, 4, (0,255,0), -1);
+            cv2.circle(color_img, feature1, 1, (0,255,0), -1);
 
         while(1):
-            cv2.imshow('full',image);
+            cv2.imshow('full',color_img);
 
             if cv2.waitKey(20) & 0xFF == 27:
                 break;
@@ -431,7 +433,7 @@ map_coordinates = np.float32([[650,650],[650,350],[350,350],[350,650]])
 
 # Set filename and read it into an opencv object
 img_location = 'cap1.jpg'
-img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
+img = cv2.cvtColor(cv2.imread(img_location), cv2.COLOR_BGR2GRAY)
 # Create a new VC object
 VC = VisualCortex(view_coordinates,map_coordinates,img);
 
