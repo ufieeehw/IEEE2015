@@ -198,13 +198,30 @@ class VisualCortex:
         return cv2.getAffineTransform(queryPts,trainPts);
         
         
-    """Apply the latest _affine_matrix to the _robot_coordinates so that we
-    can update the robot's location in the full_map
-    """
     def localize(self, affine_matrix):
+        """Apply the latest _affine_matrix to the _robot_coordinates so that we
+        can update the robot's location in the full_map
+        """
         self.position = np.dot(affine_matrix, self._robot_coordinates)
-        # TODO: Figure out how to extract rotation from the affine matrix
-        self.rotation = 0;
+        bearing = np.dot(affine_matrix, [[self.robot_coordinates(0)],
+                                         [self._robot_coordinates(1) - bird_y/2],
+                                         [1]
+                                        ])
+        # Note that delta_y seems flipped.  This is because x coordinates go left to right (normal)
+        # but y coordinates go top to bottom (flipped). As Bill Nye would say, consider the following:
+        #                        O  (bigger x, smaller y)
+        #               |       /
+        #               |      /
+        #               |     /
+        #               |ang /
+        #               |   / 
+        #               |  /
+        #               | / (smaller x, bigger y)
+        #                O
+        delta_x = bearing(0) - self.position(0)
+        delta_y = self.position(1) - bearing(1)
+        # Gives rotation in radians East of North
+        self.rotation = np.arctan(delta_y/delta_x)
         return None;
 
     """ Update the full_map with the latest image, using the
@@ -277,7 +294,6 @@ class VisualCortex:
                                          ]
                                         )
     
-
     # Figure out the dimensions of the image that the perspective transform
     # maps to.
     def _get_bird_dims(self):
@@ -331,7 +347,7 @@ class VisualCortex:
         # Check each kp to see if it is in the polygon defined by bird_corners
         # by checking if its x-position falls between the diagonal lines
         # and its y-position is between the horizontal lines
-        include = []
+        mask = []
         for i in range(0,len(kp)):
             keep = 0
             if ((kp[i].pt[1] > bird_corners[1][0]) and (kp[i].pt[1] < bird_corners[1][2])):
@@ -344,15 +360,14 @@ class VisualCortex:
                     right_x = bird_corners[0][2] + delta
                     if (kp[i].pt[0] < right_x):
                         keep = 1;
-            if (keep == 1):
-                include.append(i)
+            mask.append(keep);
 
-        kp1 = []
-        des1 = []
-
-        for i in include:
-            kp1.append(kp[i])
-            des1.append(des[i])
+        # Filter out the points outside the mask
+        kp_with_mask = zip(kp,mask)
+        des_with_mask = zip(des,mask)
+        kp1 = [item[0] for item in kp_with_mask if item[1] == 1]
+        des1 = [item[0] for item in des_with_mask if item[1] == 1]
+        # Convert des1 to 2d array to make opencv happy
         des1 = np.array(des1)
 
         return kp1, des1
@@ -399,15 +414,9 @@ class VisualCortex:
 
     # Given the mask generated from BF, use it to filter out the
     # outliers from matches list
-    def _filter_matches(self, good, matches_mask):
-        removeAt = []; 
-        count = 0;
-        for i in matches_mask:
-            if i == 0:
-                removeAt.append(count)
-            count = count + 1
-        for i in reversed(removeAt):
-            good.pop(i)
+    def _filter_matches(self, matches, matches_mask):
+        matches_with_mask = zip(matches,matches_mask)
+        good = [item[0] for item in matches_with_mask if item[1] == 1]
         return good
 
 
@@ -421,12 +430,12 @@ view_coordinates = np.float32([[922,220],[688,27],[276,27],[7,218]])
 map_coordinates = np.float32([[650,650],[650,350],[350,350],[350,650]])
 
 # Set filename and read it into an opencv object
-img_location = 'piecetwo.jpg'
+img_location = 'cap1.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 # Create a new VC object
 VC = VisualCortex(view_coordinates,map_coordinates,img);
 
-img_location = 'Pieceone.jpg'
+img_location = 'cap2.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 VC.SLAM(img)
 
