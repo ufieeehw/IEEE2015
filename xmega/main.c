@@ -10,7 +10,7 @@
 #include "usart.h"
 #include "table.h"
 #include "meta.h"
-
+#include "IMU.h"
 //Quantum definitions (how many buffer operations per function call)
 #define BUFFER_ALLOWED  16
 
@@ -27,6 +27,7 @@ void init(){
   
   //initialize communications
   initialize_usart();
+  IMU_init();
 }
 
 /* main function, don't change without consulting Josh */

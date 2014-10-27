@@ -11,9 +11,12 @@ All of this is written for Ubuntu 14.04 (Trusty Tahr) and ROS Indigo (ros.org/in
 First, follow [this tutorial](https://help.github.com/articles/generating-ssh-keys/) for setting up git. Then follow the first three ROS tutorials, and make your catkin workspace.
 
 Once you make your catkin workspace (the ROS tutorials will teach you how to do this), go to the src folder, and clone this repository
-```cd ~/catkin_ws/src
 
-git clone git@github.com:ufieeehw/IEEE2015.git```
+   ```cd ~/catkin_ws/src```
+   
+   ```git clone git@github.com:ufieeehw/IEEE2015.git```
+   
+   ```catkin_make ~/catkin_ws```
 
 Your directory structure should like like "~/catkin_ws/src/IEEE2015/ros/"
 
