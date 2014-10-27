@@ -8,6 +8,7 @@ void meta_init(void);
 int debug_msg(Message m);
 int start_msg(Message m);
 int kill_msg(Message m);
+int keep_alive_msg(Message m);
 
 //prototypes from main.c
 void init(void);
