@@ -36,7 +36,7 @@ void IMU_init(){
 		}
 	PORTE.OUTSET = PIN4_bm;  //Set the SS line high to complete the transfer
 }
-int IMU_notify_msg(Message m){
+int IMU_get_data(Message m){
   uint8_t SPI_Wait_Counter;
   Message out = get_msg(IMU_DATA_TYPE, 12);
   //Step 3:
