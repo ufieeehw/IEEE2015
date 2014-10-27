@@ -88,8 +88,9 @@ class VisualCortex:
         imgx = self.transform_image(image)
         # Extract features from this image
         kp1, des1 = self.feature_detect(imgx)
-        kp1, des1 = self._apply_roi(kp1, des1)
-        self._draw_features(imgx,kp1)
+        self._draw_features(imgx,kp1, None)
+        kp1, des1, bird_corners = self._apply_roi(kp1, des1)
+        self._draw_features(imgx,kp1, bird_corners)
         # TODO: Use a database rather than re-ORBing on the full map
         # Extract features from the full_map
         kp2, des2 = self.feature_detect(self.full_map)
@@ -246,7 +247,7 @@ class VisualCortex:
     ####################################
 
     # Put green dots on each of the features
-    def _draw_features(self, image, kp):
+    def _draw_features(self, image, kp, bird_corners):
         # Turn this image into color so we see green dots
         color_img = cv2.cvtColor(image , cv2.COLOR_GRAY2RGB)
         # Plot the keypoints
@@ -258,6 +259,19 @@ class VisualCortex:
             # Put dots on these features
             cv2.circle(color_img, feature1, 1, (0,255,0), -1);
 
+        if (bird_corners != None):
+            cv2.line(color_img, tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
+                                tuple([int(bird_corners[0][1]),int(bird_corners[1][1])]),
+                                (255,0,0))
+            cv2.line(color_img, tuple([int(bird_corners[0][1]),int(bird_corners[1][1])]),
+                                tuple([int(bird_corners[0][2]),int(bird_corners[1][2])]),
+                                (255,0,0))
+            cv2.line(color_img, tuple([int(bird_corners[0][2]),int(bird_corners[1][2])]),
+                                tuple([int(bird_corners[0][3]),int(bird_corners[1][3])]),
+                                (255,0,0))
+            cv2.line(color_img, tuple([int(bird_corners[0][3]),int(bird_corners[1][3])]),
+                                tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
+                                (255,0,0))
         while(1):
             cv2.imshow('full',color_img);
 
@@ -323,7 +337,7 @@ class VisualCortex:
         # recalculating every time we run _apply_roi
         # Figure out where the corners of the perspective image map to in the
         # bird's eye image
-        c = 5     # Number of pixels to cushion the border with
+        c = 10     # Number of pixels to cushion the border with
         self._perspec_corners = [[c, self.cam_x - c, self.cam_x - c, c             ],
                                  [c, c             , self.cam_y - c, self.cam_y - c],
                                  [1, 1             , 1             , 1             ]
@@ -372,7 +386,7 @@ class VisualCortex:
         # Convert des1 to 2d array to make opencv happy
         des1 = np.array(des1)
 
-        return kp1, des1
+        return kp1, des1, bird_corners
 
     # Useful tool for drawing matches between two images
     def _draw_matches(self, img1, img2, kp1, kp2, matches, numberofpoints):
