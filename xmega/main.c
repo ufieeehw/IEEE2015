@@ -24,10 +24,11 @@ void init(){
   
   //do component initializations
   meta_init();  //initialize meta functions (should come first)
+  IMU_init();
+  //ADD MORE HERE
   
   //initialize communications
   initialize_usart();
-  IMU_init();
 }
 
 /* main function, don't change without consulting Josh */

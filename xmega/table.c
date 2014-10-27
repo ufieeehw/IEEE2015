@@ -17,7 +17,7 @@ int (*no_data_func[NO_DATA_ARRAY_SIZE]) (Message m) = {
   kill_msg,       //0x01 - kill
   start_msg,      //0x02 - start
   keep_alive_msg, //0x03 - keep_alive
-  IMU_get_data    //0x04 - get data from IMU
+  IMU_get_data,   //0x04 - get data from IMU
   no_func,        //0x03 - unused
   no_func,        //0x03 - unused
   no_func,        //0x03 - unused
