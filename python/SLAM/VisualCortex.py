@@ -27,7 +27,6 @@ class VisualCortex:
     bird_y = None;
 
     # Some useful private variables
-    _affine_matrix = None;
     _map_features = None;
     _view_features = None;
     _transformed_view = None;
@@ -37,6 +36,7 @@ class VisualCortex:
                           [800],
                           [1]
                          ];
+    _perspec_corners = None
 
 
     ####################################
@@ -68,11 +68,12 @@ class VisualCortex:
                                         view_coordinates, map_coordinates);
         # Now that we have a matrix, get the bird's eye image dimensions
         self._get_bird_dims()
+        self._calculate_perspec_corners()
         # Transform the initial image to bird's eye
         imgx = self.transform_image(img)
         # And paste it on to the full_map using a basic translation matrix
-        self._initialize_affine_matrix()
-        self.stitch(imgx)
+        affine_matrix = self._initialize_affine_matrix()
+        self.stitch(imgx, affine_matrix)
 
 
     ####################################
@@ -99,12 +100,12 @@ class VisualCortex:
         # Use matches to get the affine transform
         # TODO: Make affine matrix a variable and not a property, since
         # it always changes at this point
-        self.get_affine_matrix(kp1, kp2, matches)
+        affine_matrix = self.get_affine_matrix(kp1, kp2, matches)
         # Use this affine matrix to update robot position
         # TODO: Make position/rotation a property
-        self.localize()
+        self.localize(affine_matrix)
         # Use this affine matrix to update full_map
-        self.stitch(imgx)
+        self.stitch(imgx, affine_matrix)
         return;
 
     """Takes an image from the camera's video feed and transforms it into a 
@@ -194,24 +195,24 @@ class VisualCortex:
                               ]
                              )
         # Transform the query image
-        self._affine_matrix = cv2.getAffineTransform(queryPts,trainPts);
-        return None;
+        return cv2.getAffineTransform(queryPts,trainPts);
+        
         
     """Apply the latest _affine_matrix to the _robot_coordinates so that we
     can update the robot's location in the full_map
     """
-    def localize(self):
-        self.position = np.dot(self._affine_matrix, self._robot_coordinates)
+    def localize(self, affine_matrix):
+        self.position = np.dot(affine_matrix, self._robot_coordinates)
         # TODO: Figure out how to extract rotation from the affine matrix
         self.rotation = 0;
         return None;
 
     """ Update the full_map with the latest image, using the
     most up-to-date _affine_matrix"""
-    def stitch(self, imgx):
+    def stitch(self, imgx, affine_matrix):
         # Transform imgx into something the size of the full map using affine
         rows, cols = self.full_map.shape
-        fullimgx = cv2.warpAffine(imgx, self._affine_matrix, (cols,rows))
+        fullimgx = cv2.warpAffine(imgx, affine_matrix, (cols,rows))
         fullimg2 = self.full_map
         # Add the images together
         # TODO: Use "blip" or something to add the images together
@@ -271,11 +272,11 @@ class VisualCortex:
 
     # TODO: Or do we want to initialize this with the self.position
     def _initialize_affine_matrix(self):
-        self._affine_matrix = np.float32([[1, 0, (self.full_map_x-self.bird_x)/2],
+        return np.float32([[1, 0, (self.full_map_x-self.bird_x)/2],
                                           [0, 1, (self.full_map_y-self.bird_y)/2]
                                          ]
                                         )
-        return;
+    
 
     # Figure out the dimensions of the image that the perspective transform
     # maps to.
@@ -298,20 +299,25 @@ class VisualCortex:
         self.bird_y = corner[1] / corner[2]
         return
 
-    # Applies a range-of-interest mask over the kp and des because
-    # we don't want the corners of the transformed trapezoid to show 
-    # up as features
-    def _apply_roi(self,kp,des):
+        #created this method in response to the todo comment
+    def _calculate_perspec_corners(self):
         # TODO: These coordinates are static, so we don't need to keep
         # recalculating every time we run _apply_roi
         # Figure out where the corners of the perspective image map to in the
         # bird's eye image
         c = 5     # Number of pixels to cushion the border with
-        perspec_corners = [[c, self.cam_x - c, self.cam_x - c, c             ],
-                           [c, c             , self.cam_y - c, self.cam_y - c],
-                           [1, 1             , 1             , 1             ]
-                          ]
-        bird_homo_corners = np.dot(self._perspective_matrix, perspec_corners)
+        self._perspec_corners = [[c, self.cam_x - c, self.cam_x - c, c             ],
+                                 [c, c             , self.cam_y - c, self.cam_y - c],
+                                 [1, 1             , 1             , 1             ]
+                                ]
+        return                         
+
+
+    # Applies a range-of-interest mask over the kp and des because
+    # we don't want the corners of the transformed trapezoid to show 
+    # up as features
+    def _apply_roi(self,kp,des):
+        bird_homo_corners = np.dot(self._perspective_matrix, self._perspec_corners)
         # Initialize the output corners
         bird_corners = [[1, 1, 1, 1],
                         [1, 1, 1, 1]]
@@ -415,12 +421,12 @@ view_coordinates = np.float32([[922,220],[688,27],[276,27],[7,218]])
 map_coordinates = np.float32([[650,650],[650,350],[350,350],[350,650]])
 
 # Set filename and read it into an opencv object
-img_location = 'cap1.jpg'
+img_location = 'piecetwo.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 # Create a new VC object
 VC = VisualCortex(view_coordinates,map_coordinates,img);
 
-img_location = 'cap2.jpg'
+img_location = 'Pieceone.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 VC.SLAM(img)
 
