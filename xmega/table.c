@@ -9,40 +9,44 @@
 #include "types.h"
 #include "message.h"
 #include "table.h"
-#include "debug.h"
- 
+#include "meta.h"
+#include "IMU.h"
 //NO_DATA_TYPE function pointers (messages with only a type field)
 int (*no_data_func[NO_DATA_ARRAY_SIZE]) (Message m) = {
-  no_func,    //0x00 - reserved (OK)
-  no_func,    //0x01 - unused
-  no_func,    //0x02 - unused
-  no_func     //0x03 - unused
+  no_func,        //0x00 - reserved (OK)
+  kill_msg,       //0x01 - kill
+  start_msg,      //0x02 - start
+  keep_alive_msg, //0x03 - keep_alive
+  IMU_get_data,   //0x04 - get data from IMU
+  no_func,        //0x03 - unused
+  no_func,        //0x03 - unused
+  no_func,        //0x03 - unused
 };
  
 //DATA_1B_TYPE function pointers (messages with 1 byte of data)
 int (*data_1b_func[DATA_1B_ARRAY_SIZE]) (Message m) = {
-  debug_msg,  //0x40 - debug
-  no_func,    //0x41 - unused
-  no_func,    //0x42 - unused
-  no_func     //0x43 - unused
+  debug_msg,      //0x40 - debug
+  no_func,        //0x41 - unused
+  no_func,        //0x42 - unused
+  no_func         //0x43 - unused
 };
 
 
 //DATA_2B_TYPE function pointers (messaegs with 2 bytes of data)
 int (*data_2b_func[DATA_2B_ARRAY_SIZE]) (Message m) = {
-  no_func,    //0x80 - unused
-  no_func,    //0x81 - unused
-  no_func,    //0x82 - unused
-  no_func     //0x83 - unused
+  no_func,        //0x80 - unused
+  no_func,        //0x81 - unused
+  no_func,        //0x82 - unused
+  no_func         //0x83 - unused
 };
 
 
 //DATA_NB_TYPE function pointers (arbitrary length messages)
 int (*data_nb_func[DATA_NB_ARRAY_SIZE]) (Message m) = {
-  no_func,    //0xC0 - unused
-  no_func,    //0xC1 - unused
-  no_func,    //0xC2 - unused
-  no_func     //0xC3 - unused
+  no_func,        //0xC0 - unused
+  no_func,        //0xC1 - unused
+  no_func,        //0xC2 - unused
+  no_func         //0xC3 - unused
 };
  
  
