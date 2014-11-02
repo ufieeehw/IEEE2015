@@ -22,12 +22,13 @@ void init(){
 	CPU_CCP = CCP_IOREG_gc; // enable access to protected registers
 	CLK.CTRL = CLK_SCLKSEL_RC32M_gc; // switch to the 32 Mhz clock
   
-  //do component initializations
+  //do component driver initializations
   meta_init();  //initialize meta functions (should come first)
   IMU_init();
   //ADD MORE HERE
   
   //initialize communications
+  init_msg_queue();
   initialize_usart();
 }
 
