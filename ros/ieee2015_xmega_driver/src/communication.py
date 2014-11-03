@@ -13,12 +13,31 @@ import numpy as np
 import rospy
 import tf.transformations as tf_trans
 import tf
+import threading
 
 # Ros Msgs
 from std_msgs.msg import Header, Float32, Float64, String
 from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion, Vector3
 from sensor_msgs.msg import Imu
 from ieee2015_xmega_driver.msg import XMega_Message
+
+lock = threading.Lock()
+
+def thread_lock(fcn):
+    '''thread_lock decorator
+
+    If you use this as a decorator for a function, it will apply a threading lock during the execution of that function,
+    which guarantees that no ROS callbacks can change the state of data while it is executing.
+
+    This is critical to make sure that a new message being sent doesn't cause a weird serial interruption
+
+    '''
+    def locked_function(*args, **kwargs):
+        lock.acquire()
+        result = fcn(*args, **kwargs)
+        lock.release()
+        return result
+    return locked_function
 
 class Communicator(object):
     def __init__(self, port, baud_rate, msg_sub_topic='robot/send_xmega_msg', verbose=True):
@@ -75,6 +94,7 @@ class Communicator(object):
         if self.verbose:
             print args
 
+    @thread_lock
     def got_poll_msg(self, msg):
         '''Only supports 2 byte and empty messages right now!'''
         self.err_log("Got poll message of type ", msg.type.data)
@@ -83,8 +103,9 @@ class Communicator(object):
         else:
             self.write_packet(msg.type.data, msg.data.data)
 
+    @thread_lock
     def got_data_msg(self, msg):
-        print "Data message:", msg.type, "Contents:", msg.data
+        self.err_log("Data message: ", msg.type, "Contents: ", msg.data)
         self.write_packet(msg.type, msg.data)
 
     def read_packets(self):
