@@ -12,8 +12,8 @@ robot:
   joint2_position_controller:
     type: effort_controllers/JointPositionController
     joint: ArmRot1Rev
-    pid: {p: 100.0, i: 0.01, d: 10.0}
+    pid: {p: 19000.0, i: 50, d: 100}
   joint3_position_controller:
     type: effort_controllers/JointPositionController
     joint: ArmRot2Rev
-    pid: {p: 100.0, i: 0.01, d: 10.0}
+    pid: {p: 19000.0, i: 50, d: 100}
