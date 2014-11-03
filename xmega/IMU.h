@@ -3,5 +3,5 @@
 #include "message.h"
 #include "types.h"
 void IMU_init();
-int IMU_Notify_msg(Message m);
+int IMU_get_data(Message m);
 #endif

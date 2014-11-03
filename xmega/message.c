@@ -31,14 +31,29 @@ uint8_t data_cache_12B[DATA_CACHE_SIZE];  //IMU uses this
 uint8_t* data_cache_toplvl[DATA_CACHE_NUM] = {data_cache_1B, data_cache_2B, data_cache_4B, 0, 0, 0, data_cache_12B, 0};
 
 //32-bit map for used/unused words (1st bit is 1 if word is free)
-uint32_t data_cache_map[DATA_CACHE_NUM] = {0x7FFFFFF, 0xAAAAAAAA, 0x88888888, 0, 0, 0, 0x80080000, 0};
+uint32_t data_cache_map[DATA_CACHE_NUM];  //data cache avaliability tracker
 
 /* create the message cache */
 Message msg_cache[MSG_CACHE_SIZE] = {{0}};  //initialize all cache members to 0
-uint32_t msg_cache_map = 0xFFFFFFFF;  //no reserved address in msg_cache (mask prevents 0 reservation)
+uint32_t msg_cache_map; //msg cache bit tracker
 Message* get_node();           //get a message node
 void free_node(Message* m);   //clear the message node 
 
+//message to initialize queues and caches
+void init_msg_queue(){
+  //wipe the message queues (mostly for resets)
+  wipe_queue(OUT_QUEUE);
+  wipe_queue(IN_QUEUE);
+  
+  message_count = 0;  //reset the count
+  
+  //initalize the caches
+  data_cache_map[DATA_CACHE_1B] = 0x7FFFFFFF; //first bit is null
+  data_cache_map[DATA_CACHE_2B] = 0xAAAAAAAA;
+  data_cache_map[DATA_CACHE_4B] = 0x88888888;
+  data_cache_map[DATA_CACHE_12B] = 0x80080000;
+  msg_cache_map = 0xFFFFFFFF;
+}
 
 /* Function will remove message from proper queue (1 for out/priority)
  * Function gets the next message, places it in m, and deletes its reference
@@ -124,7 +139,7 @@ Message get_msg(uint8_t type, uint8_t size){
   }
   
   //make sure cache exists and isn't full (map is empty)
-  if(-1 != cache_num || !data_cache_map[cache_num]){
+  if(-1 != cache_num && data_cache_map[cache_num]){
     for(int i=0; i<DATA_CACHE_SIZE; i+=m.size){
       if(data_cache_map[cache_num] & (1 << (DATA_CACHE_SIZE - i - 1))){  //check cache
         m.data = data_cache_toplvl[cache_num] + i;  //get the pointer
@@ -187,7 +202,7 @@ void wipe_queue(int direction){
   while(p){
     free_msg(*p);  //free the data
     Message *next = p->next;  //get the next pointer
-    free(p);  //free the memory
+    free_node(p);  //free the memory
     p = next; //advance list
   }
   

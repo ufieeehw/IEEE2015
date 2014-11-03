@@ -43,10 +43,6 @@ void initialize_usart(){
   out_buffer.start = 0; 
   out_buffer.end = 0;
   
-  //wipe the message queues (mostly for resets)
-  wipe_queue(OUT_QUEUE);
-  wipe_queue(IN_QUEUE);
-  
   //initialize flags/counts/pointers
   usart_busy_flag = 0;  //usart is not busy
   in_count = 0;         //no data yet

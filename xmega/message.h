@@ -39,6 +39,7 @@ Message get_msg(uint8_t type, uint8_t size);  //get a message struct with data a
 //functions that you shouldn't call
 void wipe_queue(int direction);   //wipe a queue
 Message free_msg(Message m);      //free the memory in a message
+void init_msg_queue();            //initialize queues
 
 #endif
 
