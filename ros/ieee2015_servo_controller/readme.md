@@ -21,11 +21,18 @@ You need the dynamixel usb to rs485 converter that we have. It looks like [this]
 
 If you have the arm, with the end effector pointing AWAY from you, the servo on the left should go into the port on the left closest to the "4pin power" label. The servo on the right should go into the port directly after that one.
 
-4 Pin Power Label
-| Left Servo | Cable to RS485 Converter |
-| Right Servo | Empty |
-| Empty | Empty
-Beefy blue screw plug
+It should look like this...
+
+**4 Pin Power Label**
+
+| "Left Column" |"Right Column"            |
+| ------------- |:------------------------:|
+| Left Servo    | Cable to RS485 Converter |
+| Right Servo   | Empty                    |
+| Empty         | Empty                    |
+
+**Beefy blue screw plug**
+
 
 
 # Software Usage
