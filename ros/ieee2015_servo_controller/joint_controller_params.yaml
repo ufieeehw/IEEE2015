@@ -1,0 +1,26 @@
+shoulder_controller:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: shoulder_joint
+    joint_speed: 1.17
+    motor:
+        id: 2
+        init: 512
+        min: 570
+        max: 420
+
+elbow_controller:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: elbow_joint
+    joint_speed: 2.5
+    motor:
+        id: 1
+        init: 205
+        min: 0
+        max: 1023
+
