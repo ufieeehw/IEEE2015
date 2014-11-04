@@ -1,7 +1,7 @@
 Arm Dynamixel Driver
 ================
 
-This is the package that 
+This is the package that controls the physical servos that the IEEE robot's arm uses.
 
 # On-Computer Setup
 
