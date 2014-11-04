@@ -34,16 +34,12 @@ to start the simulation. You should see the robot (with some orange and blue col
   ```sudo apt-get install ros-indigo-ros-control ros-indigo-ros-controllers```
 
 * To launch gazebo and set up the robot:
-  `roscore`
-  Seperate window:
-  `roslaunch ieeee2015_robot robot_control.launch`
-  Seperate window:
   `roslaunch ieee2015_gazebo_sim gazebo.launch`
 
   You should now see the robot standing on the starting position in Gazebo.
 
 * To move the robot:
-  Type the command ```rostopic pub /desired_velocity geometry_msgs/Twist``` then hit Tab twice, it should bring up a   list of x y z under Linear and Angular, use linear x y to move the robot, and angular z to turn it.
+  Type the command ```rostopic pub /desired_velocity geometry_msgs/Twist``` then hit space, then tab twice, it should bring up a   list of x y z under Linear and Angular, use linear x y to move the robot, and angular z to turn it.
 apt-get
 * To move the arm:
   Base:
@@ -60,6 +56,11 @@ apt-get
   Go to ```"Your workspace"/IEEE2015/ros/ieee2015_simulator/scripts``` and run ```./arm_simulator.py```
   Have fun clicking stuff instead of typing! Left side of the window is the front of the arm.
 
+## FIX
+- Joint1 rotates the whole base in the opposite direction
+- The arm jitters a lot
+- The mecanum wheels appear to have physical interaction with the world, causing jittering. Bad because they are not simulated, so they only interfere with the robot
+- The model is improperly assembled
 ## Notes
 
 In the misc folder there's a lot of reusable urdf stuff, but none of it is actually used. 
