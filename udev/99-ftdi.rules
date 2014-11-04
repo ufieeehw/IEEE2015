@@ -1,0 +1,1 @@
+KERNEL=="ttyUSB*", SUBSYSTEMS=="usb", ATTRS{idProduct}=="6001", ATTRS{idVendor}=="0403", ATTRS{serial}=="A9UTHBZB", NAME="dynamixel_tty", SYMLINK+="dynamixel_tty"
