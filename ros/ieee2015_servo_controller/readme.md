@@ -3,7 +3,7 @@ Arm Dynamixel Driver
 
 This is the package that 
 
-# Installing
+# On-Computer Setup
 
 Set up udev rules (So the computer recognizes the servos over USB)
 
@@ -16,8 +16,19 @@ This will set up the udev rules. If you get a "file already exists" error, do
 
 and then re-run setup.sh
 
+# Hardware Setup
+You need the dynamixel usb to rs485 converter that we have. It looks like [this](http://nodna.de/bilder/produkte/gross/USB2DYNAMIXEL-USB-to-RS485-RS232-Converter.jpg). Plug USB into a computer (after setting up udev rules), and the following steps refer to the little white ports in the middle of it. Make sure the switch on the side is set to RS485, NOT TTL or RS232.
 
-# Usage
+If you have the arm, with the end effector pointing AWAY from you, the servo on the left should go into the port on the left closest to the "4pin power" label. The servo on the right should go into the port directly after that one.
+
+4 Pin Power Label
+| Left Servo | Cable to RS485 Converter |
+| Right Servo | Empty |
+| Empty | Empty
+Beefy blue screw plug
+
+
+# Software Usage
 
 To run it, do
 
