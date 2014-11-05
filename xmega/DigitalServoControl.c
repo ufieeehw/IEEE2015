@@ -6,7 +6,7 @@
  */ 
 
 // Instruction Packet Format  0xFF  -- 0xFF -- SERVO_ID(hex) -- LENGTH(Parameters+2) -- INSTRUCTION(0x03 = Write, 0x02 = Read) -- PARAMTERS -- CHECKSUM
-// Status Packet Format		  0xFF  -- 0xFF -- SERVO_ID(hex) -- LENGTH(Parameters+2) -- ERROR_CODE -- PARAMETERS -- CHECKSUM
+// Status Packet Format	      0xFF  -- 0xFF -- SERVO_ID(hex) -- LENGTH(Parameters+2) -- ERROR_CODE -- PARAMETERS -- CHECKSUM
 
 
 // Port D Pin 0 is assumed TX/RX input
@@ -14,16 +14,16 @@
 // Logic control is HIGH for allowing TX and LOW for allowing RX
 
 
-#define F_CPU				16000000UL
-#define Baud_Rate			9600	
+#define F_CPU			16000000UL
+#define Baud_Rate		9600	
 #define TX_Direction		PORTD_DIRSET
-#define TX_Port				PORTD_DIR
-#define TXoffRXon		    TX_Port |= (1<<1), TX_Port &= ~(1<<2)
-#define TXonRXoff			TX_Port |= (1<<1), TX_Port &= ~(1<<2)
-#define Read				0x02	
-#define Write				0x03
+#define TX_Port			PORTD_DIR
+#define TXoffRXon     	        TX_Port |= (1<<1), TX_Port &= ~(1<<2)
+#define TXonRXoff		TX_Port |= (1<<1), TX_Port &= ~(1<<2)
+#define Read			0x02	
+#define Write			0x03
 #define Broadcast_ID		0xFE													// Specific to the XL-320
-#define CHG_ID				0x0F
+#define CHG_ID			0x0F
 
 #include <avr/io.h>
 #include "uart.h"
@@ -64,7 +64,7 @@ int main(void){
 	
 	TX_Direction = 0b00000011;														// Set Port D as output
 	
-	int init_Buad_Rate  = UART_BAUD_SELECT(Baud_Rate, F_CPU);						// Normal UART Speed
+	int init_Buad_Rate  = UART_BAUD_SELECT(Baud_Rate, F_CPU);			// Normal UART Speed
 	int init_Buad_Rate_Double = UART_BAUD_SELECT_DOUBLE_SPEED(Baud_Rate, F_CPU);	// Double UART Speed
 	
 	uart_init(init_Buad_Rate);														// Initialize UART Transmitting
