@@ -22,7 +22,7 @@
 #define TXonRXoff		TX_Port |= (1<<1), TX_Port &= ~(1<<2)
 #define Read			0x02	
 #define Write			0x03
-#define Broadcast_ID		0xFE													// Specific to the XL-320
+#define Broadcast_ID		0xFE			// Specific to the XL-320
 #define CHG_ID			0x0F
 
 #include <avr/io.h>
@@ -32,7 +32,7 @@
 #include <util/delay.h>
 
 volatile unsigned char recieved_Byte;
-unsigned char Parameters[30];														// Array to hold packet arguments
+unsigned char Parameters[30];				// Array to hold packet arguments
 
 //---------------------------------------------------------------------------------------------------------------------------------------------
 // Function used to transmit packet to one servo
@@ -62,14 +62,14 @@ void Transmit_Write(unsigned char ID, unsigned char Instruction, unsigned char P
 
 int main(void){
 	
-	TX_Direction = 0b00000011;														// Set Port D as output
+	TX_Direction = 0b00000011;							// Set Port D as output
 	
 	int init_Buad_Rate  = UART_BAUD_SELECT(Baud_Rate, F_CPU);			// Normal UART Speed
 	int init_Buad_Rate_Double = UART_BAUD_SELECT_DOUBLE_SPEED(Baud_Rate, F_CPU);	// Double UART Speed
 	
-	uart_init(init_Buad_Rate);														// Initialize UART Transmitting
+	uart_init(init_Buad_Rate);							// Initialize UART Transmitting
 	
-	sei();																			// Set Global Variables 
+	sei();										// Set Global Variables 
 	
 	// Test While loop for right now
 	// Used until I can test with logic analyzer
@@ -85,7 +85,7 @@ int main(void){
 
 // ------------------------------------------------------------------------------------------------------------------------------------------
 
-ISR (USARTD0_RXC_vect)																// Interrupt to catch when data is received back from servo 
+ISR (USARTD0_RXC_vect)		// Interrupt to catch when data is received back from servo 
 {
 	 recieved_Byte = USARTD0_DATA; 
 }
