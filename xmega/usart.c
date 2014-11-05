@@ -1,14 +1,15 @@
 /* program definitions for USART handling functions */
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <stdlib.h>
+#include <string.h>
 #include "types.h"
 #include "message.h"
+#include "meta.h"
 #include "usart.h"
 
 int usart_busy_flag = 0;  //define the global flag
-Buffer* in_buffer;         //define the buffers
-Buffer* out_buffer;
+static Buffer in_buffer;  //define the buffers
+static Buffer out_buffer;
 static int error = OK;    //flag for error handling
 
 //static variables for resolver (needed to prevent blocking)
@@ -36,14 +37,18 @@ void initialize_usart(){
   //Finally, Turn on TX (bit 3) and RX (bit 4)
   USARTC0.CTRLB = PIN3_bm | PIN4_bm;
   
-  //initialize the buffers (calloc makes everything 0)
-  in_buffer = (Buffer*)calloc(1,sizeof(Buffer));
-  out_buffer = (Buffer*)calloc(1,sizeof(Buffer));;
-
+  //initialize the buffers (reset indexes)
+  in_buffer.start = 0; 
+  in_buffer.end = 0;
+  out_buffer.start = 0; 
+  out_buffer.end = 0;
+  
   //initialize flags/counts/pointers
   usart_busy_flag = 0;  //usart is not busy
   in_count = 0;         //no data yet
   out_count = 0;
+  memset(&m_in, 0, sizeof(m_in));
+  memset(&m_out, 0, sizeof(m_out));
 }
 
 //add data to the start of the buffer
@@ -69,12 +74,16 @@ void resolve_buffers(int bytes){
   int turn = IN_QUEUE;  //keep track of who's turn it is
 
   //loop while there's work available and we're under the byte cap (timesharing)
-  //loop while: (in buffer is not empty || (out buffer is not full && (there is an outgoing message || we're processing one))) && we're still allowed to
-  while((in_buffer->start != in_buffer->end || ((out_buffer->start != (out_buffer->end+1)%MAX_BUFFER_LENGTH) && (out_queue || out_count))) && bytes > 0){
+  //loop while: (in buffer is not empty || 
+  //  (out buffer is not full && (there is an outgoing message || we're processing one) 
+  //  && (we've started sending)) && we're still allowed to)
+  while((in_buffer.start != in_buffer.end || \
+    ((out_buffer.start != (out_buffer.end+1)%MAX_BUFFER_LENGTH)\
+    && (out_queue || out_count) && start_ok)) && bytes > 0){
     //go until in buffer is empty and output buffer is full or there are no more messages
     //decide who's turn it is (alternate unless somebody is full/empty)
-    if(in_buffer->start == in_buffer->end) turn = OUT_QUEUE; //if in_buffer is empty, it's out buffer's turn
-    else if((out_buffer->start == (out_buffer->end+1)%MAX_BUFFER_LENGTH) || !out_queue) turn  = IN_QUEUE; //and vice versa
+    if(in_buffer.start == in_buffer.end) turn = OUT_QUEUE; //determine if somebody isn't allowed to go
+    else if((out_buffer.start == (out_buffer.end+1)%MAX_BUFFER_LENGTH) || !out_queue || !start_ok) turn  = IN_QUEUE;
     else turn = (turn+1)%2; //otherwise alternate
 
     //throw to individualized methods
@@ -95,34 +104,31 @@ void resolve_buffers(int bytes){
 
 /* function will resolve a single input byte from the buffer */
 void resolve_single_input(){
-  int offset = 0;
+  int offset = -3;
+  int done = 0;
   uint8_t data;
     
-  buffer_pop(in_buffer, &data); //read a byte from the buffer
+  buffer_pop(&in_buffer, &data); //read a byte from the buffer
   
   //preform different actions based on the byte count
   if(0 == in_count){  //type field
-    m_in.type = data; //get the data
-    m_in.data = 0;    //null pointer
-    if((m_in.type & DATA_MASK ) == NO_DATA_TYPE){  //determine the size
-      m_in.size = 0;
-    } else if((m_in.type & DATA_MASK ) == DATA_1B_TYPE){
-      m_in.size = 1;
-      m_in.data = (uint8_t*) malloc(1);  //allocate 1B for data
-    } else if((m_in.type & DATA_MASK ) == DATA_2B_TYPE){
-      m_in.size = 2;
-      m_in.data = (uint8_t*) malloc(2);  //allocate 2B for data
-    } else if((m_in.type & DATA_MASK ) == DATA_NB_TYPE) m_in.size = 2;  //size is not here yet
+    if((m_in.type & DATA_MASK ) != DATA_NB_TYPE)  //not nb type
+      m_in = get_msg(data, 0);  //get message based on type field
+    else {  //nb type
+      m_in.type = data; //store the data temporarily
+      m_in.size = 2;  //size is not here yet, temp value
+    }
   } else if (1 == in_count && ((m_in.type & DATA_MASK ) == DATA_NB_TYPE)){
-    m_in.size = data;  //get the size
-    m_in.data = (uint8_t*) malloc(m_in.size); //allocate the requested amount of data
+    m_in = get_msg(m_in.type, data); //size is here, request message
   } else {  //byte is data
-    offset = ((m_in.type & DATA_MASK ) == DATA_NB_TYPE)? in_count - 2: in_count - 1;
+    offset = ((m_in.type & DATA_MASK) == DATA_NB_TYPE)? in_count - 2: in_count - 1;
     *((m_in.data)+offset) = data;  //store the byte
+    if(((m_in.type & DATA_MASK ) == DATA_NB_TYPE)? offset+2: offset+1 == m_in.size) done = 1;  //check if done
   }
-  if(((m_in.type & DATA_MASK) == NO_DATA_TYPE) || offset+1 == m_in.size){  //check if we've got the whole message
+  if(((m_in.type & DATA_MASK) == NO_DATA_TYPE) || done){  //check if we've got the whole message
     if(OK != queue_push(m_in,IN_QUEUE))  //try to push the incoming message to the queue
       error = MESSAGE_ERROR_TYPE; //report the error on failure
+    memset(&m_in, 0, sizeof(m_in)); //clear struct
     in_count = 0; //reset the counter
   } else in_count++; //new byte, increment count
 }
@@ -146,7 +152,7 @@ void resolve_single_output(){
     data = *(m_out.data + offset);
   }
     
-  buffer_push(out_buffer, data);  //place the data in the buffer
+  buffer_push(&out_buffer, data);  //place the data in the buffer
   ++out_count;  //incremet this message's sent byte count
   
   if(!usart_busy_flag){ //check if interrupt is disabled
@@ -155,19 +161,19 @@ void resolve_single_output(){
   }
   
   if(((m_out.type & DATA_MASK) == NO_DATA_TYPE) || offset+1 == m_out.size){  //check if message is done
-    if((m_out.type & DATA_MASK) != NO_DATA_TYPE) free(m_out.data);  //free the buffer
+    m_out = free_msg(m_out);  //free the data cache
     out_count = 0;  //clear the count
   }
 }
 
 ISR(USARTC0_RXC_vect){
-  int status = buffer_push(in_buffer,USARTC0.DATA);
+  int status = buffer_push(&in_buffer,USARTC0.DATA);
   if(status != OK) error = status; //report error (full buffer)
 }
 
 ISR(USARTC0_DRE_vect){
   uint8_t data;	//have to pull the data first, won't write to address
-  int status = buffer_pop(out_buffer,&data);
+  int status = buffer_pop(&out_buffer,&data);
   if(status != OK){ //shutdown if buffer is empty
     usart_busy_flag = 0;  //usart is now not busy
     USARTC0.CTRLA = USART_RXCINTLVL_HI_gc;	//disable the DRE interrupt

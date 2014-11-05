@@ -3,7 +3,7 @@
 #define _IEEE_TABLE_H_
 
 //pointer array size definitions
-#define NO_DATA_ARRAY_SIZE	4
+#define NO_DATA_ARRAY_SIZE	8
 #define DATA_1B_ARRAY_SIZE	4
 #define DATA_2B_ARRAY_SIZE	4
 #define DATA_NB_ARRAY_SIZE	4

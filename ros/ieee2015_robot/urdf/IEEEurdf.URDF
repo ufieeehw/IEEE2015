@@ -534,7 +534,7 @@
 
   <!-- Camera -->
   <joint name="camera_joint" type="fixed">
-     <origin xyz="0 -.15 -.015" rpy="0 0 -1.57"/>
+     <origin xyz="0 -.15 .020" rpy="0 .587 -1.57"/>
      <parent link="base_link"/>
      <child link="camera_link"/>
      <axis xyz="1 0 0" />
@@ -566,10 +566,10 @@
     <sensor type="camera" name="camera1">
       <update_rate>30.0</update_rate>
       <camera name="head">
-        <horizontal_fov>1.3962634</horizontal_fov>
+        <horizontal_fov>1.36</horizontal_fov>
         <image>
-          <width>800</width>
-          <height>800</height>
+          <width>640</width>
+          <height>360</height>
           <format>R8G8B8</format>
         </image>
         <clip>
@@ -602,81 +602,4 @@
       </plugin>
     </sensor>
   </gazebo> 
-
-
-<!-- Kinect -->
-  <joint name="kinect_joint" type="fixed">
-     <origin xyz="0 -.1 .04" rpy="0 0 -1.57"/>
-     <parent link="base_link"/>
-     <child link="kinect_link"/>
-     <axis xyz="1 0 0" />
-  </joint>
- 
-  <link name="kinect_link">
-    <inertial>
-      <mass value="1e-5" />
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
-    </inertial>
-
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.025 0.1 0.025"/>
-      </geometry>
-    </visual>
-
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.1 0.025 0.025"/>
-      </geometry>
-    </collision> 
-  </link>
-
-<gazebo reference="kinect_link">
-    <sensor type="depth" name="kinect">       
-        <always_on>1</always_on>
-        <visualize>true</visualize>             
-        <camera>
-            <horizontal_fov>1.047</horizontal_fov>  
-            <image>
-                <width>640</width>
-                <height>480</height>
-                <format>R8G8B8</format>
-            </image>
-            <depth_camera>
-
-            </depth_camera>
-            <clip>
-                <near>0.1</near>
-                <far>100</far>
-            </clip>
-        </camera>
-        <plugin name="kinect_controller" filename="libgazebo_ros_openni_kinect.so">
-            <alwaysOn>true</alwaysOn>
-            <updateRate>10.0</updateRate>
-            <cameraName>robot/kinect</cameraName>
-            <frameName>kinect_link</frameName>                   
-            <imageTopicName>rgb/image_raw</imageTopicName>
-            <depthImageTopicName>depth/image_raw</depthImageTopicName>
-            <pointCloudTopicName>depth/points</pointCloudTopicName>
-            <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>              
-            <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>            
-            <pointCloudCutoff>0.4</pointCloudCutoff>                
-            <hackBaseline>0.07</hackBaseline>
-            <distortionK1>0.0</distortionK1>
-            <distortionK2>0.0</distortionK2>
-            <distortionK3>0.0</distortionK3>
-            <distortionT1>0.0</distortionT1>
-            <distortionT2>0.0</distortionT2>
-            <CxPrime>0.0</CxPrime>
-            <Cx>0.0</Cx>
-            <Cy>0.0</Cy>
-            <focalLength>0.0</focalLength>
-        </plugin>
-    </sensor>
-</gazebo>
-
-
 </robot>

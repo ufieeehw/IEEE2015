@@ -15,10 +15,6 @@ struct Buffer{
   int     end;    //end index
 };
 
-//delcare the buffers
-extern Buffer* in_buffer;
-extern Buffer* out_buffer;
-
 
 //function will configure the USART to prepare it to run
 void initialize_usart();
