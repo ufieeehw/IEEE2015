@@ -26,30 +26,30 @@ class Board_State:
   #construct the state from a FEN string and color
   def __init__(self, fen_board, color):
     square = 0;
-    ep_rank = ' '  #cache for en passant rank
+    ep_file = ' '  #cache for en passant rank
     self.ai_color = color #store the ai color
     for c in fen_board:  #decipher each character, store location
       if(square < 64):  #still in chessboard definition
         if(c == 'P'): #ugh, no single line if statements
-          self.wp  += np.uint64(1<<square) #white pawn
+          self.wp += np.uint64(1<<square) #white pawn
         elif(c == 'R'): 
-          self.wr  += np.uint64(1<<square) #white rook
+          self.wr += np.uint64(1<<square) #white rook
         elif(c == 'N'): 
-          self.wn  += np.uint64(1<<square) #white knight
+          self.wn += np.uint64(1<<square) #white knight
         elif(c == 'B'): 
-          self.wb  += np.uint64(1<<square) #white bishop
+          self.wb += np.uint64(1<<square) #white bishop
         elif(c == 'Q'): 
-          self.wq  += np.uint64(1<<square) #white queen
+          self.wq += np.uint64(1<<square) #white queen
         elif(c == 'K'): 
-          self.wk  += np.uint64(1<<square) #white king
+          self.wk += np.uint64(1<<square) #white king
         elif(c == 'p'): 
-          self.bp  += np.uint64(1<<square) #black pawn
+          self.bp += np.uint64(1<<square) #black pawn
         elif(c == 'r'): 
-          self.br  += np.uint64(1<<square) #black rook
+          self.br += np.uint64(1<<square) #black rook
         elif(c == 'n'): 
-          self.bn  += np.uint64(1<<square) #black knight
+          self.bn += np.uint64(1<<square) #black knight
         elif(c == 'b'): 
-          self.bb  += np.uint64(1<<square) #black bishop
+          self.bb += np.uint64(1<<square) #black bishop
         elif(c == 'q'): 
           self.bq += np.uint64(1<<square) #black queen
         elif(c == 'k'): 
@@ -80,26 +80,40 @@ class Board_State:
             self.ep = 0  #no en passant in effect
             square = 73   #skip ahead
           else: 
-            ep_rank = (ord(c) - ord('a')) * 8    #cache rank
+            ep_file = (ord(c) - ord('a'))  #cache rank
         elif(square == 73): 
-          self.ep = 1 << ep_rank + ord(c) - ord('0')  #store ep
+          self.ep = 1 << ep_file + (ord(c) - ord('0')) << 8  #store ep
         #Not doing the 50-move stalemate counters, fuck it
         square += 1
 
   #return the locations of all white peices (int bitmaps are additive)
-  def get_white_peices(self):
+  def get_white_pieces(self):
     return self.wp+self.wr+self.wn+self.wb+self.wq+self.wk
 
   #return the locations of all black peices
-  def get_black_peices(self):
+  def get_black_pieces(self):
     return self.bp+self.br+self.bn+self.bb+self.bq+self.bk
   
   #return the locations of all peices  
-  def get_all_peices(self):
-    return self.get_black_peices() + self.get_white_peices()
+  def get_all_pieces(self):
+    return self.get_black_pieces() + self.get_white_pieces()
 
 #class for storing moves internal to the minmax
 class Move:
   def __init__(self, tag, value):
-    self.tag = tag
-    self.value = value
+    self.tag = tag  #string in long-algebraic-notation
+    self.value = value  #point value of the move
+   
+#function to compute the rank/file of a specific peice on a board    
+def get_rank_file(board):
+  r = 1
+  f = 1
+  temp = np.uint64(board) #cast input
+  while (temp > 255):
+    r += 1
+    temp = np.uint64(temp/256) #>>8,rightshift doesn't like uint64
+  while (temp > 1):
+    f += 1
+    temp = np.uint64(temp/2)   #>>1
+  return (r,f)
+
