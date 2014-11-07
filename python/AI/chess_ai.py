@@ -80,7 +80,37 @@ def get_possible_moves(state):
   if(not state.ai_color and (state.castle & 8)):   #queenside castle
     if(not ((friendly_pieces + opponent_pieces) & np.uint64(0x0700000000000000))): #spaces b8,c8 must be clear
       moves.append("O-O-O")
-      
+   
+  #get the queen's moves, search in each direction till blocked
+  if(piece_list[4]): #check if queen still exists
+    queen_square = piece_list[4]  #get the queen's location
+    rank_file = ai.get_rank_file(queen_square)
+    for r in range(-1,2): #cycle through all avaliable angles of motion
+      for f in range(-1,2):
+        for i in range (1,7): #queen can move up to 7 squares
+          if(rank_file[0]+(r*i)>0 and rank_file[0]+(r*i)<=8 and rank_file[1]+(f*i)>0 and rank_file[1]+(f*i) <=8): #check board boundaries
+            if(r > 0):  #shift as appropriate
+              new_square = np.uint64(new_square * (256 << (r*i)))  #numpy won't << with uint64
+            elif(r < 0):
+              new_square = np.uint64(new_square / (256 << (-r*i))) #numpy won't >> with uint64
+            if(f > 0):
+              new_square = np.uint64(new_square * (1 << (f*i)))    #<< by f*i
+            elif(f < 0):
+              new_square = np.uint64(new_square  / (1 << (-f*i)))  #>> by -f*i
+            if(not (new_square & friendly_pieces)): #no piece conflict
+              move_string = 'Q' + chr(ord('a')+rank_file[1]-1) + chr(ord('0')+rank_file[0]) #old_location
+              if(new_square & opponent_pieces): #piece capture
+                move_string += 'x'
+                break #farthest queen can progress in this direction (enemy piece in the way)
+              else:
+                move_string += '-'
+              move_string += chr(ord('a')+rank_file[1]+(f*i)-1) + chr(ord('0')+rank_file[0]+(r*i)) #new location
+              moves.append(move_string) #add it to the list
+            else
+              break #friendly piece blocking us
+          else:
+            break #edge of board, nowhere else to go
+            
   #add the king's moves (ignore checks, state eval will catch them eventually)
   if(piece_list[5]): #check if king is still in play (suprisingly possible)
     king_square = piece_list[5] #get the king's square
@@ -105,7 +135,5 @@ def get_possible_moves(state):
               move_string += '-'
             move_string += chr(ord('a')+rank_file[1]+f-1) + chr(ord('0')+rank_file[0]+r) #new location
             moves.append(move_string) #add it to the list
-            
-  #Queen Moves (dear god)         
             
   return moves
