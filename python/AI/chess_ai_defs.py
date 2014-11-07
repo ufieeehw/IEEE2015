@@ -18,50 +18,52 @@ class Board_State:
   bq = np.uint64(0)
   bk = np.uint64(0)
   ep = np.uint64(0) #en passant rule
-  white_turn = True #default to white's turn
+  turn = True       #is it our turn?
+  ai_color = True   #what color are we? (true = white, false = black)
   castle = 0        #castle avaliability-bits[(0/1 white, 0/2 king side, 1/3 queen side)]
   #not doing stalemate counters
 
-  #construct the state from a FEN string
-  def __init__(self, fen_board):
+  #construct the state from a FEN string and color
+  def __init__(self, fen_board, color):
     square = 0;
     ep_rank = ' '  #cache for en passant rank
+    self.ai_color = color #store the ai color
     for c in fen_board:  #decipher each character, store location
       if(square < 64):  #still in chessboard definition
         if(c == 'P'): #ugh, no single line if statements
-          self.wp  += 1 << square #white pawn
+          self.wp  += np.uint64(1<<square) #white pawn
         elif(c == 'R'): 
-          self.wr  += 1 << square #white rook
+          self.wr  += np.uint64(1<<square) #white rook
         elif(c == 'N'): 
-          self.wn  += 1 << square #white knight
+          self.wn  += np.uint64(1<<square) #white knight
         elif(c == 'B'): 
-          self.wb  += 1 << square #white bishop
+          self.wb  += np.uint64(1<<square) #white bishop
         elif(c == 'Q'): 
-          self.wq  += 1 << square #white queen
+          self.wq  += np.uint64(1<<square) #white queen
         elif(c == 'K'): 
-          self.wk  += 1 << square #white king
+          self.wk  += np.uint64(1<<square) #white king
         elif(c == 'p'): 
-          self.bp  += 1 << square #black pawn
+          self.bp  += np.uint64(1<<square) #black pawn
         elif(c == 'r'): 
-          self.br  += 1 << square #black rook
+          self.br  += np.uint64(1<<square) #black rook
         elif(c == 'n'): 
-          self.bn  += 1 << square #black knight
+          self.bn  += np.uint64(1<<square) #black knight
         elif(c == 'b'): 
-          self.bb  += 1 << square #black bishop
+          self.bb  += np.uint64(1<<square) #black bishop
         elif(c == 'q'): 
-          self.bq += 1 << square #black queen
+          self.bq += np.uint64(1<<square) #black queen
         elif(c == 'k'): 
-          self.bk += 1 << square #black king
+          self.bk += np.uint64(1<<square) #black king
         elif(c >= '0' and c <= '9'):  #skip amount
           square += ord(c) - ord('0') - 1  #no char/int mapping either!?!
         if(c != '/'): #ignore row deliniations
           square += 1  #no ++? what is this, ancient rome?
       else: #in meta definitions now
         if(square == 65): #color on the move
-          if(c == 'b'): 
-            self.white_turn = False
+          if((c == 'w') == color): #(white's turn) !xor (ai is white)
+            self.turn = True
           else:
-            self.white_turn = True
+            self.turn = False
         elif(square >= 67 and square <= 70): #castle avaliability
           if(c == 'K'): 
             self.castle += 1  #white kingside
