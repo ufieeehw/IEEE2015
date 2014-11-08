@@ -60,12 +60,12 @@ def get_possible_moves(state):
     opponent_pieces = state.get_black_pieces()
     friendly_pieces = state.get_white_pieces()
     piece_list = [state.wp, state.wr, state.wn, state.wb, state.wq, state.wk]
-    pawn_dir = True #pawns are moving forward
+    pawn_dir = False   #pawns are moving forward
   else: #black's turn
     opponent_pieces = state.get_white_pieces()
     friendly_pieces = state.get_black_pieces()
     piece_list = [state.bp, state.br, state.bn, state.bb, state.bq, state.bk]
-    pawn_dir = False  #pawns move backwards
+    pawn_dir = True  #pawns move backwards
   
   #generate possible moves. Priority is driven by ordering, so start with low-risk moves first
   #check if castles are avaliable
@@ -81,6 +81,37 @@ def get_possible_moves(state):
   if(not state.ai_color and (state.castle & 8)):   #queenside castle
     if(not ((friendly_pieces + opponent_pieces) & np.uint64(0x0700000000000000))): #spaces b8,c8 must be clear
       moves.append("O-O-O")
+
+  if(piece_list[0]): #check if there are pawns
+    rank_file = ai.get_rank_file(piece_list[0])
+    for piece in rank_file: #search for each piece found
+      pawn_square = ai.get_square(piece)
+      for r in (1, 2): #cycle through all avaliable angles of motion
+        if(not pawn_dir):
+          r = -1 * r  #invert pawn direction if we're black side
+        for f in (-1, 0, 1):
+          if(f != 0 and r == 2):
+            continue #can't move forward twice when changing rank
+          elif(f == 0 and (r == 2 or r == -2) and ((pawn_dir and piece[0] != 2) or (not pawn_dir and piece[0] != 7))):
+            continue #pawn can only move two spaces from starting row
+          if(piece[0]+r>0 and piece[0]+r<=8 and piece[1]+f>0 and piece[1]+f<=8): #check board boundaries
+            new_square = pawn_square
+            if(r > 0):  #shift as appropriate
+              new_square = np.uint64(new_square * (1 << 8*r))  #numpy won't << with uint64
+            elif(r < 0):
+              new_square = np.uint64(new_square / (1 << 8*-r)) #numpy won't >> with uint64
+            if(f > 0):
+              new_square = np.uint64(new_square * (1 << f))    #<< by f*i
+            elif(f < 0):
+              new_square = np.uint64(new_square  / (1 << -f))  #>> by -f*i
+            if(not ((new_square & friendly_pieces) or (f == 0 and (new_square & (friendly_pieces + opponent_pieces))) or (f != 0 and not (new_square & opponent_pieces)))): #no piece conflict
+              move_string = chr(ord('a')+piece[1]-1) + chr(ord('0')+piece[0]) #old_location
+              if(new_square & np.uint64(opponent_pieces + state.ep)): #piece capture
+                move_string += 'x'
+              else:
+                move_string += '-'
+              move_string += chr(ord('a')+piece[1]+f-1) + chr(ord('0')+piece[0]+r) #new location
+              moves.append(move_string) #add it to the list
 
   #get the knights's moves, search each angle till obstructed
   if(piece_list[2]): #check if there is a knight
