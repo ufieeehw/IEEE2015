@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find ieee2015_servo_controller)/launch/controller_manager.launch"/>
+  <include file="$(find ieee2015_servo_controller)/launch/initialize_servos.launch"/>
+</launch>
