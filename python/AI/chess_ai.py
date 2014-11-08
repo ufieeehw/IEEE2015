@@ -67,6 +67,7 @@ def get_possible_moves(state):
     piece_list = [state.bp, state.br, state.bn, state.bb, state.bq, state.bk]
     pawn_dir = False  #pawns move backwards
   
+  #generate possible moves. Priority is driven by ordering, so start with low-risk moves first
   #check if castles are avaliable
   if(state.ai_color and (state.castle & 1)):       #kingside castle
     if(not ((friendly_pieces + opponent_pieces) & np.uint64(0x00000000000000A0))): #spaces f1,g1 must be clear
@@ -80,46 +81,119 @@ def get_possible_moves(state):
   if(not state.ai_color and (state.castle & 8)):   #queenside castle
     if(not ((friendly_pieces + opponent_pieces) & np.uint64(0x0700000000000000))): #spaces b8,c8 must be clear
       moves.append("O-O-O")
+  
+  #get the rook's moves, search each angle till obstructed
+  if(piece_list[1]): #check if there is a rook
+    rank_file = ai.get_rank_file(piece_list[1])
+    for piece in rank_file: #search for each piece found
+      rook_square = ai.get_square(piece)
+      for r in range(-1, 1): #cycle through all avaliable angles of motion
+        for f in (-1, 1):
+          if(r != 0): #if we're moving vertically, don't move horizontally
+            f = 0
+          for i in range (1,8): #can move up to 7 squares
+            if(piece[0]+(r*i)>0 and piece[0]+(r*i)<=8 and piece[1]+(f*i)>0 and piece[1]+(f*i) <=8): #check board boundaries
+              new_square = rook_square
+              if(r > 0):  #shift as appropriate
+                new_square = np.uint64(new_square * (1 << 8*(r*i)))  #numpy won't << with uint64
+              elif(r < 0):
+                new_square = np.uint64(new_square / (1 << 8*(-r*i))) #numpy won't >> with uint64
+              if(f > 0):
+                new_square = np.uint64(new_square * (1 << (f*i)))    #<< by f*i
+              elif(f < 0):
+                new_square = np.uint64(new_square  / (1 << (-f*i)))  #>> by -f*i
+              if(not (new_square & friendly_pieces)): #no piece conflict
+                move_string = 'R' + chr(ord('a')+piece[1]-1) + chr(ord('0')+piece[0]) #old_location
+                if(new_square & opponent_pieces): #piece capture
+                  move_string += 'x'
+                else:
+                  move_string += '-'
+                move_string += chr(ord('a')+piece[1]+(f*i)-1) + chr(ord('0')+piece[0]+(r*i)) #new location
+                moves.append(move_string) #add it to the list
+                if(new_square & opponent_pieces): #opponent piece
+                  break #opposing peice on board
+              else:
+                break #friendly piece blocking us
+            else:
+              break #edge of board, nowhere else to go
+          if(f==0):
+            break #only need to check this condition once
+   
+  #get the bishop's moves, search each angle till obstructed
+  if(piece_list[3]): #check if there is a bishop
+    rank_file = ai.get_rank_file(piece_list[3])
+    for piece in rank_file: #search for each piece found
+      bishop_square = ai.get_square(piece)
+      for r in (-1, 1): #cycle through all avaliable angles of motion
+        for f in (-1, 1):
+          for i in range (1,8): #can move up to 7 squares
+            if(piece[0]+(r*i)>0 and piece[0]+(r*i)<=8 and piece[1]+(f*i)>0 and piece[1]+(f*i) <=8): #check board boundaries
+              new_square = bishop_square
+              if(r > 0):  #shift as appropriate
+                new_square = np.uint64(new_square * (1 << 8*(r*i)))  #numpy won't << with uint64
+              elif(r < 0):
+                new_square = np.uint64(new_square / (1 << 8*(-r*i))) #numpy won't >> with uint64
+              if(f > 0):
+                new_square = np.uint64(new_square * (1 << (f*i)))    #<< by f*i
+              elif(f < 0):
+                new_square = np.uint64(new_square  / (1 << (-f*i)))  #>> by -f*i
+              if(not (new_square & friendly_pieces)): #no piece conflict
+                move_string = 'B' + chr(ord('a')+piece[1]-1) + chr(ord('0')+piece[0]) #old_location
+                if(new_square & opponent_pieces): #piece capture
+                  move_string += 'x'
+                else:
+                  move_string += '-'
+                move_string += chr(ord('a')+piece[1]+(f*i)-1) + chr(ord('0')+piece[0]+(r*i)) #new location
+                moves.append(move_string) #add it to the list
+                if(new_square & opponent_pieces): #opponent piece
+                  break #opposing peice on board
+              else:
+                break #friendly piece blocking us
+            else:
+              break #edge of board, nowhere else to go
+     
    
   #get the queen's moves, search in each direction till blocked
   if(piece_list[4]): #check if queen still exists
-    queen_square = piece_list[4]  #get the queen's location
-    rank_file = ai.get_rank_file(queen_square)
-    for r in range(-1,2): #cycle through all avaliable angles of motion
-      for f in range(-1,2):
-        for i in range (1,8): #queen can move up to 7 squares
-          if(rank_file[0]+(r*i)>0 and rank_file[0]+(r*i)<=8 and rank_file[1]+(f*i)>0 and rank_file[1]+(f*i) <=8): #check board boundaries
-            new_square = queen_square
-            if(r > 0):  #shift as appropriate
-              new_square = np.uint64(new_square * (1 << 8*(r*i)))  #numpy won't << with uint64
-            elif(r < 0):
-              new_square = np.uint64(new_square / (1 << 8*(-r*i))) #numpy won't >> with uint64
-            if(f > 0):
-              new_square = np.uint64(new_square * (1 << (f*i)))    #<< by f*i
-            elif(f < 0):
-              new_square = np.uint64(new_square  / (1 << (-f*i)))  #>> by -f*i
-            if(not (new_square & friendly_pieces)): #no piece conflict
-              move_string = 'Q' + chr(ord('a')+rank_file[1]-1) + chr(ord('0')+rank_file[0]) #old_location
-              if(new_square & opponent_pieces): #piece capture
-                move_string += 'x'
+    rank_file = ai.get_rank_file(piece_list[4])
+    for piece in rank_file: #search for each piece found (can have multiple queens)
+      queen_square = ai.get_square(piece)  #get the queen's location
+      for r in range(-1,2): #cycle through all avaliable angles of motion
+        for f in range(-1,2):
+          for i in range (1,8): #queen can move up to 7 squares
+            if(piece[0]+(r*i)>0 and piece[0]+(r*i)<=8 and piece[1]+(f*i)>0 and piece[1]+(f*i) <=8): #check board boundaries
+              new_square = queen_square
+              if(r > 0):  #shift as appropriate
+                new_square = np.uint64(new_square * (1 << 8*(r*i)))  #numpy won't << with uint64
+              elif(r < 0):
+                new_square = np.uint64(new_square / (1 << 8*(-r*i))) #numpy won't >> with uint64
+              if(f > 0):
+                new_square = np.uint64(new_square * (1 << (f*i)))    #<< by f*i
+              elif(f < 0):
+                new_square = np.uint64(new_square  / (1 << (-f*i)))  #>> by -f*i
+              if(not (new_square & friendly_pieces)): #no piece conflict
+                move_string = 'Q' + chr(ord('a')+piece[1]-1) + chr(ord('0')+piece[0]) #old_location
+                if(new_square & opponent_pieces): #piece capture
+                  move_string += 'x'
+                else:
+                  move_string += '-'
+                move_string += chr(ord('a')+piece[1]+(f*i)-1) + chr(ord('0')+piece[0]+(r*i)) #new location
+                moves.append(move_string) #add it to the list
+                if(new_square & opponent_pieces): #opponent piece
+                  break #opposing piece
               else:
-                move_string += '-'
-              move_string += chr(ord('a')+rank_file[1]+(f*i)-1) + chr(ord('0')+rank_file[0]+(r*i)) #new location
-              moves.append(move_string) #add it to the list
-              if(new_square & opponent_pieces): #opponent piece
-                break
+                break #friendly piece blocking us
             else:
-              break #friendly piece blocking us
-          else:
-            break #edge of board, nowhere else to go
-            
+              break #edge of board, nowhere else to go
+              
   #add the king's moves (ignore checks, state eval will catch them eventually)
   if(piece_list[5]): #check if king is still in play (suprisingly possible)
     king_square = piece_list[5] #get the king's square
     rank_file = ai.get_rank_file(king_square) #get the coordinates of the location
+    piece = rank_file[0] #only one king ever
     for r in range(-1,2): #king can move 1 space in any direction (+1,0,-1)
       for f in range(-1,2):
-        if(rank_file[0]+r>0 and rank_file[0]+r<=8 and rank_file[1]+f>0 and rank_file[1]+f <=8): #check board boundaries
+        if(piece[0]+r>0 and piece[0]+r<=8 and piece[1]+f>0 and piece[1]+f <=8): #check board boundaries
           new_square = king_square  #storage for new location
           if(r > 0):  #shift as appropriate
             new_square = np.uint64(new_square * (1 << 8*(r*i)))  #numpy won't << with uint64
@@ -130,12 +204,13 @@ def get_possible_moves(state):
           elif(f < 0):
             new_square = np.uint64(new_square  / (1 << -f))  #>> by -f
           if(not (new_square & friendly_pieces)): #no piece conflict
-            move_string = 'K' + chr(ord('a')+rank_file[1]-1) + chr(ord('0')+rank_file[0]) #old_location
+            move_string = 'K' + chr(ord('a')+piece[1]-1) + chr(ord('0')+piece[0]) #old_location
             if(new_square & opponent_pieces): #piece capture
               move_string += 'x'
             else:
               move_string += '-'
-            move_string += chr(ord('a')+rank_file[1]+f-1) + chr(ord('0')+rank_file[0]+r) #new location
+            move_string += chr(ord('a')+piece[1]+f-1) + chr(ord('0')+piece[0]+r) #new location
             moves.append(move_string) #add it to the list
             
   return moves
+  

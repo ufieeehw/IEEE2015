@@ -105,15 +105,28 @@ class Move:
     self.value = value  #point value of the move
    
 #function to compute the rank/file of a specific peice on a board    
-def get_rank_file(board):
-  r = 1
-  f = 1
-  temp = np.uint64(board) #cast input
-  while (temp > 255):
-    r += 1
-    temp = np.uint64(temp/256) #>>8,rightshift doesn't like uint64
-  while (temp > 1):
-    f += 1
-    temp = np.uint64(temp/2)   #>>1
-  return (r,f)
+#will return the rank/file of all matching items
+def get_rank_file(board): 
+  r = 1 #rank
+  f = 1 #file
+  board = np.uint64(board)
+  mask = np.uint64(1)  #bitmask
+  output = [] #output list
+  while(r <= 8): #while we're still on the board
+    if(board & mask): #check if bit is set
+      output.append((r,f))
+    f += 1  #increment file
+    mask = np.uint64(mask * 2)  #shift mask
+    if(f > 8):  #off of board
+      f = 1     #reset file
+      r += 1    #increment rank
+  return output #return the list
 
+def get_square(rank_file):
+  val = np.uint64(1)
+  for i in range(1,rank_file[0]):
+    val = np.uint64(val*256)  #increment rank
+  for i in range(1,rank_file[1]):
+    val = np.uint64(val*2)  #increment file
+  return val 
+ 
