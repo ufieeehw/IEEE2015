@@ -81,7 +81,41 @@ def get_possible_moves(state):
   if(not state.ai_color and (state.castle & 8)):   #queenside castle
     if(not ((friendly_pieces + opponent_pieces) & np.uint64(0x0700000000000000))): #spaces b8,c8 must be clear
       moves.append("O-O-O")
-  
+
+  #get the knights's moves, search each angle till obstructed
+  if(piece_list[2]): #check if there is a knight
+    rank_file = ai.get_rank_file(piece_list[2])
+    for piece in rank_file: #search for each piece found
+      knight_square = ai.get_square(piece)
+      for r in (-2, -1, 1, 2): #cycle through all avaliable angles of motion
+        for f in (-1, 1):
+          if(r == -1 or r == 1):  #knight needs to 2-1 or 1-2, force this here
+            f = f * 2
+          if(piece[0]+(r)>0 and piece[0]+(r)<=8 and piece[1]+(f)>0 and piece[1]+(f) <=8): #check board boundaries
+            new_square = knight_square
+            if(r > 0):  #shift as appropriate
+              new_square = np.uint64(new_square * (1 << 8*(r)))  #numpy won't << with uint64
+            elif(r < 0):
+              new_square = np.uint64(new_square / (1 << 8*(-r))) #numpy won't >> with uint64
+            if(f > 0):
+              new_square = np.uint64(new_square * (1 << (f)))    #<< by f*i
+            elif(f < 0):
+              new_square = np.uint64(new_square  / (1 << (-f)))  #>> by -f*i
+            if(not (new_square & friendly_pieces)): #no piece conflict
+              move_string = 'N' + chr(ord('a')+piece[1]-1) + chr(ord('0')+piece[0]) #old_location
+              if(new_square & opponent_pieces): #piece capture
+                move_string += 'x'
+              else:
+                move_string += '-'
+              move_string += chr(ord('a')+piece[1]+(f)-1) + chr(ord('0')+piece[0]+(r)) #new location
+              moves.append(move_string) #add it to the list
+              if(new_square & opponent_pieces): #opponent piece
+                break #opposing peice on board
+            else:
+              break #friendly piece blocking us
+          else:
+            break #edge of board, nowhere else to go
+ 
   #get the rook's moves, search each angle till obstructed
   if(piece_list[1]): #check if there is a rook
     rank_file = ai.get_rank_file(piece_list[1])
