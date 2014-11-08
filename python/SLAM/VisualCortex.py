@@ -32,10 +32,7 @@ class VisualCortex:
     _transformed_view = None;
     _perspective_matrix = None;
     #position on a perspec transformed img that corresponds to robot's loc
-    _robot_coordinates = [[400],
-                          [800],
-                          [1]
-                         ];
+    _robot_coordinates = [400, 800, 1];
     _perspec_corners = None
 
 
@@ -56,7 +53,11 @@ class VisualCortex:
     """
     def __init__(self, view_coordinates, map_coordinates, img):
         self.full_map= np.ones((self.full_map_x, self.full_map_y), np.uint8);
-        self.position = [1500, 2500];
+        # TODO: This is not actually the starting position... This is the center of
+        #    where we place the first image on the black map.  We can then extract
+        #    the actual starting position by running "self.localize" on the affine
+        #    matrix given by self._initialize_affine_matrix below
+        self.position = [self.full_map_x/2, self.full_map_y/2];
         self.rotation = 0;
 
         # Read off the dimensions of images we are getting from camera
@@ -64,8 +65,7 @@ class VisualCortex:
 
         # Get the perspec transform matrix
         # TODO: Get a more accurate transform
-        self._perspective_matrix = self._get_perspective_matrix(
-                                        view_coordinates, map_coordinates);
+        self._perspective_matrix = self._get_perspective_matrix(view_coordinates, map_coordinates);
         # Now that we have a matrix, get the bird's eye image dimensions
         self._get_bird_dims()
         self._calculate_perspec_corners()
@@ -86,27 +86,30 @@ class VisualCortex:
     def SLAM(self, image):
         # Run perspective transform on image
         imgx = self.transform_image(image)
+
         # Extract features from this image
         kp1, des1 = self.feature_detect(imgx)
-        self._draw_features(imgx,kp1, None)
+        #self._draw_features(imgx, kp1, None)
         kp1, des1, bird_corners = self._apply_roi(kp1, des1)
-        self._draw_features(imgx,kp1, bird_corners)
+        self._draw_features(imgx, kp1, bird_corners)
+
         # TODO: Use a database rather than re-ORBing on the full map
+        # TODO: put a mask around the "known map" for the same reason we do it to imgx above...
         # Extract features from the full_map
         kp2, des2 = self.feature_detect(self.full_map)
+        self._draw_features(self.full_map, kp2, None)
         # Match features between imgx and full_map
         # TODO: Do we need to input kp1 and kp2?
         M, matches = self.feature_match(kp1, kp2, des1, des2)
         self._draw_matches(imgx,self.full_map,kp1,kp2,matches,[0,1,2,3])
+
         # Use matches to get the affine transform
-        # TODO: Make affine matrix a variable and not a property, since
-        # it always changes at this point
         affine_matrix = self.get_affine_matrix(kp1, kp2, matches)
         # Use this affine matrix to update robot position
         # TODO: Make position/rotation a property
         self.localize(affine_matrix)
         # Use this affine matrix to update full_map
-        self.stitch(imgx, affine_matrix)
+        self.stitch(imgx, M)
         return;
 
     """Takes an image from the camera's video feed and transforms it into a 
@@ -117,10 +120,8 @@ class VisualCortex:
         imgx = cv2.warpPerspective(image, self._perspective_matrix,
                                    (self.bird_x,self.bird_y), flags = 1, 
                                    borderMode = 0, borderValue = (0,0,0))
-        # TODO: See if there is a better way to get rid of pixelation that
-        # comes from the interpolation of transformed pixels
-        # Sharpen the image
-        imgx = cv2.bilateralFilter(imgx,9,75,75)
+        # Clean up the image
+        imgx = self.clean_image(imgx)
         return imgx;
 
     """Find the features/corners of interest of an input image, 
@@ -140,7 +141,7 @@ class VisualCortex:
     """
     def feature_match(self, kp1, kp2, des1, des2):
         # Create BFMatcher object
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
         # Match descriptors and get the matches array
         matches = bf.match(des1,des2)
         # Sort them in the order of their distance.
@@ -160,14 +161,17 @@ class VisualCortex:
         if len(good_matches)>0:
             # TODO: 'splain the following 4 lines of code
             query_pts = np.float32(
-                [ kp1[m.queryIdx].pt for m in good_matches ]).reshape(-1,1,2)
+                [ kp1[m.queryIdx].pt for m in good_matches ]).reshape(-1,1,3)
             train_pts = np.float32(
                 [ kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1,1,2)
+            print query_pts.shape
+            print kp1[good_matches[0].queryIdx].pt
+            print query_pts[0]
             # Run regression on the matches to filter outliers
-            M, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC,20.0)
+            M, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC, 5.0)
             matches_mask = mask.ravel().tolist()
             # Use this mask immediately to get the good_matches matches
-            good_matches = self._filter_matches(good_matches, matches_mask)
+            #good_matches = self._filter_matches(good_matches, matches_mask)
         else:
                 print "Not enough matches are found - %d/%d" % (len(good_matches), 10)
                 matches_mask = None
@@ -204,10 +208,10 @@ class VisualCortex:
         can update the robot's location in the full_map
         """
         self.position = np.dot(affine_matrix, self._robot_coordinates)
-        bearing = np.dot(affine_matrix, [[self.robot_coordinates(0)],
-                                         [self._robot_coordinates(1) - bird_y/2],
-                                         [1]
-                                        ])
+        bearing = np.dot(affine_matrix, np.array([[self._robot_coordinates[0]],
+                                                  [self._robot_coordinates[1] - self.bird_y/2],
+                                                  [1]
+                                                 ]))
         # Note that delta_y seems flipped.  This is because x coordinates go left to right (normal)
         # but y coordinates go top to bottom (flipped). As Bill Nye would say, consider the following:
         #                        O  (bigger x, smaller y)
@@ -219,27 +223,47 @@ class VisualCortex:
         #               |  /
         #               | / (smaller x, bigger y)
         #                O
-        delta_x = bearing(0) - self.position(0)
-        delta_y = self.position(1) - bearing(1)
+        delta_x = bearing[0] - self.position[0]
+        delta_y = self.position[1] - bearing[1]
         # Gives rotation in radians East of North
         self.rotation = np.arctan(delta_y/delta_x)
-        return None;
 
-    """ Update the full_map with the latest image, using the
-    most up-to-date _affine_matrix"""
-    def stitch(self, imgx, affine_matrix):
-        # Transform imgx into something the size of the full map using affine
-        rows, cols = self.full_map.shape
-        fullimgx = cv2.warpAffine(imgx, affine_matrix, (cols,rows))
+    def stitch(self, imgx, matrix):
+        """ Update the full_map with the latest image, using the
+        most up-to-date _affine_matrix
+        """
+        # Decide if we are doing affine or perspective xform based on the matrix shape
+        if (matrix.shape == (2,3)): # Affine
+            # Transform imgx into something the size of the full map using affine
+            fullimgx = cv2.warpAffine(imgx, matrix, (self.full_map_x, self.full_map_y))
+
+        elif (matrix.shape == (3,3) and matrix[2][2] == 1): # Perspective
+            # Transform imgx into something the size of the full map using perspective
+            fullimgx = cv2.warpPerspective(imgx, matrix, (self.full_map_x, self.full_map_y), flags = 1, 
+                                           borderMode = 0, borderValue = (0,0,0))
+        else:
+            print "ERROR: Unknown transform matrix.  Cannot stitch to full map"
+            fullimgx = np.ones((self.full_map_x, self.full_map_y), np.uint8);  
+
         fullimg2 = self.full_map
         # Add the images together
         # TODO: Use "blip" or something to add the images together
         self.full_map = fullimgx/2 + self.full_map/2;
-        # Clean up the "ghosting" on the resulting image
-        dump, self.full_map = cv2.threshold(self.full_map, 50, 255,
-            cv2.THRESH_BINARY)
+        # Clean up the image
+        self.full_map = self.clean_image(self.full_map)
         #superimposed = cv2.resize(superimposed,(0,0), fx=.25, fy=.25)
-        return None;
+        return None
+
+
+    def clean_image(self, img):
+        """ Clean up a transformed or stitched image by threshholding it and then
+        blurring it to remove pixelation and salt/pepper
+        """
+        thresh = 50
+        dump, img = cv2.threshold(img, thresh, 255, cv2.THRESH_BINARY)
+        kernel = 10
+        img = cv2.blur(img, (kernel, kernel))
+        return img
 
 
     ####################################
@@ -257,7 +281,7 @@ class VisualCortex:
             # Offset feature2
             feature1 = tuple([int(feature1[0]), int(feature1[1])]);
             # Put dots on these features
-            cv2.circle(color_img, feature1, 1, (0,255,0), -1);
+            cv2.circle(color_img, feature1, 2, (0,0,255), -1);
 
         if (bird_corners != None):
             cv2.line(color_img, tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
@@ -303,12 +327,10 @@ class VisualCortex:
             newpoints[n][1] = avg_y - (avg_y - points[n][1])*scale + translate[1]
         return newpoints
 
-    # TODO: Or do we want to initialize this with the self.position
     def _initialize_affine_matrix(self):
-        return np.float32([[1, 0, (self.full_map_x-self.bird_x)/2],
-                                          [0, 1, (self.full_map_y-self.bird_y)/2]
-                                         ]
-                                        )
+        return np.float32([[1, 0, self.position[0] - self.bird_x/2],
+                           [0, 1, self.position[1] - self.bird_y/2]
+                          ])
     
     # Figure out the dimensions of the image that the perspective transform
     # maps to.
@@ -333,11 +355,9 @@ class VisualCortex:
 
         #created this method in response to the todo comment
     def _calculate_perspec_corners(self):
-        # TODO: These coordinates are static, so we don't need to keep
-        # recalculating every time we run _apply_roi
         # Figure out where the corners of the perspective image map to in the
         # bird's eye image
-        c = 10     # Number of pixels to cushion the border with
+        c = 0     # Number of pixels to cushion the border with
         self._perspec_corners = [[c, self.cam_x - c, self.cam_x - c, c             ],
                                  [c, c             , self.cam_y - c, self.cam_y - c],
                                  [1, 1             , 1             , 1             ]
@@ -357,6 +377,11 @@ class VisualCortex:
         for col in range(0,4):
             for row in range(0,2):
                 bird_corners[row][col] = bird_homo_corners[row][col] / bird_homo_corners[2][col]
+        c = 15
+        cushion = [[c, -c, -c, c],
+                   [c, c, -c, -c]
+                  ]
+        bird_corners = np.add(bird_corners, cushion)
 
         # TODO: Figure out a better way to check if points are inside polygon
         # TODO: Make the following chunk more readable
@@ -421,7 +446,7 @@ class VisualCortex:
             cv2.line(fullimg,feature1,feature2,(0,255,0),1)
 
         while(1):
-            cv2.imshow('full',cv2.resize(fullimg,(0,0),fx=.3,fy=.3));
+            cv2.imshow('full',cv2.resize(fullimg,(0,0),fx=.5,fy=.5));
 
             if cv2.waitKey(20) & 0xFF == 27:
                 break;
@@ -451,7 +476,7 @@ img = cv2.cvtColor(cv2.imread(img_location), cv2.COLOR_BGR2GRAY)
 # Create a new VC object
 VC = VisualCortex(view_coordinates,map_coordinates,img);
 
-img_location = 'cap2.jpg'
+img_location = 'cap1.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 VC.SLAM(img)
 
