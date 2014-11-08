@@ -18,7 +18,7 @@ def normalize_angle(ang):
 
 class SCARA_Controller(object):
     '''APPLIES ONLY TO 2 DOF ARM, PROOF OF CONCEPT'''
-    def __init__(self, lengths=(100, 100)):
+    def __init__(self, lengths=(148, 160)):
         rospy.init_node('SCARA_controller')
         self.length_1, self.length_2 = lengths
         self.base = np.array([0, 0], np.float32)
@@ -74,6 +74,8 @@ class SCARA_Controller(object):
             return None
 
         base_angle = np.arctan2(y, x) - np.arccos(distance / (2 * self.length_1))
+
+
         if base_angle < -1.57:
             base_angle = base_angle + 2*np.pi
             if base_angle > 3.14:
