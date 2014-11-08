@@ -4,9 +4,6 @@ import chess_ai_defs as ai
 #globals/constants for use in the methods
 MAX_DEPTH = 6 #start small (real AI use ~12-14)
 
-#considering multithreading
-
-
 #Function to run the move determination (wrapper for minmax)
 #Function expects a Forsyth-Edwards Notation (please start on white side, wikipedia is backwards)
 #  also expects the ai color (True=White, False=Black)
@@ -15,15 +12,22 @@ def get_chess_move(fen_board, color):
   state = ai.Board_State(fen_board, color) #construct the board state
       
   #now that that's done, start minmax
-  #best_move = alpha_beta_tree(state, MAX_DEPTH, None, None, True)
-  #return best_move.tag
-  return get_possible_moves(state) #debug
+  best_move = alpha_beta_tree(state, MAX_DEPTH, None, None, True)
+  #TODO: Call Check (run evalutaion on free second move, see if king is dead)
+  #TODO: Call Mate  (run evalutaion to a depth of 2, see if king survives)
+  return best_move.tag
 
 #recursive function to generate tree
 #argumengs are: board state, remaining depth,
 #  most recent min, most recent max, current operation (max/min)
 #function returns the optimal move
 def alpha_beta_tree(state, depth, last_min, last_max, is_max):
+  move_strings = get_possible_moves(state) #get the strings corresponding to possible moves
+  
+  #TODO: map moves to cloned board states (create method in Board_State)
+  #TODO: Call series of recursive methods to see if move can be beaten
+  #TODO: Alpha/Beta pruning on Minmax tree
+  #TODO: Multithread?
   return None 
 
 #function counts the peices remaining on the board, and multiplies by thier weight (Kauffman's 2012 values)
@@ -113,7 +117,7 @@ def get_possible_moves(state):
               move_string += chr(ord('a')+piece[1]+f-1) + chr(ord('0')+piece[0]+r) #new location
               moves.append(move_string) #add it to the list
 
-  #get the knights's moves, search each angle till obstructed
+  #get the knights's moves, search +-1/2 in rank, and map file to 1/2 as appropriate
   if(piece_list[2]): #check if there is a knight
     rank_file = ai.get_rank_file(piece_list[2])
     for piece in rank_file: #search for each piece found
@@ -147,7 +151,7 @@ def get_possible_moves(state):
           else:
             break #edge of board, nowhere else to go
  
-  #get the rook's moves, search each angle till obstructed
+  #get the rook's moves, search each direction till obstructed
   if(piece_list[1]): #check if there is a rook
     rank_file = ai.get_rank_file(piece_list[1])
     for piece in rank_file: #search for each piece found
@@ -218,7 +222,7 @@ def get_possible_moves(state):
               break #edge of board, nowhere else to go
      
    
-  #get the queen's moves, search in each direction till blocked
+  #get the queen's moves, search in each direction/angle till blocked
   if(piece_list[4]): #check if queen still exists
     rank_file = ai.get_rank_file(piece_list[4])
     for piece in rank_file: #search for each piece found (can have multiple queens)
@@ -279,3 +283,4 @@ def get_possible_moves(state):
             
   return moves
   
+#Boo
