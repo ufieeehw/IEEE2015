@@ -24,7 +24,9 @@ class Board_State:
   #not doing stalemate counters
 
   #construct the state from a FEN string and color
-  def __init__(self, fen_board, color):
+  def __init__(self, fen_board = None, color = True):
+    if(fen_board == None): #empty constructor
+      return
     square = 0;
     ep_file = ' '  #cache for en passant rank
     self.ai_color = color #store the ai color
@@ -85,6 +87,123 @@ class Board_State:
           self.ep = 1 << ep_file + (ord(c) - ord('0')) << 8  #store ep
         #Not doing the 50-move stalemate counters, fuck it
         square += 1
+
+  #copy constructor
+  def copy_board(self, other):
+    self.wp = other.wp
+    self.wr = other.wr
+    self.wn = other.wn
+    self.wb = other.wb
+    self.wq = other.wq
+    self.wk = other.wk
+    self.bp = other.bp
+    self.br = other.br
+    self.bn = other.bn
+    self.bb = other.bb
+    self.bq = other.bq
+    self.bk = other.bk    
+    self.ep = other.ep
+    self.turn = other.turn
+    self.ai_color = other.ai_color
+    self.castle = other.castle
+  
+  #Execute a  move
+  def execute_move(self, move):
+    if(move[0] >= 'A' and move[0] <= 'Z'):  #capitol letters are pieces
+      if(move[0] == 'O'): #castle, manually execute swap
+        if (len(move) == 3): #Kingside
+          if(self.turn): #white
+            self.execute_move("Ke1-g1")
+            self.execute_move("Rh1-f1")
+          else: #black
+            self.execute_move("Ke8-g8")
+            self.execute_move("Rh8-f8")
+        else: #Queenside
+          if(self.turn): #white
+            self.execute_move("Ke1-c1")
+            self.execute_move("Ra1-d1")
+          else: #black
+            self.execute_move("Ke8-c8")
+            self.execute_move("Rh8-d8")
+      piece_type = move[0]
+      old_rank_file = (ord(move[2])-ord('0'),ord(move[1])-ord('a')+1) #starting location
+      new_rank_file = (ord(move[5])-ord('0'),ord(move[4])-ord('a')+1) #new location
+      capture = (move[3] == 'x') #was there a capture?
+    else:
+      piece_type = 'P'
+      old_rank_file = (ord(move[1])-ord('0'),ord(move[0])-ord('a')+1) #starting location
+      new_rank_file = (ord(move[4])-ord('0'),ord(move[3])-ord('a')+1) #new location
+      capture = (move[2] == 'x') #was there a capture?
+
+    old_square = get_square(old_rank_file) #get old square
+    new_square = get_square(new_rank_file) #get new square
+      
+    if(self.turn):  #white's color
+      if(piece_type == 'P'):
+        self.wp = np.uint64((self.wp & ~old_square) | new_square) #remove old location, set new one
+      if(piece_type == 'R'):
+        self.wr = np.uint64((self.wr & ~old_square) | new_square) #remove old location, set new one
+        if(old_rank_file[1] == 8): #kingside rook
+          self.castle = self.castle & 0xE #remove castle availability
+        else: #queenside rook 
+          self.castle = self.castle & 0xD 
+      if(piece_type == 'N'):
+        self.wn = np.uint64((self.wn & ~old_square) | new_square) #remove old location, set new one
+      if(piece_type == 'B'):
+        self.wb = np.uint64((self.wb & ~old_square) | new_square) #remove old location, set new one
+      if(piece_type == 'Q'):
+        self.wq = np.uint64((self.wq & ~old_square) | new_square) #remove old location, set new one
+      if(piece_type == 'K'):
+        self.wk = np.uint64((self.wk & ~old_square) | new_square) #remove old location, set new one
+        self.castle = (self.castle & 0xC) #remove castle avaliability
+        
+      if(capture):
+        for target_type in ('P', 'R', 'N', 'B', 'Q', 'K'): #search for captured piece
+          if(piece_type == 'P' and (self.bp & new_square)):
+            self.bp = np.uint64(self.bp & ~new_square) #remove the piece
+          if(piece_type == 'R' and (self.br & new_square)):
+            self.bp = np.uint64(self.br & ~new_square) #remove the piece
+          if(piece_type == 'N' and (self.bn & new_square)):
+            self.bp = np.uint64(self.bn & ~new_square) #remove the piece
+          if(piece_type == 'B' and (self.bb & new_square)):
+            self.bp = np.uint64(self.bb & ~new_square) #remove the piece
+          if(piece_type == 'Q' and (self.bq & new_square)):
+            self.bp = np.uint64(self.bq & ~new_square) #remove the piece
+          if(piece_type == 'K' and (self.bk & new_square)):
+            self.bp = np.uint64(self.bk & ~new_square) #remove the piece
+    
+    else: #black's turn
+      if(piece_type == 'P'):
+        self.bp = np.uint64((self.bp & ~old_square) | new_square) #remove old location, set new one
+      if(piece_type == 'R'):
+        self.br = np.uint64((self.br & ~old_square) | new_square) #remove old location, set new one
+        if(old_rank_file[1] == 8): #kingside rook
+          self.castle = self.castle & 0xB #remove castle availability
+        else: #queenside rook 
+          self.castle = self.castle & 0x7 
+      if(piece_type == 'N'):
+        self.bn = np.uint64((self.bn & ~old_square) | new_square) #remove old location, set new one
+      if(piece_type == 'B'):
+        self.bb = np.uint64((self.bb & ~old_square) | new_square) #remove old location, set new one
+      if(piece_type == 'Q'):
+        self.bq = np.uint64((self.bq & ~old_square) | new_square) #remove old location, set new one
+      if(piece_type == 'K'):
+        self.bk = np.uint64((self.bk & ~old_square) | new_square) #remove old location, set new one
+      if(capture):
+        for target_type in ('P', 'R', 'N', 'B', 'Q', 'K'): #search for captured piece
+          if(piece_type == 'P' and (self.wp & new_square)):
+            self.wp = np.uint64(self.wp & ~new_square) #remove the piece
+          if(piece_type == 'R' and (self.wr & new_square)):
+            self.wp = np.uint64(self.wr & ~new_square) #remove the piece
+          if(piece_type == 'N' and (self.wn & new_square)):
+            self.wp = np.uint64(self.wn & ~new_square) #remove the piece
+          if(piece_type == 'B' and (self.wb & new_square)):
+            self.wp = np.uint64(self.wb & ~new_square) #remove the piece
+          if(piece_type == 'Q' and (self.wq & new_square)):
+            self.wp = np.uint64(self.wq & ~new_square) #remove the piece
+          if(piece_type == 'K' and (self.wk & new_square)):
+            self.wp = np.uint64(self.wk & ~new_square) #remove the piece
+            self.castle = (self.castle & 0x3) #remove castle avaliability
 
   #return the locations of all white peices (int bitmaps are additive)
   def get_white_pieces(self):

@@ -1,8 +1,9 @@
 import numpy as np
 import chess_ai_defs as ai
+import time
 
 #globals/constants for use in the methods
-MAX_DEPTH = 6 #start small (real AI use ~12-14)
+MAX_DEPTH = 8 #start small (real AI use ~12-14)
 
 #Function to run the move determination (wrapper for minmax)
 #Function expects a Forsyth-Edwards Notation (please start on white side, wikipedia is backwards)
@@ -10,25 +11,50 @@ MAX_DEPTH = 6 #start small (real AI use ~12-14)
 #function will return a character move in long-algebreic-notation
 def get_chess_move(fen_board, color):  
   state = ai.Board_State(fen_board, color) #construct the board state
-      
+  
+  #do some timing things
+  start = time.clock()
+  
   #now that that's done, start minmax
   best_move = alpha_beta_tree(state, MAX_DEPTH, None, None, True)
   #TODO: Call Check (run evalutaion on free second move, see if king is dead)
   #TODO: Call Mate  (run evalutaion to a depth of 2, see if king survives)
-  return best_move.tag
+  return (best_move.tag, time.clock() - start)
 
 #recursive function to generate tree
 #argumengs are: board state, remaining depth,
 #  most recent min, most recent max, current operation (max/min)
 #function returns the optimal move
 def alpha_beta_tree(state, depth, last_min, last_max, is_max):
+  if(depth == 0): #end of recursive function
+    return ai.Move("", get_state_evaluation(state))  #return the value of this position
+    
   move_strings = get_possible_moves(state) #get the strings corresponding to possible moves
+  new_state = ai.Board_State()
+  new_state.copy_board(state)
+  new_state.execute_move(move_strings[0])
+  best_move = alpha_beta_tree(new_state, depth-1, None, None, not is_max)
+  best_move.tag = move_strings[0]
   
-  #TODO: map moves to cloned board states (create method in Board_State)
-  #TODO: Call series of recursive methods to see if move can be beaten
-  #TODO: Alpha/Beta pruning on Minmax tree
+  for move in move_strings[1:]: #search each other move
+    new_state = ai.Board_State()  #create a new object
+    new_state.copy_board(state)   #copy the board
+    new_state.execute_move(move)  #execute the move
+    if(is_max):
+      contender = alpha_beta_tree(new_state, depth-1, last_min, best_move.value, False) #recurse!
+    else:
+      contender = alpha_beta_tree(new_state, depth-1, best_move.value, last_max, True) #recurse!
+    if((is_max and contender.value > best_move.value) or (not is_max and contender.value < best_move.value)):
+      best_move = contender #contender is better
+      best_move.tag = move  #update the tag
+      if(last_max != None and last_min != None): #start alpha beta
+        if(is_max and best_move.value >= last_min):
+          return best_move #no possible replacements
+        elif(not is_max and best_move.value <= last_max):
+          return best_move #no possible better moves
+  
   #TODO: Multithread?
-  return None 
+  return best_move
 
 #function counts the peices remaining on the board, and multiplies by thier weight (Kauffman's 2012 values)
 #super simple first draft, will probably improve later
@@ -64,12 +90,12 @@ def get_possible_moves(state):
     opponent_pieces = state.get_black_pieces()
     friendly_pieces = state.get_white_pieces()
     piece_list = [state.wp, state.wr, state.wn, state.wb, state.wq, state.wk]
-    pawn_dir = False   #pawns are moving forward
+    pawn_dir = True   #pawns are moving forward
   else: #black's turn
     opponent_pieces = state.get_white_pieces()
     friendly_pieces = state.get_black_pieces()
     piece_list = [state.bp, state.br, state.bn, state.bb, state.bq, state.bk]
-    pawn_dir = True  #pawns move backwards
+    pawn_dir = False  #pawns move backwards
   
   #generate possible moves. Priority is driven by ordering, so start with low-risk moves first
   #check if castles are avaliable
