@@ -60,7 +60,7 @@ class Diagram(object):
             for j in xrange (0, z_max):
                 if grid[i][j] == obstacle:
                     ''' Need to get obstacles from computer vision '''
-                    obstacle[i][j] # Obstacles in their own array
+                     # obstacle[i][j] # Obstacles in their own array
                     # Don't forget to add size of robot to obstacle
 
 
@@ -157,7 +157,7 @@ def begin():
     joint_one_angle = start_one
     joint_two_angle = start_two
 
-def get_start():
+def get_start_cordinates():
     # Gets the current position of the end-effector using forward kinematics
     x_end_effector = length_upper_arm * cos(joint_one_angle) + (length_lower_arm + length_end_effector) * sin(joint_two_angle)
     z_end_effector = length_upper_arm * sin(joint_one_angle) + (length_lower_arm + length_end_effector) * cos(joint_two_angle)
@@ -182,12 +182,42 @@ def do_move(x, z):
     ''' Perferably move both at the same time '''
 
 
+''' Chess Specific '''
+
+def pick_up_piece():
+    # Picks up piece and returns to certain height 
+    origin = get_start_cordinates()
+    temp = find_angles(origin[0],0) # Secound veriable will need to be adjusted  
+    # Open end-effector
+    move_joint_one(temp[0])
+    move_joint_two(temp[1])
+    # Close end-effector
+    do_move(origin)
+    ''' Need to use actual command '''
+
+def drop_off_piece():
+    # Picks up piece and returns to certain height 
+    origin = get_start_cordinates()
+    temp = find_angles(origin[0],0) # Secound veriable will need to be adjusted  
+    move_joint_one(temp[0])
+    move_joint_two(temp[1])
+    # Open end-effector
+    # Close end-effector
+    do_move(origin)
+    ''' Need to use actual command '''
+
 def chess_turn():
     # Does one chess turn
     begin() # Will start with default angles
     # Observe board
     # Send pieces to AI
     # AI sends row column of piece to be picked up and if spot is occupied
+    if # Out of reach 
+        # Move to other side
+        if left_side == True:
+            left_side == False
+        else:
+            left_side == True
     if # Occupied
         # Move to occupied spot
         # Pick up piece
@@ -202,12 +232,12 @@ def chess_turn():
 
 
 ''' Running '''
-begin()
-# Will start with default angles
+left_side = True
+playing_chess = True
+while playing_chess == True:
+    chess_turn()
 
-left_side = true
-
-
+''' Unneccesary implementaion
 get_des_pose(self, msg)
 # Get desired pose from chess game or other objective
 
@@ -231,4 +261,4 @@ if possibe_reach > 0:
         for i in range path:
             if path[i][0] != -1:
             # If -1 then that  waypoint is on a line between other waypoints and can be skipped
-                do_move(path)
+                do_move(path) '''
