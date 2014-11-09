@@ -103,11 +103,9 @@ class VisualCortex:
         # Match features between imgx and full_map
         # TODO: Do we need to input kp1 and kp2?
         M, matches, q, t = self.feature_match(kp1, kp2, des1, des2)
-        self._draw_features(imgx, q, None, "array")
-        self._draw_features(self.full_map, t, None, "array")
-        self._draw_matches(imgx, self.full_map, kp1, kp2, matches)
-        print M
-        print cv2.getAffineTransform(np.array(q), np.array(t))
+        #self._draw_features(imgx, q, None, "array")
+        #self._draw_features(self.full_map, t, None, "array")
+        #self._draw_matches(imgx, self.full_map, kp1, kp2, matches)
 
         # Use this affine matrix to update robot position
         # TODO: Make position/rotation a property
@@ -254,6 +252,7 @@ class VisualCortex:
 
             # Get distance between points in "mapped" and "train"
             cost = 0
+            net_distance = 0
             compare = pow(threshold, 2)
             mask = []
             for i in range(0, length):
@@ -263,20 +262,34 @@ class VisualCortex:
                 if (distance < compare): 
                     # Note that "mask" 2D array in opencv's stupid "findHomography," but I fixed that so we don't need to unravel
                     mask.append(1)
+                    net_distance = net_distance + distance
                     cost = cost + 1
                 else:
                     mask.append(0)
 
             # Update M, mask, and cost if this cost is better then previous max
-            # TODO: Figure out how to handle cases when new cost is equal but affine matrix is different
+            # TODO: Figure out if comparing net inlier distance is the best way to choose a winner when costs are equal
+            #       .... Or should we go by distance only???  This isn't how findHomography works but it may be better for
+            #       our purposes
             if (cost > best_cost):
                 # TODO: Figure out which of these actually need the deepcopy. I'm tired of getting
                 #       burnt by it so I just made them all deepcopies
                 best_cost = deepcopy(cost)
+                best_net_distance = deepcopy(net_distance)
                 best_M = deepcopy(M)
                 best_mask = deepcopy(mask)
                 best_query = deepcopy(query_chosen)
                 best_train = deepcopy(train_chosen)
+            elif (cost == best_cost):
+                if (net_distance < best_net_distance):
+                    # TODO: Figure out which of these actually need the deepcopy. I'm tired of getting
+                    #       burnt by it so I just made them all deepcopies
+                    best_cost = deepcopy(cost)
+                    best_net_distance = deepcopy(best_net_distance)
+                    best_M = deepcopy(M)
+                    best_mask = deepcopy(mask)
+                    best_query = deepcopy(query_chosen)
+                    best_train = deepcopy(train_chosen)
 
             # Increment the iteration count
             run_count = run_count + 1
@@ -346,6 +359,16 @@ class VisualCortex:
         img = cv2.blur(img, (kernel, kernel))
         return img
 
+    def display_map(self):
+        """ Handle the while loop that shows an image, to clean up code a bit since we use this so often
+        """
+        while(1):
+            cv2.imshow('full',cv2.resize(self.full_map,(0,0),fx=.5,fy=.5));
+
+            if cv2.waitKey(20) & 0xFF == 27:
+                break;
+        cv2.destroyAllWindows()
+        return;
 
     ####################################
     #####    4. PRIVATE METHODS    #####
@@ -571,19 +594,18 @@ view_coordinates = np.float32([[922,220],[688,27],[276,27],[7,218]])
 map_coordinates = np.float32([[650,650],[650,350],[350,350],[350,650]])
 
 # Set filename and read it into an opencv object
-img_location = 'cap1.jpg'
+img_location = 'test_images/cap1.jpg'
 img = cv2.cvtColor(cv2.imread(img_location), cv2.COLOR_BGR2GRAY)
 # Create a new VC object
 VC = VisualCortex(view_coordinates,map_coordinates,img);
 
-img_location = 'cap2.jpg'
+img_location = 'test_images/cap2.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 VC.SLAM(img)
+VC.display_map()
 
+img_location = 'test_images/cap3.jpg'
+img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
+VC.SLAM(img)
+VC.display_map()
 
-while(1):
-    cv2.imshow('full',cv2.resize(VC.full_map,(0,0),fx=.5,fy=.5));
-
-    if cv2.waitKey(20) & 0xFF == 27:
-        break;
-cv2.destroyAllWindows()
