@@ -2,7 +2,8 @@ import numpy as np
 from copy import deepcopy
 from numpy.linalg import inv
 import cv2
-import itertools
+import random
+import math
 
 # TODO: Make nonchanging variables properties.  Make changing variables
 # non-properties
@@ -92,23 +93,25 @@ class VisualCortex:
         kp1, des1 = self.feature_detect(imgx)
         #self._draw_features(imgx, kp1, None)
         kp1, des1, bird_corners = self._apply_roi(kp1, des1)
-        self._draw_features(imgx, kp1, bird_corners)
+        self._draw_features(imgx, kp1, bird_corners, "points")
 
         # TODO: Use a database rather than re-ORBing on the full map
         # TODO: put a mask around the "known map" for the same reason we do it to imgx above...
         # Extract features from the full_map
         kp2, des2 = self.feature_detect(self.full_map)
-        self._draw_features(self.full_map, kp2, None)
+        self._draw_features(self.full_map, kp2, None, "points")
         # Match features between imgx and full_map
         # TODO: Do we need to input kp1 and kp2?
-        M, matches = self.feature_match(kp1, kp2, des1, des2)
-        self._draw_matches(imgx,self.full_map,kp1,kp2,matches,[0,1,2,3])
+        M, matches, q, t = self.feature_match(kp1, kp2, des1, des2)
+        self._draw_features(imgx, q, None, "array")
+        self._draw_features(self.full_map, t, None, "array")
+        self._draw_matches(imgx, self.full_map, kp1, kp2, matches)
+        print M
+        print cv2.getAffineTransform(np.array(q), np.array(t))
 
-        # Use matches to get the affine transform
-        affine_matrix = self.get_affine_matrix(kp1, kp2, matches)
         # Use this affine matrix to update robot position
         # TODO: Make position/rotation a property
-        self.localize(affine_matrix)
+        self.localize(M)
         # Use this affine matrix to update full_map
         self.stitch(imgx, M)
         return;
@@ -165,54 +168,121 @@ class VisualCortex:
                 [ kp1[m.queryIdx].pt for m in good_matches ]).reshape(-1,1,2)
             train_pts = np.float32(
                 [ kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1,1,2)
-
-            # Make the matched coordinates 3d, with z=0
-            query_3d = np.zeros((len(query_pts), 1, 3))
-            for i in range(0, len(query_pts)):
-                query_3d[i][0] = np.append(query_pts[i][0], 0)
-            train_3d = np.zeros((len(train_pts), 1, 3))
-            for i in range(0, len(query_pts)):
-                train_3d[i][0] = np.append(train_pts[i][0], 0)
-
             # Run regression on the matches to filter outliers
-            M, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC, 5.0)
-            retval, out, inliers = cv2.estimateAffine3D(query_3d, train_3d)
-            print retval
-            print out
-            print inliers
-            matches_mask = mask.ravel().tolist()
+            M, mask, successrate, q, t = self.estimateAffine(query_pts, train_pts, 5.0)
+
             # Use this mask immediately to get the good_matches matches
-            #good_matches = self._filter_matches(good_matches, matches_mask)
+            good_matches = self._filter_matches(good_matches, mask)
         else:
                 print "Not enough matches are found - %d/%d" % (len(good_matches), 10)
                 matches_mask = None
                 M = None
-        return M, good_matches
+        return M, good_matches, q, t
 
-    """Using the matches and mask between the full_map and perspec transformed
-    image, determine the affine transformation that will map the smaller
-    onto the bigger.
-    """
-    def get_affine_matrix(self, kp1, kp2, matches):
-        # Indices of which points in "matches" to use
-        point1 = 3;
-        point2 = 1;
-        point3 = 2;
-        # Gather the coordinates in train img that we go TO
-        trainPts = np.float32([ kp2[matches[point1].trainIdx].pt,
-                                kp2[matches[point2].trainIdx].pt,
-                                kp2[matches[point3].trainIdx].pt
-                              ]
-                             )
-        # Gather the coordinates in query that we come FROM
-        queryPts = np.float32([ kp1[matches[point1].queryIdx].pt,
-                                kp1[matches[point2].queryIdx].pt,
-                                kp1[matches[point3].queryIdx].pt
-                              ]
-                             )
-        # Transform the query image
-        return cv2.getAffineTransform(queryPts,trainPts);
-        
+    def estimateAffine(self, query_pts, train_pts, threshold):
+        """This is a 2D version of estimateAffine3D (a built in function) that implements RANSAC to Figure
+        out the best affine transformation between two sets of matched points
+        """
+        # Get length of dataset
+        length = len(query_pts)
+
+        # Sanity check
+        if ((length != len(train_pts)) or (length < 3)):
+            print "ERROR: Match list dims do not match, or not enough matches to estimate"
+
+        # Initialize affine matrix, weight, points, and history
+        M = [[1, 0, 0],
+             [0, 1, 0]]
+        best_cost = 0
+        chosen = [0,0,0]
+        history = [[0,0,0]]
+        query = []
+        train = []
+        query_chosen = [[0, 0],
+                        [0, 0],
+                        [0, 0]]
+        train_chosen = [[0, 0],
+                        [0, 0],
+                        [0, 0]]   
+
+        # Redo query_ and train_pts because they have a really stupid shape and datatype
+        for i in range(0, length):
+            query.append([query_pts[i][0][0], query_pts[i][0][1] ])
+            train.append([train_pts[i][0][0], train_pts[i][0][1] ])
+
+        # TODO: Figure out a good number to use here.  Currently goes for half of the possible combinations (nCr / 2)
+        # TODO: Figure out how small a number of matches we need to try every combo
+        montecarlo_runs = math.factorial(length)/math.factorial(length-3)/math.factorial(3)/2
+        # TODO: Use statistics to calculate the expected number of iterations to find a unique set
+        TIMEOUT = montecarlo_runs
+        run_count = 0
+        # RANSAC to find the best affine transform
+        while (run_count < montecarlo_runs):
+            # DATAPATH for cost (see page 15: https://courses.engr.illinois.edu/cs498dh/fa2011/lectures/Lecture%2018%20-%20Photo%20Stitching%20-%20CP%20Fall%202011.pdf)
+            # Select three random points that we haven't already tested
+            # TODO: Figure out a way to recognize [1,2,3] is already in history, even if the actual entry is
+            #       [1,3,2] or some different order.  Otherwise, remove the history check completely.
+            #       I'm not sure if we need it at all
+            time = 0
+            while (chosen in history):
+                # Check for TIMEOUT
+                time = time + 1
+                if (time > TIMEOUT):
+                    break
+                # Reset the pool
+                pool = range(0, length)
+                # Choose the three random points
+                for i in range(0, 3):
+                    chosen[i] = random.choice(pool)
+                    pool.remove(chosen[i])
+            # Append them to our history if they are new
+            history.append(deepcopy(chosen))
+
+            # Get coordinates from the random indices selected above (note that ****_pts is a really funky data type....)
+            for i in range(0,3):
+                query_chosen[i] = query[chosen[i]]
+                train_chosen[i] = train[chosen[i]]
+
+            # Find affine transform between the points
+            M = cv2.getAffineTransform(np.array(query_chosen), np.array(train_chosen))
+
+            # Apply affine
+            homoquery = []
+            for i in range(0, length):
+                homoquery.append([query[i][0], query[i][1], 1])
+            mapped = np.dot(homoquery, M.T)
+
+            # Get distance between points in "mapped" and "train"
+            cost = 0
+            compare = pow(threshold, 2)
+            mask = []
+            for i in range(0, length):
+                # Apply pythagorean theorem
+                distance = pow(mapped[i][0] - train[i][0], 2) + pow(mapped[i][1] - train[i][1], 2)
+                # Compare the distance with our threshold
+                if (distance < compare): 
+                    # Note that "mask" 2D array in opencv's stupid "findHomography," but I fixed that so we don't need to unravel
+                    mask.append(1)
+                    cost = cost + 1
+                else:
+                    mask.append(0)
+
+            # Update M, mask, and cost if this cost is better then previous max
+            # TODO: Figure out how to handle cases when new cost is equal but affine matrix is different
+            if (cost > best_cost):
+                # TODO: Figure out which of these actually need the deepcopy. I'm tired of getting
+                #       burnt by it so I just made them all deepcopies
+                best_cost = deepcopy(cost)
+                best_M = deepcopy(M)
+                best_mask = deepcopy(mask)
+                best_query = deepcopy(query_chosen)
+                best_train = deepcopy(train_chosen)
+
+            # Increment the iteration count
+            run_count = run_count + 1
+
+        # Return the affine matrix, mask array, and tuple of (inliers, totalmatches)
+        return best_M, best_mask, (best_cost,length), best_query, best_train        
         
     def localize(self, affine_matrix):
         """Apply the latest _affine_matrix to the _robot_coordinates so that we
@@ -282,37 +352,56 @@ class VisualCortex:
     ####################################
 
     # Put green dots on each of the features
-    def _draw_features(self, image, kp, bird_corners):
-        # Turn this image into color so we see green dots
-        color_img = cv2.cvtColor(image , cv2.COLOR_GRAY2RGB)
-        # Plot the keypoints
-        for i in range(0,len(kp)):
-            # Extract coordinates of these keypoints
-            feature1 = kp[i].pt;
-            # Offset feature2
-            feature1 = tuple([int(feature1[0]), int(feature1[1])]);
-            # Put dots on these features
-            cv2.circle(color_img, feature1, 2, (0,0,255), -1);
+    def _draw_features(self, image, kp, bird_corners, intype):
+        if intype == "points":
+            # Turn this image into color so we see green dots
+            color_img = cv2.cvtColor(image , cv2.COLOR_GRAY2RGB)
+            # Plot the keypoints
+            for i in range(0,len(kp)):
+                # Extract coordinates of these keypoints
+                feature1 = kp[i].pt;
+                # Offset feature2
+                feature1 = tuple([int(feature1[0]), int(feature1[1])]);
+                # Put dots on these features
+                cv2.circle(color_img, feature1, 2, (0,0,255), -1);
 
-        if (bird_corners != None):
-            cv2.line(color_img, tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
-                                tuple([int(bird_corners[0][1]),int(bird_corners[1][1])]),
-                                (255,0,0))
-            cv2.line(color_img, tuple([int(bird_corners[0][1]),int(bird_corners[1][1])]),
-                                tuple([int(bird_corners[0][2]),int(bird_corners[1][2])]),
-                                (255,0,0))
-            cv2.line(color_img, tuple([int(bird_corners[0][2]),int(bird_corners[1][2])]),
-                                tuple([int(bird_corners[0][3]),int(bird_corners[1][3])]),
-                                (255,0,0))
-            cv2.line(color_img, tuple([int(bird_corners[0][3]),int(bird_corners[1][3])]),
-                                tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
-                                (255,0,0))
-        while(1):
-            cv2.imshow('full',color_img);
+            if (bird_corners != None):
+                cv2.line(color_img, tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
+                                    tuple([int(bird_corners[0][1]),int(bird_corners[1][1])]),
+                                    (255,0,0))
+                cv2.line(color_img, tuple([int(bird_corners[0][1]),int(bird_corners[1][1])]),
+                                    tuple([int(bird_corners[0][2]),int(bird_corners[1][2])]),
+                                    (255,0,0))
+                cv2.line(color_img, tuple([int(bird_corners[0][2]),int(bird_corners[1][2])]),
+                                    tuple([int(bird_corners[0][3]),int(bird_corners[1][3])]),
+                                    (255,0,0))
+                cv2.line(color_img, tuple([int(bird_corners[0][3]),int(bird_corners[1][3])]),
+                                    tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
+                                    (255,0,0))
+            while(1):
+                cv2.imshow('full',color_img);
 
-            if cv2.waitKey(20) & 0xFF == 27:
-                break;
-        cv2.destroyAllWindows()
+                if cv2.waitKey(20) & 0xFF == 27:
+                    break;
+            cv2.destroyAllWindows()
+
+        elif intype == "array":
+            # Turn this image into color so we see green dots
+            color_img = cv2.cvtColor(image , cv2.COLOR_GRAY2RGB)
+            # Plot the keypoints
+            for i in range(0,len(kp)):
+                # Offset feature2
+                feature1 = tuple([int(kp[i][0]), int(kp[i][1])]);
+                # Put dots on these features
+                cv2.circle(color_img, feature1, 2, (0,0,255), -1);
+
+            while(1):
+                cv2.imshow('full',color_img);
+
+                if cv2.waitKey(20) & 0xFF == 27:
+                    break;
+            cv2.destroyAllWindows()
+
 
     # Read off the dimensions of an image
     def _initialize_cam_dimensions(self, image):
@@ -425,7 +514,7 @@ class VisualCortex:
         return kp1, des1, bird_corners
 
     # Useful tool for drawing matches between two images
-    def _draw_matches(self, img1, img2, kp1, kp2, matches, numberofpoints):
+    def _draw_matches(self, img1, img2, kp1, kp2, matches):
         # Get image dimensions        
         rows1, cols1 = img1.shape;
         rows2, cols2 = img2.shape;
