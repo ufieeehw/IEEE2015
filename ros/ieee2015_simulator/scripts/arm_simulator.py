@@ -10,6 +10,7 @@ from tf import transformations as tf_trans
 ## Ros Msgs
 from std_msgs.msg import Header, Float32
 from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
+from dynamixel_msgs.msg import JointState
 
 SCREEN_DIM = (500,500)
 ORIGIN = np.array([SCREEN_DIM[0]/2.0, SCREEN_DIM[1]/2.0])
@@ -92,21 +93,34 @@ class Line(object):
         '''angle between two line objects'''
         return np.arccos(dotproduct(v1, v2) / (length(v1) * length(v2)))
 
+class Arm_Remapper(object):
+    def __init__(self):
+        rospy.init_node('SCARA_angle_remapper')
+
+        self.elbow_sub = rospy.Subscriber('/elbow_controller/state', JointState, self.got_elbow_state)
+        self.shoulder_sub = rospy.Subscriber('/shoulder_controller/state', JointState, self.got_shoulder_state)
+
+        # self.elbow_pub = rospy.Subscriber('/arm_elbow_angle', Float32)
+        # self.shoulder_pub = rospy.Subscriber('/arm_shoulder_angle', Float32)
+
 
 class SCARA(object):
     def __init__(self):
         rospy.init_node('SCARA_simulator')
         self.base = np.array([0.0, 0.0])
+        shoulder_length, elbow_length = 148, 160
+        self.shoulder = Line(self.base, (shoulder_length, 0), color=(100, 100, 100))
+        self.elbow = Line(self.shoulder.end, self.shoulder.end + (elbow_length, 0), color=(200, 200, 100))
 
-        length1, length2 = 100, 100
-        self.joint1 = Line(self.base, (length1, 0), color=(100, 100, 100))
-        self.joint2 = Line(self.joint1.end, self.joint1.end + (length2, 0), color=(200, 200, 100))
+        # self.elbow_sub = rospy.Subscriber('arm_elbow_angle', Float32, self.got_elbow_angle)
+        # self.shoulder_sub = rospy.Subscriber('arm_shoulder_angle', Float32, self.got_shoulder_angle)
 
-        self.elbow_sub = rospy.Subscriber('arm_elbow_angle', Float32, self.got_elbow_angle)
-        self.base_sub = rospy.Subscriber('arm_base_angle', Float32, self.got_base_angle)
-        self.error_sub = rospy.Subscriber('arm_des_pose', Flo', PointStamped, self.got_des_pose)
+        self.elbow_sub = rospy.Subscriber('/arm_', JointState, self.got_elbow_angle)
+        self.shoulder_sub = rospy.Subscriber('arm_shoulder_angle', JointState, self.got_shoulder_angle)
 
-        self.angle1, self.angle2 = 0.0 , 1.505
+        self.error_sub = rospy.Subscriber('arm_des_pose', Float32, PointStamped, self.got_des_pose)
+
+        self.shoulder_angle, self.elbow_angle = 0.0 , 1.505
         self.position = None
 
     def got_des_pose(self, msg):
@@ -115,11 +129,13 @@ class SCARA(object):
 
     def got_elbow_angle(self, msg):
         '''Recieved current elbow angle'''
-        self.angle2 = msg.data
+        # self.elbow_angle = msg.data
+        self.elbow_angle = msg.current_pos
 
-    def got_base_angle(self, msg):
+    def got_shoulder_angle(self, msg):
         '''Recieved current base angle'''
-        self.angle1 = msg.data
+        # self.shoulder_angle = msg.data
+        self.shoulder_angle = msg.current_pos
 
     def update(self, center=(0, 0)):
         '''Update each arm joint position according to the angles and lengths'''
@@ -129,24 +145,24 @@ class SCARA(object):
         # Update elbow (end_1)
         self.base = center
 
-        base_local_pos = self.joint1.norm * np.array([np.cos(self.angle1), np.sin(self.angle1)])
-        self.new_end_1 = base_local_pos + self.base
+        shoulder_local_pos = self.shoulder.norm * np.array([np.cos(self.shoulder_angle), np.sin(self.shoulder_angle)])
+        self.new_end_1 = shoulder_local_pos + self.base
 
         # Update endpoint as sum of base angle and elbow angle
-        total_elbow_angle = self.angle1 + self.angle2
+        total_elbow_angle = self.shoulder_angle + self.elbow_angle
 
         # Superimpose positions
-        elbow_local_pos = self.joint2.norm * np.array([np.cos(total_elbow_angle), np.sin(total_elbow_angle)])
+        elbow_local_pos = self.elbow.norm * np.array([np.cos(total_elbow_angle), np.sin(total_elbow_angle)])
         self.new_end_2 = self.new_end_1 + elbow_local_pos
 
-        self.joint1.update(self.base, self.new_end_1)
-        self.joint2.update(self.joint1.end, self.new_end_2)
+        self.shoulder.update(self.base, self.new_end_1)
+        self.elbow.update(self.shoulder.end, self.new_end_2)
 
     def draw(self, display, new_base=(0, 0)):
         '''Draw method yo'''
         self.update(new_base)
-        self.joint1.draw(display)
-        self.joint2.draw(display)
+        self.shoulder.draw(display)
+        self.elbow.draw(display)
         if self.position is not None:
             pygame.draw.circle(display, (250, 30, 30), round_point(self.position), 5, 1)
 
