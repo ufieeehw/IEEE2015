@@ -28,16 +28,16 @@ def get_chess_move(fen_board, color):
   start = time.time()
   
   #Start the search
-  #pool = Pool(MAX_THREADS) #spawn specified number of worker threads
-  #move_strings = get_possible_moves(state) #get all possible first moves
-  #moves = pool.map(do_search_thread, move_strings) #run the threads
-  #pool.close() #close threads after they finish
-  #pool.join() #wait for threads to terminate before continuing
+  pool = Pool(MAX_THREADS) #spawn specified number of worker threads
+  move_strings = get_possible_moves(state) #get all possible first moves
+  moves = pool.map(do_search_thread, move_strings) #run the threads
+  pool.close() #close threads after they finish
+  pool.join() #wait for threads to terminate before continuing
   
   #best_move = max(moves, key=attrgetter('value')) #get best move (found online)
   
   #debug (single thread instead of multi)
-  best_move = alpha_beta_tree(state, MAX_DEPTH, None, None, True)
+  #best_move = alpha_beta_tree(state, MAX_DEPTH, None, None, True)
 
   #See if we've checked them (give ai a free second move, see if we capture the king)
   new_state = ai.Board_State() #create the new state
