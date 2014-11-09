@@ -2,6 +2,7 @@ import numpy as np
 from copy import deepcopy
 from numpy.linalg import inv
 import cv2
+import itertools
 
 # TODO: Make nonchanging variables properties.  Make changing variables
 # non-properties
@@ -161,14 +162,24 @@ class VisualCortex:
         if len(good_matches)>0:
             # TODO: 'splain the following 4 lines of code
             query_pts = np.float32(
-                [ kp1[m.queryIdx].pt for m in good_matches ]).reshape(-1,1,3)
+                [ kp1[m.queryIdx].pt for m in good_matches ]).reshape(-1,1,2)
             train_pts = np.float32(
                 [ kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1,1,2)
-            print query_pts.shape
-            print kp1[good_matches[0].queryIdx].pt
-            print query_pts[0]
+
+            # Make the matched coordinates 3d, with z=0
+            query_3d = np.zeros((len(query_pts), 1, 3))
+            for i in range(0, len(query_pts)):
+                query_3d[i][0] = np.append(query_pts[i][0], 0)
+            train_3d = np.zeros((len(train_pts), 1, 3))
+            for i in range(0, len(query_pts)):
+                train_3d[i][0] = np.append(train_pts[i][0], 0)
+
             # Run regression on the matches to filter outliers
             M, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC, 5.0)
+            retval, out, inliers = cv2.estimateAffine3D(query_3d, train_3d)
+            print retval
+            print out
+            print inliers
             matches_mask = mask.ravel().tolist()
             # Use this mask immediately to get the good_matches matches
             #good_matches = self._filter_matches(good_matches, matches_mask)
@@ -476,7 +487,7 @@ img = cv2.cvtColor(cv2.imread(img_location), cv2.COLOR_BGR2GRAY)
 # Create a new VC object
 VC = VisualCortex(view_coordinates,map_coordinates,img);
 
-img_location = 'cap1.jpg'
+img_location = 'cap2.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 VC.SLAM(img)
 
