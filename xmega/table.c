@@ -10,14 +10,14 @@
 #include "message.h"
 #include "table.h"
 #include "meta.h"
- 
+#include "IMU.h"
 //NO_DATA_TYPE function pointers (messages with only a type field)
 int (*no_data_func[NO_DATA_ARRAY_SIZE]) (Message m) = {
   no_func,        //0x00 - reserved (OK)
   kill_msg,       //0x01 - kill
   start_msg,      //0x02 - start
   keep_alive_msg, //0x03 - keep_alive
-  no_func,        //0x03 - unused
+  IMU_get_data,   //0x04 - get data from IMU
   no_func,        //0x03 - unused
   no_func,        //0x03 - unused
   no_func,        //0x03 - unused

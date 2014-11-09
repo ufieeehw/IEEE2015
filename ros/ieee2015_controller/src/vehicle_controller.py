@@ -101,6 +101,14 @@ class Controller(object):
     def got_pose(self, msg):
         '''recieve current pose of robot
 
+        Function:
+            Attempts to construct a velocity solution using a k*sqrt(error) controller
+            This tries to guarantee a constant acceleration
+
+        Note:
+            Right now, this does not require velocity feedback, only pose
+            This SHOULD include velocity feedback, once we have it
+
         Velocity calcluation should be done in a separate thread
          this thread should have an independent information "watchdog" timing method
         '''

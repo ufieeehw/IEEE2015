@@ -5,8 +5,8 @@ project(ieee2015_xmega_driver)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  geometry_msgs
   rospy
+  geometry_msgs
   std_msgs
   sensor_msgs
   message_generation
@@ -69,8 +69,8 @@ add_message_files(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  geometry_msgs
   std_msgs
+  geometry_msgs
   sensor_msgs
 )
 
@@ -85,7 +85,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES ieee2015_xmega_driver
+ LIBRARIES ieee2015_xmega_driver
  CATKIN_DEPENDS geometry_msgs rospy std_msgs sensor_msgs message_runtime
 #  DEPENDS system_lib
 )

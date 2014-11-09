@@ -1,0 +1,15 @@
+<package>
+  <description brief="ieee2015_servo_controller">
+
+     ieee2015_servo_controller
+
+  </description>
+  <author>Jacob Panikulam (Srsly, though thanks Khaled)</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/dynamixel_shooter</url>
+  <depend package="dynamixel_controllers"/>
+
+</package>
+
+

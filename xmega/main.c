@@ -10,7 +10,7 @@
 #include "usart.h"
 #include "table.h"
 #include "meta.h"
-
+#include "IMU.h"
 //Quantum definitions (how many buffer operations per function call)
 #define BUFFER_ALLOWED  16
 
@@ -22,10 +22,13 @@ void init(){
 	CPU_CCP = CCP_IOREG_gc; // enable access to protected registers
 	CLK.CTRL = CLK_SCLKSEL_RC32M_gc; // switch to the 32 Mhz clock
   
-  //do component initializations
+  //do component driver initializations
   meta_init();  //initialize meta functions (should come first)
+  IMU_init();
+  //ADD MORE HERE
   
   //initialize communications
+  init_msg_queue();
   initialize_usart();
 }
 
@@ -70,7 +73,7 @@ int main(){
       
       if(VECTOR_ERROR_TYPE == status) status = no_func(m); //report bad vectors
       
-      free_msg(m);  //free data memory
+      m = free_msg(m);  //free data memory (and cache data)
       
       if(status != OK && status < 0x40){ //report single byte errors
         Message err; //create a message

@@ -13,6 +13,8 @@ import numpy as np
 import rospy
 import tf.transformations as tf_trans
 import tf
+import threading
+import time
 
 # Ros Msgs
 from std_msgs.msg import Header, Float32, Float64, String
@@ -20,8 +22,32 @@ from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
 from sensor_msgs.msg import Imu
 from ieee2015_xmega_driver.msg import XMega_Message
 
+lock = threading.Lock()
+
+def thread_lock(function_to_lock):
+    '''thread_lock(function) -> locked function 
+    Thread locking decorator
+
+        If you use this as a decorator for a function, it will apply a threading lock during the execution of that function,
+
+        Which guarantees that no ROS callbacks can change the state of data while it is executing. This
+            is critical to make sure that a new message being sent doesn't cause a weird serial interruption
+    '''
+    def locked_function(*args, **kwargs):
+        # Get threading lock
+        lock.acquire()
+        # Call the decorated function as normal with its input arguments
+        result = function_to_lock(*args, **kwargs)
+        # Release the lock
+        lock.release()
+        # Return, pretending the function hasn't changed at all
+        return result
+    # Return the function with locking added
+    return locked_function
+
+
 class Communicator(object):
-    def __init__(self, port, baud_rate, verbose=True):
+    def __init__(self, port, baud_rate, msg_sub_topic='robot/send_xmega_msg', verbose=True):
         '''Superclass for XMega communication
         Purpose: Communicate with an XMega via serial link
         Function:
@@ -37,42 +63,48 @@ class Communicator(object):
                 
             The action_dict maps the hex message type to the function that should be called when a message
              of that type is recieved.
-
         Underdefined:
             - How the length of an outgoing message is determined from a ROS Topic
             - What is a 'poll_message' and what is a 'data_message' and if there needs to be a difference
 
+        Notes:
+            This was designed to work with the communication protocol as we defined it. It does not do anything that relies
+            on the specific XMega-side implementation of the protocol.
+
+            At some point, we should consider building a simpler XMega implementation of the protocol, which relies less on malloc
+            Proposal: Each item defines its own message length independent of the defined type. OR: The type field fully encodes 
+                length (0-255 bytes)
+                -- Would this improve things?
+
         Bibliography:
             [1] https://github.com/ufieeehw/IEEE2015/tree/master/xmega
             [2] https://github.com/ufieeehw/IEEE2015/tree/master/ros/ieee2015_xmega_driver/msg
-
         '''
         self.verbose = verbose
 
         # ROS Setup
         rospy.init_node('XMega_Connector')
         # Messages being sent from ROS to the XMega
-        self.send_msg_sub = rospy.Subscriber('robot/send_xmega_msg', String, self.got_poll_msg)
-
-        self.serial = serial.Serial(port, baud_rate)
+        self.send_msg_sub = rospy.Subscriber(msg_sub_topic, XMega_Message, self.got_ros_msg)
+        try:
+            self.serial = serial.Serial(port, baud_rate)
+        except(serial.serialutil.SerialException):
+            print("ieee2015_communicator could not open port " + port + 
+                "\nIf you have the Xmega plugged in, try setting up the Udev rules"
+            )
         # Defines which action function to call on the received data
         self.action_dict = {
         }
-        self.type_lengths = {
-        }
-
         # Defines the relationship between poll_message names and the hex name
         self.poll_messages = {
             'example_poll_msg': '0F'
-        }
-        # 
-        self.data_messages = {
         }
         # First two bits determine the length of the message
         self.byte_type_defs = {
             0b00000000: 0,
             0b01000000: 1,
             0b10000000: 2,
+            0b11000000: None,
         }
 
     def err_log(self, *args):
@@ -81,58 +113,99 @@ class Communicator(object):
         if self.verbose:
             print args
 
-    def got_poll_msg(self, msg):
-        print "data", msg.data
-        self.write_packet(msg.data)
+    @thread_lock
+    def got_ros_msg(self, msg):
+        '''Only supports 2 byte and empty messages right now!'''
+        self.err_log("Got poll message of type ", msg.type)
+        if msg.empty_flag:
+            self.write_packet(msg.type)
+        else:
+            self.write_packet(msg.type, msg.data)
 
-    def got_data_msg(self, msg):
-        print "Data message:", msg.type, "Contents:", msg.data
-        self.write_packet(msg.type, msg.data)
+    @thread_lock
+    def send_keep_alive(self):
+        '''Send a keep-alive message
+        Critically, this includes a threading lock'''
+        self.write_packet('keep_alive')
 
     def read_packets(self):
         '''read_packets
         Function:
             Permanently loops, waiting for serial messages from the XMega, and then calls 
              the appropriate action function
-            
         Notes:
             This does not handle desynchronization with the microcontroller
-
         '''
         type_length = 1  # Bytes
         length_length = 1  # Bytes
         type_mask =  0b11000000
         error_mask = 0b00110000
 
+        # Initialize time
+        old_time = time.time()
+
         while True:
-            # message_length = 0 # Bytes (Defaulted, indicated by message type)
-            msg_type = ord(self.serial.read(type_length))
+            # Timed watchdog messages
+            time = time.time()
+            if (time - old_time) > 0.5:
+                old_time = time
+                self.send_keep_alive()
+
+            # Handle the first byte, determining type
+            unprocessed_type = self.serial.read(type_length)
+            self.err_log("shitty type ", unprocessed_type)
+            msg_type = ord(unprocessed_type)
             msg_byte_type = msg_type & type_mask
             b_error = (msg_type & error_mask) == error_mask
-
             self.err_log('Recieving message of type', msg_type)
 
             # Message of known length
             if msg_byte_type in self.byte_type_defs.keys():
                 msg_length = self.byte_type_defs[msg_byte_type]
-                if msg_length > 0:
+                if msg_length == 0:
                     msg_data = None
-                else:
+                elif msg_length > 0:
                     msg_data = self.serial.read(msg_length)
-                action_function = self.action_dict[msg_type]
-                action_function(msg_data)
+                    
+                if msg_type in self.action_dict.keys():
+                    action_function = self.action_dict[msg_type]
+                    action_function(msg_data)
+                else:
+                    self.err_log("No action fun for ", msg_type)
 
             # N-Byte Message
             elif msg_type in self.action_dict.keys():
                 action_function = self.action_dict[msg_type]
-
                 self.err_log('Recognized type as', action_function.__name__)
+
                 msg_length = self.serial.read(length_length)
                 msg_data = self.serial.read(msg_length)
                 self.err_log("Message content:", msg_data)
+
                 action_function(msg_data)
+
+            # Failure
             else:
                 self.err_log('Did not recognize type', msg_type)
+
+        if msg_byte_type in self.byte_type_defs.keys():
+            msg_length = self.byte_type_defs[msg_byte_type]
+            if msg_length > 0:
+                msg_data = None
+            else:
+                msg_data = self.serial.read(msg_length)
+            action_function = self.action_dict[msg_type]
+            action_function(msg_data)
+
+        # N-Byte Message
+        elif msg_type in self.action_dict.keys():
+            action_function = self.action_dict[msg_type]
+
+            self.err_log('Recognized type as', action_function.__name__)
+            msg_length = self.serial.read(length_length)
+            msg_data = self.serial.read(msg_length)
+            self.err_log("Message content:", msg_data)
+            action_function(msg_data)
 
     def write_packet(self, _type, data=None):
         '''write_packet(self, _type, data=None)
@@ -141,19 +214,25 @@ class Communicator(object):
         Notes:
             type is _type because "type" is a python protected name
         '''
+        self.err_log("Processing message of type ", _type)
         if _type in self.poll_messages.keys():
             self.err_log("Write type recognized as a polling message")
             write_data = self.poll_messages[_type]
-            print write_data
-            self.serial.write(str(unichr(write_data)))
-        elif _type in self.data_messages.keys():
-            self.err_log("Write type recognized as a data message")
+            self.err_log("Writing as ", write_data)
+            self.serial.write(chr(write_data))
+            if data is not None:
+                self.err_log("Data, ")
+                for character in data:
+                    self.err_log("writing character ", character)
+                    self.serial.write(character)
+            else:
+                self.err_log("No other data to write")
         else:
             self.err_log("Write type not recognized")
 
 
 class IEEE_Communicator(Communicator):
-    def __init__(self, port='/dev/ttyUSB0', baud_rate=256000):
+    def __init__(self, port='/dev/xmega_tty', baud_rate=256000):
         '''IEEE Communicator sub-class of the broader XMega Communicator class
         XMega Sensor Manifest:
             - IMU (9DOF) - 12 bytes (only using 6 DOF) [An IMU is an intertial measurement unit]
@@ -185,8 +264,6 @@ class IEEE_Communicator(Communicator):
         })
         self.poll_messages.update({
             'poll_imu': 0x01,
-        })
-        self.data_messages.update({
             'debug': 0x40,
         })
 
@@ -285,8 +362,6 @@ class IEEE_Communicator(Communicator):
 
 
 if __name__=='__main__':
-    '''
-    '''
-    Comms = IEEE_Communicator(port='/dev/ttyUSB0')
+    Comms = IEEE_Communicator(port='/dev/xmega_tty')
     Comms.read_packets()
     rospy.spin()

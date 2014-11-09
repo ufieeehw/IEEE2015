@@ -7,10 +7,12 @@
 //message definition, linked list storage
 typedef struct Message Message;
 struct Message{
-  uint8_t  type;  //message type ID
-  uint8_t  size;  //size of the data field
-  uint8_t* data;  //message data
-  Message* next;  //pointer to next messgae in list
+  uint8_t  type;      //message type ID
+  uint8_t  size;      //size of the data field
+  uint8_t* data;      //message data
+  uint8_t  cache_tag; //used internally for data caching
+  uint8_t  msg_tag;   //used internally for msg caching
+  Message* next;      //used internally for queueing
 };
 
 //define maximum queue sizes (256 is 1.5 KB, out of 4KB total storage)
@@ -36,7 +38,8 @@ Message get_msg(uint8_t type, uint8_t size);  //get a message struct with data a
 
 //functions that you shouldn't call
 void wipe_queue(int direction);   //wipe a queue
-void free_msg(Message m);         //free the memory in a message
+Message free_msg(Message m);      //free the memory in a message
+void init_msg_queue();            //initialize queues
 
 #endif
 
