@@ -82,24 +82,24 @@ class VisualCortex:
     #####     3. PUBLIC METHODS    #####
     ####################################
 
-    """Takes in the next input image and does feature detection, mapping,
-    localization, and stitching to the full_map in one shot
-    """
     def SLAM(self, image):
+        """Takes in the next input image and does feature detection, mapping,
+        localization, and stitching to the full_map
+        """
         # Run perspective transform on image
         imgx = self.transform_image(image)
 
         # Extract features from this image
         kp1, des1 = self.feature_detect(imgx)
-        #self._draw_features(imgx, kp1, None)
+        #self._draw_features(imgx, kp1, None, "points")
         kp1, des1, bird_corners = self._apply_roi(kp1, des1)
-        self._draw_features(imgx, kp1, bird_corners, "points")
+        #self._draw_features(imgx, kp1, bird_corners, "points")
 
         # TODO: Use a database rather than re-ORBing on the full map
         # TODO: put a mask around the "known map" for the same reason we do it to imgx above...
         # Extract features from the full_map
         kp2, des2 = self.feature_detect(self.full_map)
-        self._draw_features(self.full_map, kp2, None, "points")
+        #self._draw_features(self.full_map, kp2, None, "points")
         # Match features between imgx and full_map
         # TODO: Do we need to input kp1 and kp2?
         M, matches, q, t = self.feature_match(kp1, kp2, des1, des2)
@@ -124,6 +124,7 @@ class VisualCortex:
                                    borderMode = 0, borderValue = (0,0,0))
         # Clean up the image
         imgx = self.clean_image(imgx)
+
         return imgx;
 
     """Find the features/corners of interest of an input image, 
@@ -352,7 +353,9 @@ class VisualCortex:
     def clean_image(self, img):
         """ Clean up a transformed or stitched image by threshholding it and then
         blurring it to remove pixelation and salt/pepper
-        """
+    """
+        while(1):
+        cv2.destroyAllWindows()
         thresh = 50
         dump, img = cv2.threshold(img, thresh, 255, cv2.THRESH_BINARY)
         kernel = 10
@@ -598,6 +601,7 @@ img_location = 'test_images/cap1.jpg'
 img = cv2.cvtColor(cv2.imread(img_location), cv2.COLOR_BGR2GRAY)
 # Create a new VC object
 VC = VisualCortex(view_coordinates,map_coordinates,img);
+VC.display_map()
 
 img_location = 'test_images/cap2.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
