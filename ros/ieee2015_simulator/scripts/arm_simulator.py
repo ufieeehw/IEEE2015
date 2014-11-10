@@ -79,11 +79,11 @@ class SCARA(object):
         # TODO:
         # Make this non-instantaneous
 
-        shoulder_angle_offset = np.pi - (np.pi/2 + 0.3)
-        elbow_angle_offset = 1.75 - np.pi/2
+        shoulder_angle_offset =  (-np.pi -(np.pi/2 + 0.3))
+        elbow_angle_offset = (1.75 )
         
         _shoulder_angle = self.shoulder_angle + shoulder_angle_offset
-        _elbow_angle = self.elbow_angle + elbow_angle_offset
+        _elbow_angle = -(self.elbow_angle + elbow_angle_offset)
 
         self.base = center
         # Update endpoint of link from shoulder to elbow
@@ -95,12 +95,14 @@ class SCARA(object):
         self.elbow_joint = shoulder_local_pos + self.base
 
         # Update endpoint as sum of base angle and elbow angle
-        total_elbow_angle = _shoulder_angle - _elbow_angle
+        # total_elbow_angle = _shoulder_angle - _elbow_angle
+        total_elbow_angle = _elbow_angle
 
         # Superimpose positions
         elbow_local_pos = self.elbow_length * np.array([np.cos(total_elbow_angle), np.sin(total_elbow_angle)])
         self.wrist_joint = self.elbow_joint + elbow_local_pos
-        print "Angles: [{}, {}]".format(self.shoulder_angle, self.elbow_angle)
+        #print "Angles: [{}, {}]".format(self.shoulder_angle, self.elbow_angle)
+        print "Angles:[{}, {}]".format(_shoulder_angle, _elbow_angle)
 
     def draw(self, display, new_base=(0, 0)):
         '''Draw the whole arm'''
