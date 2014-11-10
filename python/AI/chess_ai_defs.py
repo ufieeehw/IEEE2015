@@ -158,18 +158,18 @@ class Board_State:
         
       if(capture):
         for target_type in ('P', 'R', 'N', 'B', 'Q', 'K'): #search for captured piece
-          if(piece_type == 'P' and (self.bp & new_square)):
+          if(target_type == 'P' and (self.bp & new_square)):
             self.bp = self.bp & ~new_square #remove the piece
-          if(piece_type == 'R' and (self.br & new_square)):
-            self.bp = self.br & ~new_square #remove the piece
-          if(piece_type == 'N' and (self.bn & new_square)):
-            self.bp = self.bn & ~new_square #remove the piece
-          if(piece_type == 'B' and (self.bb & new_square)):
-            self.bp = self.bb & ~new_square #remove the piece
-          if(piece_type == 'Q' and (self.bq & new_square)):
-            self.bp = self.bq & ~new_square #remove the piece
-          if(piece_type == 'K' and (self.bk & new_square)):
-            self.bp = self.bk & ~new_square #remove the piece
+          if(target_type == 'R' and (self.br & new_square)):
+            self.br = self.br & ~new_square #remove the piece
+          if(target_type == 'N' and (self.bn & new_square)):
+            self.bn = self.bn & ~new_square #remove the piece
+          if(target_type == 'B' and (self.bb & new_square)):
+            self.bb = self.bb & ~new_square #remove the piece
+          if(target_type == 'Q' and (self.bq & new_square)):
+            self.bq = self.bq & ~new_square #remove the piece
+          if(target_type == 'K' and (self.bk & new_square)):
+            self.bk = self.bk & ~new_square #remove the piece
     
     else: #black's turn
       if(piece_type == 'P'):
@@ -190,18 +190,18 @@ class Board_State:
         self.bk = (self.bk & ~old_square) | new_square #remove old location, set new one
       if(capture):
         for target_type in ('P', 'R', 'N', 'B', 'Q', 'K'): #search for captured piece
-          if(piece_type == 'P' and (self.wp & new_square)):
+          if(target_type == 'P' and (self.wp & new_square)):
             self.wp = self.wp & ~new_square #remove the piece
-          if(piece_type == 'R' and (self.wr & new_square)):
-            self.wp = self.wr & ~new_square #remove the piece
-          if(piece_type == 'N' and (self.wn & new_square)):
-            self.wp = self.wn & ~new_square #remove the piece
-          if(piece_type == 'B' and (self.wb & new_square)):
-            self.wp = self.wb & ~new_square #remove the piece
-          if(piece_type == 'Q' and (self.wq & new_square)):
-            self.wp = self.wq & ~new_square #remove the piece
-          if(piece_type == 'K' and (self.wk & new_square)):
-            self.wp = self.wk & ~new_square #remove the piece
+          if(target_type == 'R' and (self.wr & new_square)):
+            self.wr = self.wr & ~new_square #remove the piece
+          if(target_type == 'N' and (self.wn & new_square)):
+            self.wn = self.wn & ~new_square #remove the piece
+          if(target_type == 'B' and (self.wb & new_square)):
+            self.wb = self.wb & ~new_square #remove the piece
+          if(target_type == 'Q' and (self.wq & new_square)):
+            self.wq = self.wq & ~new_square #remove the piece
+          if(target_type == 'K' and (self.wk & new_square)):
+            self.wk = self.wk & ~new_square #remove the piece
             self.castle = (self.castle & 0x3) #remove castle avaliability
     if(swap): self.turn = not self.turn #next player's turn
 
@@ -238,4 +238,3 @@ def get_square(rank_file):
   val = 1 << ((rank_file[0]-1) << 3)  #increment rank (rf[0]<<3 = rf[0]*8)
   val = val << (rank_file[1]-1)       #increment file 
   return val 
- 
