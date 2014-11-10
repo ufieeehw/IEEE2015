@@ -57,6 +57,19 @@ Shoulder - Rotates the first link of the arm around the arm y-axis
 Elbow - Rotates the second link of the arm around the arm y-axis
 End-Effector - Rotates the end-effector (The "hand" of the arm)
 
+# Notes
+I configured the minimum and maximum angles of the servo by adding
+    ccw_angle_limit = 1023
+    cw_angle_limit = 0
+    self.dxl_io.set_angle_limit_ccw(motor_id, ccw_angle_limit)
+    self.dxl_io.set_angle_limit_cw(motor_id, cw_angle_limit)
+around line 182 of dynamixel_motor/dynamixel_driver/src/dynamixel_serial_proxy
+
+For reference, the servos should remain unlimited in hardware, and the angle limits should be handled in software. The Dynamixel torque limits will automatically shutdown the motors before they are damaged if they impact the body of the robot.
+
+I did this because of the [FTDI-windows issue](http://learn.trossenrobotics.com/34-blog/66-usb2dynamixel-cm-530-and-ln-101-notice.html) and because the configuration node packaged with dynamixel_motor (find this in dynamixel_motor/dynamixel_driver/scripts/set_servo_config.py) was not able to discover servos.
+
+
 # Glossary
 
 Servo - A nice motor that lets us send a target angle or target velocity, and it figures out how to attain it

@@ -23,12 +23,10 @@ class SCARA_Controller(object):
         self.length_1, self.length_2 = lengths
         self.base = np.array([0, 0], np.float32)
 
-        self.pose_sub = rospy.Subscriber('arm_des_pose', PointStamped, self.got_des_pose)
+        self.pose_sub = rospy.Subscriber('arm_des_pose', PointStamped, self.got_des_pose, queue_size=1)
 
-        self.elbow_pub = rospy.Publisher('arm_elbow_angle', Float32, queue_size=1)
-        self.elbow_pub2 = rospy.Publisher('robot/joint3_position_controller/command', Float64, queue_size=2)
-        self.base_pub = rospy.Publisher('arm_base_angle', Float32, queue_size=1)
-        self.base_pub2 = rospy.Publisher('robot/joint2_position_controller/command', Float64, queue_size=2)
+        self.elbow_pub = rospy.Publisher('/elbow_controller/command', Float64, queue_size=1)
+        self.base_pub = rospy.Publisher('/shoulder_controller/command', Float64, queue_size=1)
         self.des_position = None
 
     def got_des_pose(self, msg):
@@ -46,21 +44,17 @@ class SCARA_Controller(object):
         print(base)
         print(elbow)
 
-        if base >= 0:
-            base2 = np.pi - base
-        else:
-            base2 = -np.pi - base
+        ## The following lines are for the Gazebo simulation where the angles are offset
+        # if base >= 0:
+        #     base2 = np.pi - base
+        # else:
+        #     base2 = -np.pi - base
+        # elbow2 = elbow
 
-        '''if elbow >= 0:
-            elbow2 = np.pi - elbow
-        else:
-            elbow2 = np.pi - elbow'''
-        elbow2 = elbow
-
-        self.base_pub.publish(Float32(data=base))
-        self.base_pub2.publish(Float64(data=-base2))
-        self.elbow_pub.publish(Float32(data=elbow))
-        self.elbow_pub2.publish(Float64(data=elbow2))
+        self.base_pub.publish(Float64(data=base))
+        # self.base_pub2.publish(Float64(data=-base2))
+        self.elbow_pub.publish(Float64(data=elbow))
+        # self.elbow_pub2.publish(Float64(data=elbow2))
 
     def solve_angles(self, pt):
         '''2DOF has a closed form solution, this method only slightly extends to higher DOF, where there is not a closed form
@@ -75,13 +69,12 @@ class SCARA_Controller(object):
 
         base_angle = np.arctan2(y, x) - np.arccos(distance / (2 * self.length_1))
 
-
-        if base_angle < -1.57:
-            base_angle = base_angle + 2*np.pi
-            if base_angle > 3.14:
-                base_angle = 3.14
-        if base_angle > -1.57 and base_angle < 0:
-                base_angle = 0
+        # if base_angle < -1.57:
+        #     base_angle = base_angle + 2*np.pi
+        #     if base_angle > 3.14:
+        #         base_angle = 3.14
+        # if base_angle > -1.57 and base_angle < 0:
+        #         base_angle = 0
         abs_joint_angle = np.arctan2(y - (self.length_1 * np.sin(base_angle)),
                                      x - (self.length_1 * np.cos(base_angle)))
         joint_angle = abs_joint_angle - base_angle
