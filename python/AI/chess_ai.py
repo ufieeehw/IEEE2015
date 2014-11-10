@@ -1,15 +1,16 @@
 import numpy as np
 import chess_ai_defs as ai
 import time
+from random import randrange
 from multiprocessing import Pool
-from operator import attrgetter
 from threading import Lock
 
 #globals/constants for use in the methods
-MAX_DEPTH = 7 #best I've got so far (target is ~8-10) (real AI use ~12-14)
+MAX_DEPTH = 4 #best I've got so far (target is ~8-10) (real AI use ~12-14)
 MAX_THREADS = 2 #number of threads to run, optimal value depends on system (~cores)
 
 #consider moving multithreading to task queue
+#should teach it default move
 
 #Function to run the move determination (wrapper for minmax)
 #Function expects a Forsyth-Edwards Notation (please start on white side, wikipedia is backwards)
@@ -34,7 +35,17 @@ def get_chess_move(fen_board, color):
   pool.close() #close threads after they finish
   pool.join() #wait for threads to terminate before continuing
   
-  #best_move = max(moves, key=attrgetter('value')) #get best move (found online)
+  best_move = moves[0]
+  all_equal = True  #check if all moves are equal
+  for move in moves[1:]: #get best move
+    if(move.value > best_move.value): 
+      best_move = move
+      all_equal = False
+      print 'better_move'
+  
+  #pick random move instead if all moves are the same value
+  if(all_equal):
+    best_move = moves[randrange(len(moves))]
   
   #debug (single thread instead of multi)
   #best_move = alpha_beta_tree(state, MAX_DEPTH, None, None, True)
@@ -58,7 +69,7 @@ def get_chess_move(fen_board, color):
   if(new_state.ai_color and not new_state.bk): print 'Checkmate'
   elif(not new_state.ai_color and not new_state.wk): print 'Checkmate'
   
-  return (best_move.tag, time.time() - start)
+  return (best_move.tag, best_move.value, time.time() - start)
 
 #wrapper function for tree search, will spawn single search thread
 #function must run from top level, and always assumes the ai is moving
@@ -77,7 +88,7 @@ def do_search_thread(move):
   gmax = top_max #copy the global max
   lock.release() #release the lock
   
-  best_move = alpha_beta_tree(new_state, MAX_DEPTH-1, None, gmax, False) #throw to tree search for next iteration
+  best_move = alpha_beta_tree(new_state, MAX_DEPTH-1, gmax, None, False) #throw to tree search for next iteration
 
   lock.acquire() #get the lock
   if(top_max < best_move.value): #check if we're better
@@ -91,24 +102,25 @@ def do_search_thread(move):
 #argumengs are: board state, remaining depth,
 #  most recent min, most recent max, current operation (max/min)
 #function returns the optimal move
-def alpha_beta_tree(state, depth, last_min, last_max, is_max):
+def alpha_beta_tree(state, depth, last_max, last_min, is_max):
   if(depth == 0): #end of recursive function
     return ai.Move("", get_state_evaluation(state))  #return the value of this position
     
   move_strings = get_possible_moves(state) #get the strings corresponding to possible moves
+  if(len(move_strings) == 0): return ai.Move("",get_state_evaluation(state)) #handle edge case
+  
   new_state = ai.Board_State()
   new_state.copy_board(state)
   new_state.execute_move(move_strings[0])
-  if(is_max): best_move = alpha_beta_tree(new_state, depth-1, last_min, last_max, not is_max)
-  else: best_move = alpha_beta_tree(new_state, depth-1, last_min, last_max, not is_max)
-  best_move.tag = move_strings[0]
+  if(is_max): best_move = alpha_beta_tree(new_state, depth-1, None, last_min, False)
+  else: best_move = alpha_beta_tree(new_state, depth-1, last_max, None, True)
+  best_move.tag = move_strings[0]  
   
-  for move in move_strings[1:]: #search each other move
-    new_state = ai.Board_State()  #create a new object
+  for move in move_strings[1:]:   #search each other move
     new_state.copy_board(state)   #copy the board
     new_state.execute_move(move)  #execute the move
-    if(is_max): contender = alpha_beta_tree(new_state, depth-1, last_min, best_move.value, False) #recurse!
-    else: contender = alpha_beta_tree(new_state, depth-1, best_move.value, last_max, True) #recurse!
+    if(is_max): contender = alpha_beta_tree(new_state, depth-1, best_move.value, last_min, False) #recurse!
+    else: contender = alpha_beta_tree(new_state, depth-1, last_max, best_move.value, True) #recurse!
     if((is_max and contender.value >= best_move.value) or (not is_max and contender.value <= best_move.value)):
       best_move = contender #contender is better
       best_move.tag = move  #update the tag
@@ -116,7 +128,7 @@ def alpha_beta_tree(state, depth, last_min, last_max, is_max):
       if(last_max != None and last_min != None):
         if(best_move.value >= last_min or best_move.value <= last_max): return best_move 
       elif(last_max != None and best_move.value <= last_max): return best_move
-      elif(last_min != None and best_move.value >= last_min): return best_move
+      elif(last_min != None and best_move.value >= last_min):  return best_move
   
   return best_move
 
@@ -124,23 +136,24 @@ def alpha_beta_tree(state, depth, last_min, last_max, is_max):
 #super simple first draft, will probably improve later
 def get_state_evaluation(state):
   score = 0 #position is initially neutral
-  score += bin(state.wp).count("1")*100 #count the 1's in the bitmap
-  score -= bin(state.bp).count("1")*100 #subtract black pawns (value 100)
-  score += bin(state.wr).count("1")*525 #white rooks (value 525)
-  score -= bin(state.br).count("1")*525 #black rooks (value 525)
-  score += bin(state.wn).count("1")*350 #white knights (350)
-  score -= bin(state.bn).count("1")*350 #black knights (350)
-  score += bin(state.wb).count("1")*350 #white bishop (350)
-  score -= bin(state.bb).count("1")*350 #black bishop (350)
-  if(state.wq): score += 1000 #white queen (1000)
-  if(state.bq): score -= 1000 #black queen (1000)
-  if(state.wk): score += 100000 #white king (100,000)  (take the king instead of checkmating)
-  if(state.bk): score -= 100000 #black king (100,000)
-  #incentivize trades by subtracting remaining opponent piece counts
-  if(state.turn == state.ai_color): score -= bin(state.get_black_pieces()).count('1') * 50
-  else: score += bin(state.get_white_pieces()).count('1') * 50
+  score += bin(state.wp).count("1")*100  #count the 1's in the bitmap
+  score -= bin(state.bp).count("1")*100  #subtract black pawns (value 100)
+  score += bin(state.wr).count("1")*525  #white rooks (value 525)
+  score -= bin(state.br).count("1")*525  #black rooks (value 525)
+  score += bin(state.wn).count("1")*350  #white knights (350)
+  score -= bin(state.bn).count("1")*350  #black knights (350)
+  score += bin(state.wb).count("1")*350  #white bishop (350)
+  score -= bin(state.bb).count("1")*350  #black bishop (350)
+  score += bin(state.wb).count("1")*1000 #white queen (1000)
+  score -= bin(state.bb).count("1")*1000 #black queen (1000)
+  if(state.wk != 0): score += 100000 #white king (100,000)  (take the king instead of checkmating)
+  if(state.bk != 0): score -= 100000 #black king (100,000)
   
   if(not state.ai_color): score = -score #adjust to player color
+  
+  #incentivize trades by subtracting total piece count
+  score -= bin(state.get_all_pieces()).count('1') * 25
+  
   return score #return the result
 
 #function returns a list of possible moves for a given state
@@ -239,7 +252,8 @@ def get_possible_moves(state):
       for r in (-1, 0, 1): #cycle through all avaliable angles of motion
         for f in (-1, 1):
           if(r != 0): #if we're moving vertically, don't move horizontally
-            f = 0
+            if(f == -1): f = 0 #check vertical move
+            else: break #keep from checking a move multiple times
           for i in range (1,8): #can move up to 7 squares
             if(piece[0]+(r*i)>0 and piece[0]+(r*i)<=8 and piece[1]+(f*i)>0 and piece[1]+(f*i) <=8): #check board boundaries
               new_square = rook_square
@@ -252,7 +266,7 @@ def get_possible_moves(state):
                 if(new_square & opponent_pieces + state.ep): capture = 'x' #piece captured
                 else: capture = '-' #no capture
                 #store the ouput string (N+old_location+capture+new_location)
-                move_string = "R%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f-1),chr(ord('0')+piece[0]+r))
+                move_string = "R%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f*i-1),chr(ord('0')+piece[0]+r*i))
                 append_move(move_string) #add it to the list
                 if(new_square & opponent_pieces): #opponent piece
                   break #opposing peice on board
@@ -282,7 +296,7 @@ def get_possible_moves(state):
                 if(new_square & opponent_pieces + state.ep): capture = 'x' #piece captured
                 else: capture = '-' #no capture
                 #store the ouput string (N+old_location+capture+new_location)
-                move_string = "B%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f-1),chr(ord('0')+piece[0]+r))
+                move_string = "B%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f*i-1),chr(ord('0')+piece[0]+r*i))
                 append_move(move_string) #add it to the list
                 if(new_square & opponent_pieces): #opponent piece
                   break #opposing peice on board
@@ -311,7 +325,7 @@ def get_possible_moves(state):
                 if(new_square & opponent_pieces + state.ep): capture = 'x' #piece captured
                 else: capture = '-' #no capture
                 #store the ouput string (N+old_location+capture+new_location)
-                move_string = "Q%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f-1),chr(ord('0')+piece[0]+r))
+                move_string = "Q%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f*i-1),chr(ord('0')+piece[0]+r*i))
                 append_move(move_string) #add it to the list
                 if(new_square & opponent_pieces): #opponent piece
                   break #opposing piece
