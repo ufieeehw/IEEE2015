@@ -293,30 +293,35 @@ class DynamixelIO(object):
         """
         Set the min (CW) angle of rotation limit.
         """
+        print("ATTEMPTING TO SET LOW ANGLE LIMIT")
         loVal = int(angle_cw % 256)
         hiVal = int(angle_cw >> 8)
 
         response = self.write(servo_id, DXL_CW_ANGLE_LIMIT_L, (loVal, hiVal))
         if response:
             self.exception_on_error(response[4], servo_id, 'setting CW angle limits to %d' % angle_cw)
+            print 'cw', response
         return response
 
     def set_angle_limit_ccw(self, servo_id, angle_ccw):
         """
         Set the max (CCW) angle of rotation limit.
         """
+        print("ATTEMPTING TO SET HIGH ANGLE LIMIT")
         loVal = int(angle_ccw % 256)
         hiVal = int(angle_ccw >> 8)
 
         response = self.write(servo_id, DXL_CCW_ANGLE_LIMIT_L, (loVal, hiVal))
         if response:
             self.exception_on_error(response[4], servo_id, 'setting CCW angle limits to %d' % angle_ccw)
+            print 'ccw', response
         return response
 
     def set_angle_limits(self, servo_id, min_angle, max_angle):
         """
         Set the min (CW) and max (CCW) angle of rotation limits.
         """
+        print "Attempting to set any angle limit"
         loMinVal = int(min_angle % 256)
         hiMinVal = int(min_angle >> 8)
         loMaxVal = int(max_angle % 256)

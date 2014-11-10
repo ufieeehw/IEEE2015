@@ -91,8 +91,8 @@ class SerialProxy():
         self.current_state = MotorStateList()
         self.num_ping_retries = 5
         
-        self.motor_states_pub = rospy.Publisher('motor_states/%s' % self.port_namespace, MotorStateList, queue_size=None)
-        self.diagnostics_pub = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size=None)
+        self.motor_states_pub = rospy.Publisher('motor_states/%s' % self.port_namespace, MotorStateList, queue_size=1)
+        self.diagnostics_pub = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size=1)
 
     def connect(self):
         try:
@@ -179,6 +179,11 @@ class SerialProxy():
         
         to_delete_if_error = []
         for motor_id in self.motors:
+            ccw_angle_limit = 1023
+            cw_angle_limit = 0
+            # self.dxl_io.set_angle_limit_ccw(motor_id, ccw_angle_limit)
+            # self.dxl_io.set_angle_limit_cw(motor_id, cw_angle_limit)
+
             for trial in range(self.num_ping_retries):
                 try:
                     model_number = self.dxl_io.get_model_number(motor_id)
