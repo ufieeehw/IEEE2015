@@ -6,11 +6,21 @@ from multiprocessing import Pool
 from threading import Lock
 
 #globals/constants for use in the methods
-MAX_DEPTH = 5 #best I've got so far (target is ~8-10) (real AI use ~12-14)
+MAX_DEPTH = 6 #best I've got so far (target is ~8-10) (real AI use ~12-14)
 MAX_THREADS = 2 #number of threads to run, optimal value depends on system (~cores)
 
+def set_meta_vals(depth, threads):
+  '''Values for the ai program to use (depth, threads):
+      depth = Maximum search depth
+      threads = number of simultanious threads to run
+  '''
+  global MAX_DEPTH
+  MAX_DEPTH = depth
+  global MAX_THREADS
+  MAX_THREADS = threads
+
 #consider moving multithreading to task queue
-#should teach it default move
+#should teach it openings
 
 #Function to run the move determination (wrapper for minmax)
 #Function expects a Forsyth-Edwards Notation (please start on white side, wikipedia is backwards)
@@ -45,37 +55,39 @@ def get_chess_move(fen_board, color):
   for move in moves:
     if(move.value == best_move_val):
       good_moves.append(move) #add the move
-      print (move.tag, move.value)
+      #print (move.tag, move.value)
   
-  print ('good moves', len(good_moves))
+  #print ('good moves', len(good_moves))
   
   #pick random move from top contender list
   best_move = good_moves[randrange(len(good_moves))]
-  #best_move = moves[len(moves)-1]
     
   #debug (single thread instead of multi)
-  #best_move = alpha_beta_tree(state, MAX_DEPTH, -900000, 900000, True)
+  #best_move = alpha_beta_max(state, MAX_DEPTH, -900000, 900000)
+
+  check_or_mate = None
 
   #See if we've checked them (give ai a free second move, see if we capture the king)
   new_state = ai.Board_State() #create the new state
   new_state.copy_board(state)
   new_state.execute_move(best_move.tag,False) #execute our chosen move and take another turn
-  check_check = alpha_beta_tree(new_state, 1, None, None, True) #check tree
+  check_check = alpha_beta_max(new_state, 1, None, None) #check tree
   new_state.execute_move(check_check.tag) #execute the free move
-  if(new_state.ai_color and not new_state.bk): print 'Check'
-  elif(not new_state.ai_color and not new_state.wk): print 'Check'
+  if((new_state.ai_color and not new_state.bk) or (not new_state.ai_color and not new_state.wk)):
+    check_or_mate = 'Check' #they're in check
     
   #See if we've checkmated them (iterate one round, see if they survive)
   new_state.copy_board(state)
   new_state.execute_move(best_move.tag) #execute our chosen move
-  check_check = alpha_beta_tree(new_state, 2, None, None, False) #do thier turn
+  check_check = alpha_beta_min(new_state, 2, None, None) #do thier turn
   new_state.execute_move(check_check.tag)
-  check_check = alpha_beta_tree(new_state, 1, None, None, True)  #do our turn
+  check_check = alpha_beta_max(new_state, 1, None, None)  #do our turn
   new_state.execute_move(check_check.tag)
-  if(new_state.ai_color and not new_state.bk): print 'Checkmate'
-  elif(not new_state.ai_color and not new_state.wk): print 'Checkmate'
+  if((new_state.ai_color and not new_state.bk) or (not new_state.ai_color and not new_state.wk)): 
+    check_or_mate = 'Checkmate'
   
-  return (best_move.tag, best_move.value, time.time() - start)
+  #return (best_move.tag, check_or_mate, best_move.value, time.time() - start)
+  return {'move': best_move.tag, 'check': check_or_mate}
 
 #wrapper function for tree search, will spawn single search thread
 #function must run from top level, and always assumes the ai is moving
@@ -84,7 +96,7 @@ def do_search_thread(move):
   global top_max        #use global max
   global lock           #use global lock
   
-  print move
+  #print move
   
   new_state = ai.Board_State()  #create a new state
   new_state.copy_board(global_state) #copy the main state
@@ -94,7 +106,7 @@ def do_search_thread(move):
   gmax = top_max #copy the global max
   lock.release() #release the lock
   
-  best_move = alpha_beta_tree(new_state, MAX_DEPTH-1, gmax, 900000, False) #throw to tree search for next iteration
+  best_move = alpha_beta_min(new_state, MAX_DEPTH-1, gmax, 900000) #throw to tree search for next iteration
   if(best_move.tag == ''): return ai.Move("",-900000) #catch bad results
 
   lock.acquire() #get the lock
@@ -105,11 +117,10 @@ def do_search_thread(move):
   best_move.tag = move
   return best_move
 
-#recursive function to generate tree
-#argumengs are: board state, remaining depth,
-#  most recent min, most recent max, current operation (max/min)
+#first of pair of recursive functions to generate tree (max half of it)
+#argumengs are: board state, remaining depth, most recent min, most recent max
 #function returns the optimal move
-def alpha_beta_tree(state, depth, last_max, last_min, is_max):
+def alpha_beta_max(state, depth, last_max, last_min):
   if(depth == 0): #end of recursive function
     return ai.Move("", get_state_evaluation(state))  #return the value of this position
     
@@ -119,29 +130,43 @@ def alpha_beta_tree(state, depth, last_max, last_min, is_max):
   
   new_state = ai.Board_State()    #create empty board object
   
-  if(is_max): #ai turn
-    best_move = ai.Move("",last_max)  #preload move
-    for move in move_strings:         #search each move
-      new_state.copy_board(state)     #copy the board
-      new_state.execute_move(move)    #execute the move
-      contender = alpha_beta_tree(new_state, depth-1, last_max, last_min, False).value #recurse!
-      if(contender >= last_min): return ai.Move("",last_min) #no moves
-      if(contender > last_max): #check result
-        last_max = contender
-        best_move = ai.Move(move, contender) #contender is better
-                        
-  else: #human turn
-    best_move = ai.Move("",last_min)  #preload move
-    for move in move_strings:         #search each move
-      new_state.copy_board(state)     #copy the board
-      new_state.execute_move(move)    #execute the move
-      contender = alpha_beta_tree(new_state, depth-1, last_max, last_min, True).value #recurse!
-      if(contender <= last_max): return ai.Move("",last_max) #no moves
-      if(contender < last_min): #check result
-        last_min = contender
-        best_move = ai.Move(move, contender) #contender is better
+  best_move = ai.Move("",last_max)  #preload move
+  for move in move_strings:         #search each move
+    new_state.copy_board(state)     #copy the board
+    new_state.execute_move(move)    #execute the move
+    contender = alpha_beta_min(new_state, depth-1, last_max, last_min).value #recurse!
+    if(contender >= last_min): return ai.Move("",last_min) #no moves
+    if(contender > last_max): #check result
+      last_max = contender
+      best_move = ai.Move(move, contender) #contender is better
 
   return best_move  #successfull move
+
+
+#second half of recursive pair
+def alpha_beta_min(state, depth, last_max, last_min):
+  if(depth == 0): #end of recursive function
+    return ai.Move("", get_state_evaluation(state))  #return the value of this position
+    
+  move_strings = get_possible_moves(state) #get the strings corresponding to possible moves
+  if(len(move_strings) == 0):
+    return ai.Move("end", get_state_evaluation(state)) #handle edge case
+  
+  new_state = ai.Board_State()    #create empty board object
+  
+  best_move = ai.Move("",last_min)  #preload move
+  for move in move_strings:         #search each move
+    new_state.copy_board(state)     #copy the board
+    new_state.execute_move(move)    #execute the move
+    contender = alpha_beta_max(new_state, depth-1, last_max, last_min).value #recurse!
+    if(contender <= last_max): return ai.Move("",last_max) #no moves
+    if(contender < last_min): #check result
+      last_min = contender
+      best_move = ai.Move(move, contender) #contender is better
+
+  return best_move  #successfull move
+
+
 
 #function counts the peices remaining on the board, and multiplies by thier weight (Kauffman's 2012 values)
 #super simple first draft, will probably improve later
@@ -164,7 +189,7 @@ def get_state_evaluation(state):
    score = -score #adjust to player color
   
   #incentivize trades by subtracting total piece count
-  #score -= bin(state.get_all_pieces()).count('1') * 25
+  score -= bin(state.get_all_pieces()).count('1') * 25
   
   return score #return the result
 
