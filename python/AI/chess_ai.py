@@ -6,7 +6,7 @@ from multiprocessing import Pool
 from threading import Lock
 
 #globals/constants for use in the methods
-MAX_DEPTH = 4 #best I've got so far (target is ~8-10) (real AI use ~12-14)
+MAX_DEPTH = 5 #best I've got so far (target is ~8-10) (real AI use ~12-14)
 MAX_THREADS = 2 #number of threads to run, optimal value depends on system (~cores)
 
 #consider moving multithreading to task queue
@@ -35,20 +35,26 @@ def get_chess_move(fen_board, color):
   pool.close() #close threads after they finish
   pool.join() #wait for threads to terminate before continuing
   
-  best_move = moves[0]
-  all_equal = True  #check if all moves are equal
+  #find the best move value
+  best_move_val = moves[0].value
   for move in moves[1:]: #get best move
-    if(move.value > best_move.value): 
-      best_move = move
-      all_equal = False
-      print 'better_move'
+    if(move.value > best_move_val): 
+      best_move_val = move.value
   
-  #pick random move instead if all moves are the same value
-  if(all_equal):
-    best_move = moves[randrange(len(moves))]
+  good_moves = [] #list of the top moves
+  for move in moves:
+    if(move.value == best_move_val):
+      good_moves.append(move) #add the move
+      print (move.tag, move.value)
   
+  print ('good moves', len(good_moves))
+  
+  #pick random move from top contender list
+  best_move = good_moves[randrange(len(good_moves))]
+  #best_move = moves[len(moves)-1]
+    
   #debug (single thread instead of multi)
-  #best_move = alpha_beta_tree(state, MAX_DEPTH, None, None, True)
+  #best_move = alpha_beta_tree(state, MAX_DEPTH, -900000, 900000, True)
 
   #See if we've checked them (give ai a free second move, see if we capture the king)
   new_state = ai.Board_State() #create the new state
@@ -88,7 +94,8 @@ def do_search_thread(move):
   gmax = top_max #copy the global max
   lock.release() #release the lock
   
-  best_move = alpha_beta_tree(new_state, MAX_DEPTH-1, gmax, None, False) #throw to tree search for next iteration
+  best_move = alpha_beta_tree(new_state, MAX_DEPTH-1, gmax, 900000, False) #throw to tree search for next iteration
+  if(best_move.tag == ''): return ai.Move("",-900000) #catch bad results
 
   lock.acquire() #get the lock
   if(top_max < best_move.value): #check if we're better
@@ -107,30 +114,34 @@ def alpha_beta_tree(state, depth, last_max, last_min, is_max):
     return ai.Move("", get_state_evaluation(state))  #return the value of this position
     
   move_strings = get_possible_moves(state) #get the strings corresponding to possible moves
-  if(len(move_strings) == 0): return ai.Move("",get_state_evaluation(state)) #handle edge case
+  if(len(move_strings) == 0):
+    return ai.Move("end", get_state_evaluation(state)) #handle edge case
   
-  new_state = ai.Board_State()
-  new_state.copy_board(state)
-  new_state.execute_move(move_strings[0])
-  if(is_max): best_move = alpha_beta_tree(new_state, depth-1, None, last_min, False)
-  else: best_move = alpha_beta_tree(new_state, depth-1, last_max, None, True)
-  best_move.tag = move_strings[0]  
+  new_state = ai.Board_State()    #create empty board object
   
-  for move in move_strings[1:]:   #search each other move
-    new_state.copy_board(state)   #copy the board
-    new_state.execute_move(move)  #execute the move
-    if(is_max): contender = alpha_beta_tree(new_state, depth-1, best_move.value, last_min, False) #recurse!
-    else: contender = alpha_beta_tree(new_state, depth-1, last_max, best_move.value, True) #recurse!
-    if((is_max and contender.value >= best_move.value) or (not is_max and contender.value <= best_move.value)):
-      best_move = contender #contender is better
-      best_move.tag = move  #update the tag
-      #Do alpha beta - remove any value which cannot possiby replace an existing one
-      if(last_max != None and last_min != None):
-        if(best_move.value >= last_min or best_move.value <= last_max): return best_move 
-      elif(last_max != None and best_move.value <= last_max): return best_move
-      elif(last_min != None and best_move.value >= last_min):  return best_move
-  
-  return best_move
+  if(is_max): #ai turn
+    best_move = ai.Move("",last_max)  #preload move
+    for move in move_strings:         #search each move
+      new_state.copy_board(state)     #copy the board
+      new_state.execute_move(move)    #execute the move
+      contender = alpha_beta_tree(new_state, depth-1, last_max, last_min, False).value #recurse!
+      if(contender >= last_min): return ai.Move("",last_min) #no moves
+      if(contender > last_max): #check result
+        last_max = contender
+        best_move = ai.Move(move, contender) #contender is better
+                        
+  else: #human turn
+    best_move = ai.Move("",last_min)  #preload move
+    for move in move_strings:         #search each move
+      new_state.copy_board(state)     #copy the board
+      new_state.execute_move(move)    #execute the move
+      contender = alpha_beta_tree(new_state, depth-1, last_max, last_min, True).value #recurse!
+      if(contender <= last_max): return ai.Move("",last_max) #no moves
+      if(contender < last_min): #check result
+        last_min = contender
+        best_move = ai.Move(move, contender) #contender is better
+
+  return best_move  #successfull move
 
 #function counts the peices remaining on the board, and multiplies by thier weight (Kauffman's 2012 values)
 #super simple first draft, will probably improve later
@@ -144,15 +155,16 @@ def get_state_evaluation(state):
   score -= bin(state.bn).count("1")*350  #black knights (350)
   score += bin(state.wb).count("1")*350  #white bishop (350)
   score -= bin(state.bb).count("1")*350  #black bishop (350)
-  score += bin(state.wb).count("1")*1000 #white queen (1000)
-  score -= bin(state.bb).count("1")*1000 #black queen (1000)
+  score += bin(state.wq).count("1")*1000 #white queen (1000)
+  score -= bin(state.bq).count("1")*1000 #black queen (1000)
   if(state.wk != 0): score += 100000 #white king (100,000)  (take the king instead of checkmating)
   if(state.bk != 0): score -= 100000 #black king (100,000)
   
-  if(not state.ai_color): score = -score #adjust to player color
+  if(not state.ai_color):
+   score = -score #adjust to player color
   
   #incentivize trades by subtracting total piece count
-  score -= bin(state.get_all_pieces()).count('1') * 25
+  #score -= bin(state.get_all_pieces()).count('1') * 25
   
   return score #return the result
 

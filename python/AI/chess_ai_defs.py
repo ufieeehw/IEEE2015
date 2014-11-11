@@ -107,6 +107,7 @@ class Board_State:
   
   #Execute a  move (swap indicates that we want to take turns)
   def execute_move(self, move, swap=True):
+    if(len(move) < 3): return #bad input
     if(move[0] >= 'A' and move[0] <= 'Z'):  #capital letters are pieces
       if(move[0] == 'O'): #castle, manually execute swap
         if (len(move) == 3): #Kingside
@@ -137,7 +138,7 @@ class Board_State:
     old_square = get_square(old_rank_file) #get old square
     new_square = get_square(new_rank_file) #get new square
       
-    if(self.turn and self.ai_color):  #white's turn
+    if(self.turn == self.ai_color):  #white's turn
       if(piece_type == 'P'):
         self.wp = (self.wp & ~old_square) | new_square #remove old location, set new one
       if(piece_type == 'R'):
@@ -155,21 +156,13 @@ class Board_State:
       if(piece_type == 'K'):
         self.wk = (self.wk & ~old_square) | new_square #remove old location, set new one
         self.castle = (self.castle & 0xC) #remove castle avaliability
-        
       if(capture):
-        for target_type in ('P', 'R', 'N', 'B', 'Q', 'K'): #search for captured piece
-          if(target_type == 'P' and (self.bp & new_square)):
-            self.bp = self.bp & ~new_square #remove the piece
-          if(target_type == 'R' and (self.br & new_square)):
-            self.br = self.br & ~new_square #remove the piece
-          if(target_type == 'N' and (self.bn & new_square)):
-            self.bn = self.bn & ~new_square #remove the piece
-          if(target_type == 'B' and (self.bb & new_square)):
-            self.bb = self.bb & ~new_square #remove the piece
-          if(target_type == 'Q' and (self.bq & new_square)):
-            self.bq = self.bq & ~new_square #remove the piece
-          if(target_type == 'K' and (self.bk & new_square)):
-            self.bk = self.bk & ~new_square #remove the piece
+        self.bp = self.bp & ~new_square #remove the piece
+        self.br = self.br & ~new_square #remove the piece
+        self.bn = self.bn & ~new_square #remove the piece
+        self.bb = self.bb & ~new_square #remove the piece
+        self.bq = self.bq & ~new_square #remove the piece
+        self.bk = self.bk & ~new_square #remove the piece
     
     else: #black's turn
       if(piece_type == 'P'):
@@ -189,20 +182,13 @@ class Board_State:
       if(piece_type == 'K'):
         self.bk = (self.bk & ~old_square) | new_square #remove old location, set new one
       if(capture):
-        for target_type in ('P', 'R', 'N', 'B', 'Q', 'K'): #search for captured piece
-          if(target_type == 'P' and (self.wp & new_square)):
-            self.wp = self.wp & ~new_square #remove the piece
-          if(target_type == 'R' and (self.wr & new_square)):
-            self.wr = self.wr & ~new_square #remove the piece
-          if(target_type == 'N' and (self.wn & new_square)):
-            self.wn = self.wn & ~new_square #remove the piece
-          if(target_type == 'B' and (self.wb & new_square)):
-            self.wb = self.wb & ~new_square #remove the piece
-          if(target_type == 'Q' and (self.wq & new_square)):
-            self.wq = self.wq & ~new_square #remove the piece
-          if(target_type == 'K' and (self.wk & new_square)):
-            self.wk = self.wk & ~new_square #remove the piece
-            self.castle = (self.castle & 0x3) #remove castle avaliability
+        self.wp = self.wp & ~new_square #remove the piece
+        self.wr = self.wr & ~new_square #remove the piece
+        self.wn = self.wn & ~new_square #remove the piece
+        self.wb = self.wb & ~new_square #remove the piece
+        self.wq = self.wq & ~new_square #remove the piece
+        self.wk = self.wk & ~new_square #remove the piece
+    
     if(swap): self.turn = not self.turn #next player's turn
 
   #return the locations of all white peices (int bitmaps are additive)
