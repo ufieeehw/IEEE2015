@@ -11,6 +11,8 @@
 #include "table.h"
 #include "meta.h"
 #include "IMU.h"
+#include "NewStep.h"
+
 //Quantum definitions (how many buffer operations per function call)
 #define BUFFER_ALLOWED  16
 
@@ -25,6 +27,7 @@ void init(){
   //do component driver initializations
   meta_init();  //initialize meta functions (should come first)
   IMU_init();
+  initStep();
   //ADD MORE HERE
   
   //initialize communications
