@@ -5,7 +5,7 @@
         <rosparam>
             namespace: dxl_manager
             serial_ports:
-                pan_tilt_port:
+                arm_control_port:
                     port_name: "/dev/dynamixel_tty"
                     baud_rate: 57142
                     min_motor_id: 1

@@ -4,12 +4,12 @@ shoulder_controller:
         module: joint_position_controller
         type: JointPositionController
     joint_name: shoulder_joint
-    joint_speed: 1.17
+    joint_speed: 0.6
     motor:
         id: 2
         init: 512
-        min: 570
-        max: 420
+        min: 0
+        max: 1023
 
 elbow_controller:
     controller:
@@ -17,10 +17,10 @@ elbow_controller:
         module: joint_position_controller
         type: JointPositionController
     joint_name: elbow_joint
-    joint_speed: 2.5
+    joint_speed: 0.6
     motor:
         id: 1
-        init: 205
+        init: 512
         min: 0
         max: 1023
 

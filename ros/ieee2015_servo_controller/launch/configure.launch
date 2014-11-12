@@ -1,0 +1,14 @@
+<launch>
+    <!-- Load controller configuration to parameter server -->    
+    <!-- start specified joint controllers -->
+    <node name="dynamixel_configuration_node" pkg="dynamixel_driver" type="set_servo_config.py"
+          args="--port /dev/dynamixel_tty 
+              --ccw-angle-limit=0 
+              --cw-angle-limit=1023 
+              1 
+              2"
+          output="screen"/>
+</launch>
+
+
+

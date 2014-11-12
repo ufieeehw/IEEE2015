@@ -1,0 +1,7 @@
+<launch>
+    <node name="arm_controller" pkg="ieee2015_controller" type="arm_controller.py"
+        output="screen" ns="/robot" />
+    <node name="arm_simulator" pkg="ieee2015_simulator" type="arm_simulator.py"
+        output="screen" ns="/robot" />
+</launch>
+

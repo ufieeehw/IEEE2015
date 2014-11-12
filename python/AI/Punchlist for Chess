@@ -1,0 +1,46 @@
+TO DO
+
+Read first:
+  ADD TO THIS LIST WHENEVER YOU FIND SOMETHING WORTH ADDRESSING
+  I know we don't have alot of time, but everyone's work so far has been great. We can do it, that I'm sure. 
+  IMPORTANT: Commmunicate to teammembers what exactly what inputs and information you need them to give you. We are on a 
+  bit of a time crunch so if we can avoid people working on tasks that are unecessary or overcomplicated, that is 
+  only going to help us create something awesome to show to UF, Discovery Channel, and most importantly, ourselves.
+  SUPER IMPORTANT: Make sure your code accounts for failure or an error, the robot needs to respond to bugs and not 
+  shut down and stop completely (for the sake of time we can't catch everything, this is more of a long term thing
+  to take into account)
+
+Computer Vision:
+  -Segment each square and store the square in some kind of data structure
+  -store color and type of piece in that square "object"
+  -come up with way to continually update the pieces current location on the board
+  -find way to eliminate piece 
+      - only time that a piece is removed is when a piece from the other team is in the same
+        square as the other team's piece from the previous turn (signifies the piece was "captured")
+  -give back coordinate of centroid of piece so arm knows where to move
+  -establish height and coordinate of where arm will move to take a picture of the board between moves
+  -take info from image and output a Forsyth-Edwards string
+  -identify proper colors regardless of lighting
+  
+AI: 
+  -make sure the allowable moves are properly implemented and accounted for 
+      -example: knight moves in L patter, bishops move diagonally...etc
+  
+Arm:
+  -smooth movement with joints and rotation
+  -establishing the right height for picking up, moving, then placing the piece back on the board
+    so that other pieces are not knocked over
+  -can properly return to a waiting position while human makes move
+  -can be held in place over the board still enough to take as clear of an image of the board as possible
+  
+End Effector:
+  -finalize design 
+  -attach to robot
+  -proper grippers so that we don't drop pieces during movement
+  -emphasis on what grippers will be used to pick up pieces since the end effector in this case only has to worry 
+    picking things up and putting them back down
+  
+Other things to keep in mind:
+  -make sure we are using enough force so that the pieces are not crushed or slip out from grasp
+  -we are able to set up robot in a way the arm can reach the end of the board
+  

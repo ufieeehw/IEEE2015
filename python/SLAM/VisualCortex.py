@@ -2,6 +2,8 @@ import numpy as np
 from copy import deepcopy
 from numpy.linalg import inv
 import cv2
+import random
+import math
 
 # TODO: Make nonchanging variables properties.  Make changing variables
 # non-properties
@@ -32,10 +34,7 @@ class VisualCortex:
     _transformed_view = None;
     _perspective_matrix = None;
     #position on a perspec transformed img that corresponds to robot's loc
-    _robot_coordinates = [[400],
-                          [800],
-                          [1]
-                         ];
+    _robot_coordinates = [400, 800, 1];
     _perspec_corners = None
 
 
@@ -56,7 +55,11 @@ class VisualCortex:
     """
     def __init__(self, view_coordinates, map_coordinates, img):
         self.full_map= np.ones((self.full_map_x, self.full_map_y), np.uint8);
-        self.position = [1500, 2500];
+        # TODO: This is not actually the starting position... This is the center of
+        #    where we place the first image on the black map.  We can then extract
+        #    the actual starting position by running "self.localize" on the affine
+        #    matrix given by self._initialize_affine_matrix below
+        self.position = [self.full_map_x/2, self.full_map_y/2];
         self.rotation = 0;
 
         # Read off the dimensions of images we are getting from camera
@@ -64,8 +67,7 @@ class VisualCortex:
 
         # Get the perspec transform matrix
         # TODO: Get a more accurate transform
-        self._perspective_matrix = self._get_perspective_matrix(
-                                        view_coordinates, map_coordinates);
+        self._perspective_matrix = self._get_perspective_matrix(view_coordinates, map_coordinates);
         # Now that we have a matrix, get the bird's eye image dimensions
         self._get_bird_dims()
         self._calculate_perspec_corners()
@@ -86,27 +88,30 @@ class VisualCortex:
     def SLAM(self, image):
         # Run perspective transform on image
         imgx = self.transform_image(image)
+
         # Extract features from this image
         kp1, des1 = self.feature_detect(imgx)
-        self._draw_features(imgx,kp1, None)
+        #self._draw_features(imgx, kp1, None)
         kp1, des1, bird_corners = self._apply_roi(kp1, des1)
-        self._draw_features(imgx,kp1, bird_corners)
+        self._draw_features(imgx, kp1, bird_corners, "points")
+
         # TODO: Use a database rather than re-ORBing on the full map
+        # TODO: put a mask around the "known map" for the same reason we do it to imgx above...
         # Extract features from the full_map
         kp2, des2 = self.feature_detect(self.full_map)
+        self._draw_features(self.full_map, kp2, None, "points")
         # Match features between imgx and full_map
         # TODO: Do we need to input kp1 and kp2?
-        M, matches = self.feature_match(kp1, kp2, des1, des2)
-        self._draw_matches(imgx,self.full_map,kp1,kp2,matches,[0,1,2,3])
-        # Use matches to get the affine transform
-        # TODO: Make affine matrix a variable and not a property, since
-        # it always changes at this point
-        affine_matrix = self.get_affine_matrix(kp1, kp2, matches)
+        M, matches, q, t = self.feature_match(kp1, kp2, des1, des2)
+        #self._draw_features(imgx, q, None, "array")
+        #self._draw_features(self.full_map, t, None, "array")
+        #self._draw_matches(imgx, self.full_map, kp1, kp2, matches)
+
         # Use this affine matrix to update robot position
         # TODO: Make position/rotation a property
-        self.localize(affine_matrix)
+        self.localize(M)
         # Use this affine matrix to update full_map
-        self.stitch(imgx, affine_matrix)
+        self.stitch(imgx, M)
         return;
 
     """Takes an image from the camera's video feed and transforms it into a 
@@ -117,10 +122,8 @@ class VisualCortex:
         imgx = cv2.warpPerspective(image, self._perspective_matrix,
                                    (self.bird_x,self.bird_y), flags = 1, 
                                    borderMode = 0, borderValue = (0,0,0))
-        # TODO: See if there is a better way to get rid of pixelation that
-        # comes from the interpolation of transformed pixels
-        # Sharpen the image
-        imgx = cv2.bilateralFilter(imgx,9,75,75)
+        # Clean up the image
+        imgx = self.clean_image(imgx)
         return imgx;
 
     """Find the features/corners of interest of an input image, 
@@ -140,7 +143,7 @@ class VisualCortex:
     """
     def feature_match(self, kp1, kp2, des1, des2):
         # Create BFMatcher object
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
         # Match descriptors and get the matches array
         matches = bf.match(des1,des2)
         # Sort them in the order of their distance.
@@ -164,50 +167,145 @@ class VisualCortex:
             train_pts = np.float32(
                 [ kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1,1,2)
             # Run regression on the matches to filter outliers
-            M, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC,20.0)
-            matches_mask = mask.ravel().tolist()
+            M, mask, successrate, q, t = self.estimateAffine(query_pts, train_pts, 5.0)
+
             # Use this mask immediately to get the good_matches matches
-            good_matches = self._filter_matches(good_matches, matches_mask)
+            good_matches = self._filter_matches(good_matches, mask)
         else:
                 print "Not enough matches are found - %d/%d" % (len(good_matches), 10)
                 matches_mask = None
                 M = None
-        return M, good_matches
+        return M, good_matches, q, t
 
-    """Using the matches and mask between the full_map and perspec transformed
-    image, determine the affine transformation that will map the smaller
-    onto the bigger.
-    """
-    def get_affine_matrix(self, kp1, kp2, matches):
-        # Indices of which points in "matches" to use
-        point1 = 3;
-        point2 = 1;
-        point3 = 2;
-        # Gather the coordinates in train img that we go TO
-        trainPts = np.float32([ kp2[matches[point1].trainIdx].pt,
-                                kp2[matches[point2].trainIdx].pt,
-                                kp2[matches[point3].trainIdx].pt
-                              ]
-                             )
-        # Gather the coordinates in query that we come FROM
-        queryPts = np.float32([ kp1[matches[point1].queryIdx].pt,
-                                kp1[matches[point2].queryIdx].pt,
-                                kp1[matches[point3].queryIdx].pt
-                              ]
-                             )
-        # Transform the query image
-        return cv2.getAffineTransform(queryPts,trainPts);
-        
+    def estimateAffine(self, query_pts, train_pts, threshold):
+        """This is a 2D version of estimateAffine3D (a built in function) that implements RANSAC to Figure
+        out the best affine transformation between two sets of matched points
+        """
+        # Get length of dataset
+        length = len(query_pts)
+
+        # Sanity check
+        if ((length != len(train_pts)) or (length < 3)):
+            print "ERROR: Match list dims do not match, or not enough matches to estimate"
+
+        # Initialize affine matrix, weight, points, and history
+        M = [[1, 0, 0],
+             [0, 1, 0]]
+        best_cost = 0
+        chosen = [0,0,0]
+        history = [[0,0,0]]
+        query = []
+        train = []
+        query_chosen = [[0, 0],
+                        [0, 0],
+                        [0, 0]]
+        train_chosen = [[0, 0],
+                        [0, 0],
+                        [0, 0]]   
+
+        # Redo query_ and train_pts because they have a really stupid shape and datatype
+        for i in range(0, length):
+            query.append([query_pts[i][0][0], query_pts[i][0][1] ])
+            train.append([train_pts[i][0][0], train_pts[i][0][1] ])
+
+        # TODO: Figure out a good number to use here.  Currently goes for half of the possible combinations (nCr / 2)
+        # TODO: Figure out how small a number of matches we need to try every combo
+        montecarlo_runs = math.factorial(length)/math.factorial(length-3)/math.factorial(3)/2
+        # TODO: Use statistics to calculate the expected number of iterations to find a unique set
+        TIMEOUT = montecarlo_runs
+        run_count = 0
+        # RANSAC to find the best affine transform
+        while (run_count < montecarlo_runs):
+            # DATAPATH for cost (see page 15: https://courses.engr.illinois.edu/cs498dh/fa2011/lectures/Lecture%2018%20-%20Photo%20Stitching%20-%20CP%20Fall%202011.pdf)
+            # Select three random points that we haven't already tested
+            # TODO: Figure out a way to recognize [1,2,3] is already in history, even if the actual entry is
+            #       [1,3,2] or some different order.  Otherwise, remove the history check completely.
+            #       I'm not sure if we need it at all
+            time = 0
+            while (chosen in history):
+                # Check for TIMEOUT
+                time = time + 1
+                if (time > TIMEOUT):
+                    break
+                # Reset the pool
+                pool = range(0, length)
+                # Choose the three random points
+                for i in range(0, 3):
+                    chosen[i] = random.choice(pool)
+                    pool.remove(chosen[i])
+            # Append them to our history if they are new
+            history.append(deepcopy(chosen))
+
+            # Get coordinates from the random indices selected above (note that ****_pts is a really funky data type....)
+            for i in range(0,3):
+                query_chosen[i] = query[chosen[i]]
+                train_chosen[i] = train[chosen[i]]
+
+            # Find affine transform between the points
+            M = cv2.getAffineTransform(np.array(query_chosen), np.array(train_chosen))
+
+            # Apply affine
+            homoquery = []
+            for i in range(0, length):
+                homoquery.append([query[i][0], query[i][1], 1])
+            mapped = np.dot(homoquery, M.T)
+
+            # Get distance between points in "mapped" and "train"
+            cost = 0
+            net_distance = 0
+            compare = pow(threshold, 2)
+            mask = []
+            for i in range(0, length):
+                # Apply pythagorean theorem
+                distance = pow(mapped[i][0] - train[i][0], 2) + pow(mapped[i][1] - train[i][1], 2)
+                # Compare the distance with our threshold
+                if (distance < compare): 
+                    # Note that "mask" 2D array in opencv's stupid "findHomography," but I fixed that so we don't need to unravel
+                    mask.append(1)
+                    net_distance = net_distance + distance
+                    cost = cost + 1
+                else:
+                    mask.append(0)
+
+            # Update M, mask, and cost if this cost is better then previous max
+            # TODO: Figure out if comparing net inlier distance is the best way to choose a winner when costs are equal
+            #       .... Or should we go by distance only???  This isn't how findHomography works but it may be better for
+            #       our purposes
+            if (cost > best_cost):
+                # TODO: Figure out which of these actually need the deepcopy. I'm tired of getting
+                #       burnt by it so I just made them all deepcopies
+                best_cost = deepcopy(cost)
+                best_net_distance = deepcopy(net_distance)
+                best_M = deepcopy(M)
+                best_mask = deepcopy(mask)
+                best_query = deepcopy(query_chosen)
+                best_train = deepcopy(train_chosen)
+            elif (cost == best_cost):
+                if (net_distance < best_net_distance):
+                    # TODO: Figure out which of these actually need the deepcopy. I'm tired of getting
+                    #       burnt by it so I just made them all deepcopies
+                    best_cost = deepcopy(cost)
+                    best_net_distance = deepcopy(best_net_distance)
+                    best_M = deepcopy(M)
+                    best_mask = deepcopy(mask)
+                    best_query = deepcopy(query_chosen)
+                    best_train = deepcopy(train_chosen)
+
+            # Increment the iteration count
+            run_count = run_count + 1
+
+        # Return the affine matrix, mask array, and tuple of (inliers, totalmatches)
+        return best_M, best_mask, (best_cost,length), best_query, best_train        
         
     def localize(self, affine_matrix):
         """Apply the latest _affine_matrix to the _robot_coordinates so that we
         can update the robot's location in the full_map
         """
         self.position = np.dot(affine_matrix, self._robot_coordinates)
-        bearing = np.dot(affine_matrix, [[self.robot_coordinates(0)],
-                                         [self._robot_coordinates(1) - bird_y/2],
-                                         [1]
-                                        ])
+        bearing = np.dot(affine_matrix, np.array([[self._robot_coordinates[0]],
+                                                  [self._robot_coordinates[1] - self.bird_y/2],
+                                                  [1]
+                                                 ]))
         # Note that delta_y seems flipped.  This is because x coordinates go left to right (normal)
         # but y coordinates go top to bottom (flipped). As Bill Nye would say, consider the following:
         #                        O  (bigger x, smaller y)
@@ -219,65 +317,114 @@ class VisualCortex:
         #               |  /
         #               | / (smaller x, bigger y)
         #                O
-        delta_x = bearing(0) - self.position(0)
-        delta_y = self.position(1) - bearing(1)
+        delta_x = bearing[0] - self.position[0]
+        delta_y = self.position[1] - bearing[1]
         # Gives rotation in radians East of North
         self.rotation = np.arctan(delta_y/delta_x)
-        return None;
 
-    """ Update the full_map with the latest image, using the
-    most up-to-date _affine_matrix"""
-    def stitch(self, imgx, affine_matrix):
-        # Transform imgx into something the size of the full map using affine
-        rows, cols = self.full_map.shape
-        fullimgx = cv2.warpAffine(imgx, affine_matrix, (cols,rows))
+    def stitch(self, imgx, matrix):
+        """ Update the full_map with the latest image, using the
+        most up-to-date _affine_matrix
+        """
+        # Decide if we are doing affine or perspective xform based on the matrix shape
+        if (matrix.shape == (2,3)): # Affine
+            # Transform imgx into something the size of the full map using affine
+            fullimgx = cv2.warpAffine(imgx, matrix, (self.full_map_x, self.full_map_y))
+
+        elif (matrix.shape == (3,3) and matrix[2][2] == 1): # Perspective
+            # Transform imgx into something the size of the full map using perspective
+            fullimgx = cv2.warpPerspective(imgx, matrix, (self.full_map_x, self.full_map_y), flags = 1, 
+                                           borderMode = 0, borderValue = (0,0,0))
+        else:
+            print "ERROR: Unknown transform matrix.  Cannot stitch to full map"
+            fullimgx = np.ones((self.full_map_x, self.full_map_y), np.uint8);  
+
         fullimg2 = self.full_map
         # Add the images together
         # TODO: Use "blip" or something to add the images together
         self.full_map = fullimgx/2 + self.full_map/2;
-        # Clean up the "ghosting" on the resulting image
-        dump, self.full_map = cv2.threshold(self.full_map, 50, 255,
-            cv2.THRESH_BINARY)
+        # Clean up the image
+        self.full_map = self.clean_image(self.full_map)
         #superimposed = cv2.resize(superimposed,(0,0), fx=.25, fy=.25)
-        return None;
+        return None
 
+
+    def clean_image(self, img):
+        """ Clean up a transformed or stitched image by threshholding it and then
+        blurring it to remove pixelation and salt/pepper
+        """
+        thresh = 50
+        dump, img = cv2.threshold(img, thresh, 255, cv2.THRESH_BINARY)
+        kernel = 10
+        img = cv2.blur(img, (kernel, kernel))
+        return img
+
+    def display_map(self):
+        """ Handle the while loop that shows an image, to clean up code a bit since we use this so often
+        """
+        while(1):
+            cv2.imshow('full',cv2.resize(self.full_map,(0,0),fx=.5,fy=.5));
+
+            if cv2.waitKey(20) & 0xFF == 27:
+                break;
+        cv2.destroyAllWindows()
+        return;
 
     ####################################
     #####    4. PRIVATE METHODS    #####
     ####################################
 
     # Put green dots on each of the features
-    def _draw_features(self, image, kp, bird_corners):
-        # Turn this image into color so we see green dots
-        color_img = cv2.cvtColor(image , cv2.COLOR_GRAY2RGB)
-        # Plot the keypoints
-        for i in range(0,len(kp)):
-            # Extract coordinates of these keypoints
-            feature1 = kp[i].pt;
-            # Offset feature2
-            feature1 = tuple([int(feature1[0]), int(feature1[1])]);
-            # Put dots on these features
-            cv2.circle(color_img, feature1, 1, (0,255,0), -1);
+    def _draw_features(self, image, kp, bird_corners, intype):
+        if intype == "points":
+            # Turn this image into color so we see green dots
+            color_img = cv2.cvtColor(image , cv2.COLOR_GRAY2RGB)
+            # Plot the keypoints
+            for i in range(0,len(kp)):
+                # Extract coordinates of these keypoints
+                feature1 = kp[i].pt;
+                # Offset feature2
+                feature1 = tuple([int(feature1[0]), int(feature1[1])]);
+                # Put dots on these features
+                cv2.circle(color_img, feature1, 2, (0,0,255), -1);
 
-        if (bird_corners != None):
-            cv2.line(color_img, tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
-                                tuple([int(bird_corners[0][1]),int(bird_corners[1][1])]),
-                                (255,0,0))
-            cv2.line(color_img, tuple([int(bird_corners[0][1]),int(bird_corners[1][1])]),
-                                tuple([int(bird_corners[0][2]),int(bird_corners[1][2])]),
-                                (255,0,0))
-            cv2.line(color_img, tuple([int(bird_corners[0][2]),int(bird_corners[1][2])]),
-                                tuple([int(bird_corners[0][3]),int(bird_corners[1][3])]),
-                                (255,0,0))
-            cv2.line(color_img, tuple([int(bird_corners[0][3]),int(bird_corners[1][3])]),
-                                tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
-                                (255,0,0))
-        while(1):
-            cv2.imshow('full',color_img);
+            if (bird_corners != None):
+                cv2.line(color_img, tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
+                                    tuple([int(bird_corners[0][1]),int(bird_corners[1][1])]),
+                                    (255,0,0))
+                cv2.line(color_img, tuple([int(bird_corners[0][1]),int(bird_corners[1][1])]),
+                                    tuple([int(bird_corners[0][2]),int(bird_corners[1][2])]),
+                                    (255,0,0))
+                cv2.line(color_img, tuple([int(bird_corners[0][2]),int(bird_corners[1][2])]),
+                                    tuple([int(bird_corners[0][3]),int(bird_corners[1][3])]),
+                                    (255,0,0))
+                cv2.line(color_img, tuple([int(bird_corners[0][3]),int(bird_corners[1][3])]),
+                                    tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
+                                    (255,0,0))
+            while(1):
+                cv2.imshow('full',color_img);
 
-            if cv2.waitKey(20) & 0xFF == 27:
-                break;
-        cv2.destroyAllWindows()
+                if cv2.waitKey(20) & 0xFF == 27:
+                    break;
+            cv2.destroyAllWindows()
+
+        elif intype == "array":
+            # Turn this image into color so we see green dots
+            color_img = cv2.cvtColor(image , cv2.COLOR_GRAY2RGB)
+            # Plot the keypoints
+            for i in range(0,len(kp)):
+                # Offset feature2
+                feature1 = tuple([int(kp[i][0]), int(kp[i][1])]);
+                # Put dots on these features
+                cv2.circle(color_img, feature1, 2, (0,0,255), -1);
+
+            while(1):
+                cv2.imshow('full',color_img);
+
+                if cv2.waitKey(20) & 0xFF == 27:
+                    break;
+            cv2.destroyAllWindows()
+
 
     # Read off the dimensions of an image
     def _initialize_cam_dimensions(self, image):
@@ -303,12 +450,10 @@ class VisualCortex:
             newpoints[n][1] = avg_y - (avg_y - points[n][1])*scale + translate[1]
         return newpoints
 
-    # TODO: Or do we want to initialize this with the self.position
     def _initialize_affine_matrix(self):
-        return np.float32([[1, 0, (self.full_map_x-self.bird_x)/2],
-                                          [0, 1, (self.full_map_y-self.bird_y)/2]
-                                         ]
-                                        )
+        return np.float32([[1, 0, self.position[0] - self.bird_x/2],
+                           [0, 1, self.position[1] - self.bird_y/2]
+                          ])
     
     # Figure out the dimensions of the image that the perspective transform
     # maps to.
@@ -333,11 +478,9 @@ class VisualCortex:
 
         #created this method in response to the todo comment
     def _calculate_perspec_corners(self):
-        # TODO: These coordinates are static, so we don't need to keep
-        # recalculating every time we run _apply_roi
         # Figure out where the corners of the perspective image map to in the
         # bird's eye image
-        c = 10     # Number of pixels to cushion the border with
+        c = 0     # Number of pixels to cushion the border with
         self._perspec_corners = [[c, self.cam_x - c, self.cam_x - c, c             ],
                                  [c, c             , self.cam_y - c, self.cam_y - c],
                                  [1, 1             , 1             , 1             ]
@@ -357,6 +500,11 @@ class VisualCortex:
         for col in range(0,4):
             for row in range(0,2):
                 bird_corners[row][col] = bird_homo_corners[row][col] / bird_homo_corners[2][col]
+        c = 15
+        cushion = [[c, -c, -c, c],
+                   [c, c, -c, -c]
+                  ]
+        bird_corners = np.add(bird_corners, cushion)
 
         # TODO: Figure out a better way to check if points are inside polygon
         # TODO: Make the following chunk more readable
@@ -389,7 +537,7 @@ class VisualCortex:
         return kp1, des1, bird_corners
 
     # Useful tool for drawing matches between two images
-    def _draw_matches(self, img1, img2, kp1, kp2, matches, numberofpoints):
+    def _draw_matches(self, img1, img2, kp1, kp2, matches):
         # Get image dimensions        
         rows1, cols1 = img1.shape;
         rows2, cols2 = img2.shape;
@@ -421,7 +569,7 @@ class VisualCortex:
             cv2.line(fullimg,feature1,feature2,(0,255,0),1)
 
         while(1):
-            cv2.imshow('full',cv2.resize(fullimg,(0,0),fx=.3,fy=.3));
+            cv2.imshow('full',cv2.resize(fullimg,(0,0),fx=.5,fy=.5));
 
             if cv2.waitKey(20) & 0xFF == 27:
                 break;
@@ -446,19 +594,18 @@ view_coordinates = np.float32([[922,220],[688,27],[276,27],[7,218]])
 map_coordinates = np.float32([[650,650],[650,350],[350,350],[350,650]])
 
 # Set filename and read it into an opencv object
-img_location = 'cap1.jpg'
+img_location = 'test_images/cap1.jpg'
 img = cv2.cvtColor(cv2.imread(img_location), cv2.COLOR_BGR2GRAY)
 # Create a new VC object
 VC = VisualCortex(view_coordinates,map_coordinates,img);
 
-img_location = 'cap2.jpg'
+img_location = 'test_images/cap2.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 VC.SLAM(img)
+VC.display_map()
 
+img_location = 'test_images/cap3.jpg'
+img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
+VC.SLAM(img)
+VC.display_map()
 
-while(1):
-    cv2.imshow('full',cv2.resize(VC.full_map,(0,0),fx=.5,fy=.5));
-
-    if cv2.waitKey(20) & 0xFF == 27:
-        break;
-cv2.destroyAllWindows()

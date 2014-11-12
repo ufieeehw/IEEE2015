@@ -82,17 +82,18 @@ if __name__ == '__main__':
         
     port = options.port
     baudrate = options.baud
-    motor_ids = args[1:]
-    
+    motor_ids = args[1:-2]
+    print 'motor ids', motor_ids
     try:
         dxl_io = dynamixel_io.DynamixelIO(port, baudrate)
     except dynamixel_io.SerialOpenError, soe:
         print 'ERROR:', soe
     else:
         for motor_id in motor_ids:
+            print motor_id, type(motor_id)
             motor_id = int(motor_id)
-            print 'Configuring Dynamixel motor with ID %d' % motor_id
-            if dxl_io.ping(motor_id):
+            ping_res = dxl_io.ping(motor_id)
+            if ping_res:
                 # check if baud rate needs to be changed
                 if options.baud_rate:
                     valid_rates = (1,3,4,7,9,16,34,103,207,250,251,252)
@@ -128,7 +129,8 @@ if __name__ == '__main__':
                 if options.ccw_angle_limit is not None:
                     print 'Setting CCW angle limit to %d' % options.ccw_angle_limit
                     dxl_io.set_angle_limit_ccw(motor_id, options.ccw_angle_limit)
-                    
+                else:
+                    print "NOT SETTING CCW ANGLE LIMIT"
                 # check if minimum voltage limit needs to be changed
                 if options.min_voltage_limit:
                     print 'Setting minimum voltage limit to %d' % options.min_voltage_limit

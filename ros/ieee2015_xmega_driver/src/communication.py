@@ -86,8 +86,12 @@ class Communicator(object):
         rospy.init_node('XMega_Connector')
         # Messages being sent from ROS to the XMega
         self.send_msg_sub = rospy.Subscriber(msg_sub_topic, XMega_Message, self.got_ros_msg)
-
-        self.serial = serial.Serial(port, baud_rate)
+        try:
+            self.serial = serial.Serial(port, baud_rate)
+        except(serial.serialutil.SerialException):
+            print("ieee2015_communicator could not open port " + port + 
+                "\nIf you have the Xmega plugged in, try setting up the Udev rules"
+            )
         # Defines which action function to call on the received data
         self.action_dict = {
         }
@@ -228,7 +232,7 @@ class Communicator(object):
 
 
 class IEEE_Communicator(Communicator):
-    def __init__(self, port='/dev/ttyUSB0', baud_rate=256000):
+    def __init__(self, port='/dev/xmega_tty', baud_rate=256000):
         '''IEEE Communicator sub-class of the broader XMega Communicator class
         XMega Sensor Manifest:
             - IMU (9DOF) - 12 bytes (only using 6 DOF) [An IMU is an intertial measurement unit]
@@ -358,6 +362,6 @@ class IEEE_Communicator(Communicator):
 
 
 if __name__=='__main__':
-    Comms = IEEE_Communicator(port='/dev/ttyUSB0')
+    Comms = IEEE_Communicator(port='/dev/xmega_tty')
     Comms.read_packets()
     rospy.spin()
