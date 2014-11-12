@@ -12,7 +12,7 @@ from std_msgs.msg import Header, Float64
 from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
 from dynamixel_msgs.msg import JointState
 
-SCREEN_DIM = (500,500)
+SCREEN_DIM = (750, 750)
 ORIGIN = np.array([SCREEN_DIM[0]/2.0, SCREEN_DIM[1]/2.0])
 
 
@@ -26,14 +26,13 @@ def print_in(f):
     return(print_on_entry)
 
 
-def round_point((x,y)):
+def round_point((x, y)):
     '''Round and change point to centered coordinate system'''
-    return map(int, (x + ORIGIN[0], -y + ORIGIN[1]))
+    return map(int, ((1000 * x) + ORIGIN[0], -(1000 * y) + ORIGIN[1]))
 
-
-def unround_point((x,y)):
+def unround_point((x, y)):
     '''Change center-origin coordinates to pygame coordinates'''
-    return map(int, (x - ORIGIN[0], -y + ORIGIN[1]))
+    return ((x - ORIGIN[0])/1000.0, (-y + ORIGIN[1])/1000.0)
 
 
 def norm_angle_diff(ang_1, ang_2):
@@ -49,7 +48,7 @@ class SCARA(object):
 
         # Position initalization
         self.base = np.array([0.0, 0.0], np.float32)
-        self.shoulder_length, self.elbow_length = 148.0, 160.0
+        self.shoulder_length, self.elbow_length = 0.148, 0.160
         self.elbow_joint = np.array([self.shoulder_length, 0.0], np.float32)
         self.wrist_joint = self.elbow_joint + np.array([self.elbow_length, 0.0], np.float32)
 
@@ -65,6 +64,7 @@ class SCARA(object):
     def got_des_pose(self, msg):
         '''Recieved desired arm pose'''
         self.position = (msg.point.x, msg.point.y)
+        print "Targeting position: ({}, {})".format(*self.position)
 
     def got_elbow_angle(self, msg):
         '''Recieved current elbow angle'''
@@ -79,8 +79,8 @@ class SCARA(object):
         # TODO:
         # Make this non-instantaneous
 
-        shoulder_angle_offset =  (-np.pi -(np.pi/2 + 0.3))
-        elbow_angle_offset = (1.75 )
+        shoulder_angle_offset =  (-3 * np.pi/2) - 0.3
+        elbow_angle_offset = 1.75
         
         _shoulder_angle = self.shoulder_angle + shoulder_angle_offset
         _elbow_angle = -(self.elbow_angle + elbow_angle_offset)
@@ -101,8 +101,8 @@ class SCARA(object):
         # Superimpose positions
         elbow_local_pos = self.elbow_length * np.array([np.cos(total_elbow_angle), np.sin(total_elbow_angle)])
         self.wrist_joint = self.elbow_joint + elbow_local_pos
-        #print "Angles: [{}, {}]".format(self.shoulder_angle, self.elbow_angle)
-        print "Angles:[{}, {}]".format(_shoulder_angle, _elbow_angle)
+        # print "Angles: [{}, {}]".format(self.shoulder_angle, self.elbow_angle)
+        # print "Angles: [{}, {}]".format(_shoulder_angle, _elbow_angle)
 
     def draw(self, display, new_base=(0, 0)):
         '''Draw the whole arm'''
@@ -112,6 +112,8 @@ class SCARA(object):
         pygame.draw.line(display, (255, 0, 255), round_point(self.base), round_point(self.elbow_joint), 4)
         pygame.draw.line(display, (255, 0, 0), round_point(self.elbow_joint), round_point(self.wrist_joint), 4)
         # Draw the desired position circle
+        pygame.draw.circle(display, (255, 255, 50), round_point(self.base), int((self.shoulder_length + self.elbow_length) * 1000), 1)
+
         if self.position is not None:
             pygame.draw.circle(display, (250, 30, 30), round_point(self.position), 5, 1)
 
@@ -121,7 +123,7 @@ def main():
     arms = [SCARA()]
 
     display = pygame.display.set_mode(SCREEN_DIM)
-    des_pose_pub = rospy.Publisher('arm_des_pose', PointStamped, queue_size=1)
+    des_pose_pub = rospy.Publisher('/arm_des_pose', PointStamped, queue_size=1)
 
     def publish_des_pos(pos):
         '''Publish desired position of the arm end-effector based on click position'''
