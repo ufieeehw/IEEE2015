@@ -60,7 +60,7 @@ class Arm_Tester(object):
         Purpose:
             Let's you input string angle commands in the console
         Todo:
-            Add matplotlib plot drawing for cool-awesomess!
+            Add matplotlib plot drawing for cool-awesomes!
         '''
         rospy.init_node('arm_tester')
         self.elbow_state_sub = rospy.Subscriber('/elbow_controller/state', JointState, self.elbow_state_cb)

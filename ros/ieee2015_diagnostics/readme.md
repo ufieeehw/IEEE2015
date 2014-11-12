@@ -10,7 +10,9 @@ This package contains ROS tools for debugging the robot, automating out some of 
 ## TODO
 
 - Visualize angle-error vs. time for all servos
-- Visualize position
+- Visualize position with printed angles
+- Visualize target angles and error
+- Visualize torque-vs-angle
 - Send a sequence of test instructions
 - Send a user-inputted location instruction
 - Test servo PID
