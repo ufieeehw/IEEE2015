@@ -7,6 +7,9 @@
 #include "types.h"
 #include "message.h"
 #include <avr/io.h>
+
+//F_CPU needs to be decalred to use delay.h
+#define F_CPU 32000000UL 
 #include <util/delay.h>
 
 
@@ -45,7 +48,7 @@ void step(float targetAngle, int direction){
 			*/
 		//find how many steps to take to target degree
 		float driveStep = targetAngle-currentAngle;
-		if(driveStep<0) driveStep*-1;
+		if(driveStep<0) driveStep = driveStep*-1;
 
 		//update currentAngle
 		if(direction == RIGHT){ currentAngle = currentAngle+driveStep;}
@@ -77,7 +80,7 @@ void initStep(){
 	currentAngle = 0;
 }
 
-int stepMotorMessage(Message M){
+int stepMotorMessage(Message m){
 	int16_t x = *m.data;
 	float targetAngle = x/10;
 	step(targetAngle, RIGHT);
