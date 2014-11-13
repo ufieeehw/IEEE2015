@@ -34,6 +34,7 @@ The comments afterward are parsed by ROS (ieee2015_xmega_driver/src/parse_types)
 
 
 //DATA_2B_TYPE messages [0x80-0xAF]
+#define STEP_MOTOR_TYPE       0x80
 
 
 //DATA_NB_TYPE messages [0xC0-0xEF]
@@ -52,7 +53,7 @@ The comments afterward are parsed by ROS (ieee2015_xmega_driver/src/parse_types)
 
 
 //DATA_2B_TYPE errors [0xB0-0xBF]
-#define STEP_MOTOR_TYPE       0xB0
+
 
 //DATA_NB_TYPE errors [0xF0-0xFF]
 #define VECTOR_ERROR_TYPE     0xF0 // in: 'vector_error'

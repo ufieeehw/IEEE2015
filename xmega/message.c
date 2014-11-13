@@ -19,16 +19,18 @@ Message* out_queue_end = 0;
 #define DATA_CACHE_1B   0
 #define DATA_CACHE_2B   1
 #define DATA_CACHE_4B   2
+#define DATA_CACHE_6B   3
 #define DATA_CACHE_12B  6
 
 /* create the data caches */
 uint8_t data_cache_1B[DATA_CACHE_SIZE];
 uint8_t data_cache_2B[DATA_CACHE_SIZE];
 uint8_t data_cache_4B[DATA_CACHE_SIZE];
+uint8_t data_cache_6B[DATA_CACHE_SIZE];
 uint8_t data_cache_12B[DATA_CACHE_SIZE];  //IMU uses this
 
 //setup the pointers to the data caches
-uint8_t* data_cache_toplvl[DATA_CACHE_NUM] = {data_cache_1B, data_cache_2B, data_cache_4B, 0, 0, 0, data_cache_12B, 0};
+uint8_t* data_cache_toplvl[DATA_CACHE_NUM] = {data_cache_1B, data_cache_2B, data_cache_4B, data_cache_6B, 0, 0, data_cache_12B, 0};
 
 //32-bit map for used/unused words (1st bit is 1 if word is free)
 uint32_t data_cache_map[DATA_CACHE_NUM];  //data cache avaliability tracker
@@ -51,6 +53,7 @@ void init_msg_queue(){
   data_cache_map[DATA_CACHE_1B] = 0x7FFFFFFF; //first bit is null
   data_cache_map[DATA_CACHE_2B] = 0xAAAAAAAA;
   data_cache_map[DATA_CACHE_4B] = 0x88888888;
+  data_cache_map[DATA_CACHE_4B] = 0x82082080;
   data_cache_map[DATA_CACHE_12B] = 0x80080000;
   msg_cache_map = 0xFFFFFFFF;
 }
@@ -135,6 +138,7 @@ Message get_msg(uint8_t type, uint8_t size){
     case 1: cache_num = DATA_CACHE_1B; break;
     case 2: cache_num = DATA_CACHE_2B; break;
     case 4: cache_num = DATA_CACHE_4B; break;
+    case 6: cache_num = DATA_CACHE_4B; break;
     case 12: cache_num = DATA_CACHE_12B; break;
   }
   
