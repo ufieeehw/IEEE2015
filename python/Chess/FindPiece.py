@@ -1,7 +1,8 @@
-import numpy as np  #math library
+import numpy as np
 import cv2
 
 ################ROBOT IS BLUE PLAYER######################
+
 
 def threshold_for_contours(img_from_array):
     hsvimg = cv2.cvtColor(img_from_array, cv2.COLOR_BGR2HSV)

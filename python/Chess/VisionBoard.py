@@ -1,6 +1,4 @@
 import cv2
-import numpy as np 
-import math
 import Rotate
 import baseLine
 import findCoordinates
@@ -10,7 +8,7 @@ import FindPiece
 import chess_ai
 
 
-
+ROBOTCOLOR = True
 finalFE = ""
 #w_or_b_turn = 'w' #needs to change after every iteration of this call
 #ROBOTCOLOR = True ########### WILL NEVER CHANGE BECAUSE WE ARE THE BLUE PLAYER
@@ -84,7 +82,7 @@ class VisionBoard:
 		squares = Squares.populateSquares(coordinates)
 		
 		#Load squares with their starting state
-		Squares.loadPieces(squares, pieceTypeArray)
+		Squares.loadPieces(squares, self.pieceTypeArray)
 
 		squaresCropped = Squares.getSquaresCropped(squares, rotatedImage)
 
@@ -168,4 +166,4 @@ class VisionBoard:
 			self.w_or_b_turn == 'w'
 	
 def makeMove(finalFE):
-	ai_move = chess_ai.get_chess_move(finalFE, self.ROBOTCOLOR)  
+	ai_move = chess_ai.get_chess_move(finalFE, ROBOTCOLOR)  
