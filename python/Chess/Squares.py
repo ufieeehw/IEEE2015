@@ -1,6 +1,4 @@
 import cv2
-import numpy as np
-import math
 
 
 class Squares:
@@ -8,7 +6,6 @@ class Squares:
 	def __init__(self, topLeft, bottomRight):
 		self.topLeft = topLeft
 		self.bottomRight = bottomRight
-		self.hasPiece = False
 		self.pieceType = 'e'
 
 		# took this out because w_or_b_turn is an overall field, not important to an individual square self.w_or_b_turn = 'w'
@@ -26,33 +23,52 @@ class Squares:
 
 ## figure out what to do if a piece is taken
 ## a piece is only taken if the square of interest changes colors
-def findDifferencesArrays(oldBool, newBool, pieceTypeArray, oldPieceColor_Array, newPieceColor_Array):
+def findDifferencesArrays(old_piece_attribute, new_piece_attribute, pieceTypeArray):
 	missingPiece = ''
 	indexOfFound = -1
 
 	#WHOLE POINT OF THIS IS TO KEEP AN UPDATED PIECE TYPE ARRAY
+
 	for i in range(0, 64):
-		if (oldBool[i] == True and newBool[i] == False): #This shoul work no matter what because a kill move or just moving to an empty square fits this requirement
-			missingPiece=pieceType[i]
-			pieceTypeArray[i]='e'
-		if ((oldBool[i] == False and newBool[i] == True) and (oldPieceColor_Array[i] == 8 and newPieceColor_Array[i] != 8)):
+		#this first if statement should be called no matter what 
+		#for a piece to move or to make a kill
+		#the piece must orignally be in a square and then 
+		#no longer be in that same square
+		if ((old_piece_attribute[i] == 1 or old_piece_attribute[i] == 2) and new_piece_attribute[i] == 0):
+			#this call tells us if a piece is no longer where it once was
+			#hence we have found the "missing piece" 
+			missingPiece = pieceTypeArray[i]
+			#then we need to set the pieceTypeArray back to empty since 
+			#we have already identified it as empty
+			pieceTypeArray[i] ='e'
+
+		#this elif is the case in which a square becomes occupied
+		elif (old_piece_attribute[i] == 0 and (new_piece_attribute[i] == 1 or new_piece_attribute[i] == 2)):
+			#we know that we have found our missing piece
+			#we need to eventually replace our pieceTypeArray
+			#with our missing piece so we need the index of where it moved
 			indexOfFound = i
-		#There are only two possible circumstances in which a piece is killed, orange where blue once was and blue where orange once was
-		elif ((oldBool[i] == True and newBool[i] == True) and (oldPieceColor_Array[i] ==  6 and newPieceColor_Array[i] == 7)): #6 is blue and 7 is orange
-			#this elif takes care of the case that an orange is now where a blue piece used to be
-			indexOfFound == i #we need to update the pieceTypeArray with the piece that the piececolorarraysis
-		elif ((oldBool[i] == True and newBool[i] == True) and (oldPieceColor_Array[i] ==  7 and newPieceColor_Array[i] == 6)):
-			#this elif takes care of the case that a blue piece is now where an orange piece was
-			indexOfFound == i
+
+		#FOR THE NEXT TWO ELIFS, THESE ARE THE CASES IN WHICH A PIECE IS KILLED
+		#TO IDENTIFY OUR FOUND PIECE WE SPECIFICALLY NEED TO KNOW WHAT COLOR
+
+		#this elif statement is saying that a blue piece killed an orange piece
+		#we have found a change, hence where our missing piece moved to 
+		elif (old_piece_attribute[i] == 1 and new_piece_attribute[i] == 2): 
+			indexOfFound = i 
+
+		#this elif is if an orange killed a blue piece
+		elif (old_piece_attribute[i] == 2 and new_piece_attribute[i] == 1):
+			indexOfFound = i
+			
 		pieceTypeArray[indexOfFound] = missingPiece
 
-	return newBool, pieceType
+	return pieceTypeArray
 
 
 
-def loadPieces(squares, booleanArray, pieceTypeArray):
-	for i in range(0, 64):
-		squares[i].hasPiece = booleanArray[i]			
+def loadPieces(squares, pieceTypeArray):
+	for i in range(0, 64):		
 		squares[i].pieceType = pieceTypeArray[i]
 	
 def initSquares(coordinates):
