@@ -1,0 +1,55 @@
+#!/usr/bin/python
+from __future__ import division
+'''This node is under construction! It will come together over the weekend
+Notes to implementers:
+    - When you have code in an external package, use roslib.load_manifest(*ROS* package name)
+        -- An example - for chess vision, is that you must load the manifest for ieee2015_vision to access
+            the chess_vision *python* package in ieee2015_vision
+            So, a ROS package can contain multiple Python packages.
+
+When testing your changes,
+    - Try doing a catkin_make -C ~/catkin_ws and check for errors
+
+'''
+# Packages
+import roslib
+roslib.load_manifest('ieee2015_vision')
+import chess_vision  # Import the Chess Vision package
+
+roslib.load_manifest('ieee2015_ai')
+import chess_ai # Import the chess ai package
+
+
+# Temporary...
+ARM_HOME = (100, 100)
+PICKING_HEIGHT = 10
+GRABBING_HEIGHT = 4
+tf_bot_to_board = None  # Fill this in!
+# /Temporary
+
+class Mission_Control(object):
+    def __init__(self):
+        pass
+
+# Precomments...
+
+# Go to start position "home"
+# Send the vision service
+# Get back from the vision service, with a new occupancy grid
+
+# Using chess module in here...
+# Use the occupancy grid to get board state <- given previous occupancy grid and board state
+
+# Send the current board state to the AI
+# Get the decision
+
+# Use the decision to command the arm
+# --> Go to target piece
+# --> Use vision to correct (internal to the servo controller)
+# --> Grab piece, rise
+# Return "Home"
+# ? Use vision to check that we did what we think we did (lump in with the repeat check)
+# Get a completion/sucess message
+
+# Wait for human move
+# Return to start
