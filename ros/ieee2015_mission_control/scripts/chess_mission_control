@@ -27,9 +27,6 @@ GRABBING_HEIGHT = 4
 tf_bot_to_board = None  # Fill this in!
 # /Temporary
 
-class Mission_Control(object):
-    def __init__(self):
-        pass
 
 # Precomments...
 
@@ -53,3 +50,107 @@ class Mission_Control(object):
 
 # Wait for human move
 # Return to start
+
+# end Precomments....
+
+
+
+class Mission_Control(object):
+    def __init__(self):
+        pass
+
+    #######################################################################
+	#tentative methods that mission control will contain
+	#for anything to work need to have properties of old and new occupancy 
+	#grid and a board state that is just updated with every new move
+	#methods specifically defined are ones needed to be done within mission
+	#control
+
+	#will need occupancy grids of 0,1, and 2s
+	#will need board state of the character values of each square
+	#######################################################################
+
+
+	#the following method makes comparisons between old and new occupancy grids
+	#to update the board state after a move has been mad
+	#the whole point of the following method is to keep an updated board state
+	#ERGO: call this after either player makes a move
+	def findDifferencesArrays(old_occupancy_grid, new_occupancy_grid, board_state):
+		missingPiece = ''
+		indexOfFound = -1
+
+		for i in range(0, 64):
+			#this first if statement should be called no matter what 
+			#for a piece to move or to make a kill
+			#the piece must orignally be in a square and then 
+			#no longer be in that same square
+			if ((old_occupancy_grid[i] == 1 or old_occupancy_grid[i] == 2) and new_occupancy_grid[i] == 0):
+				#this call tells us if a piece is no longer where it once was
+				#hence we have found the "missing piece" 
+				missingPiece = board_state[i]
+				#then we need to set the pieceTypeArray back to empty since 
+				#we have already identified it as empty
+				board_state[i] ='e'
+
+			#this elif is the case in which a square becomes occupied
+			elif (old_occupancy_grid[i] == 0 and (new_occupancy_grid[i] == 1 or new_occupancy_grid[i] == 2)):
+				#we know that we have found our missing piece
+				#we need to eventually replace our pieceTypeArray
+				#with our missing piece so we need the index of where it moved
+				indexOfFound = i
+
+			#FOR THE NEXT TWO ELIFS, THESE ARE THE CASES IN WHICH A PIECE IS KILLED
+			#TO IDENTIFY OUR FOUND PIECE WE SPECIFICALLY NEED TO KNOW WHAT COLOR
+
+			#this elif statement is saying that a blue piece killed an orange piece
+			#we have found a change, hence where our missing piece moved to 
+			elif (old_occupancy_grid[i] == 1 and new_occupancy_grid[i] == 2): 
+				indexOfFound = i 
+
+			#this elif is if an orange killed a blue piece
+			elif (old_occupancy_grid[i] == 2 and new_occupancy_grid[i] == 1):
+				indexOfFound = i
+				
+			board_state[indexOfFound] = missingPiece
+
+		return board_state
+
+
+	#ai needs a board state so this should be called after completing the 
+	#findDifferenceArray method so that we are using an accurate board_state
+	def makeFE(current_board_state, w_or_b_turn):
+		finalFE = chess_vision.giveForsythEdwardsNotation(current_board_state, w_or_b_turn)
+		return finalFE
+
+	#ai takes in the Forsyth-Edwards string from above to make a move
+	def makeMove(finalFE):
+		ai_move = chess_ai.get_chess_move(finalFE, ROBOTCOLOR)  
+		return ai_move
+
+
+	#this following method is needed for ai to run properly
+	#this needs to be called after each person takes a turn
+	#so that ai knows whos turn it is and who has already moved
+	#could be synced timing wise with the findDiffercesArray method
+	#since that method is called after a turn has been made and before
+	#the next player makes a move
+	def changePlayers(w_or_b_turn):
+		if (w_or_b_turn == 'w'):
+			w_or_b_turn == 'b'
+		elif(w_or_b_turn == 'b'):
+			w_or_b_turn == 'w'
+
+
+########################################################################################
+#the following are method calls the mission control will have to make with regards to 
+#ai and vision using the imported packages
+########################################################################################
+
+#this method will need to take in an image given to it by mission control
+#don't know how to take in image from mission control after each players move
+#this new occupancy grid is what will be used to make comparisons between the grid we 
+#just took in, and the grid mission control has stored as the last grid/turn
+new_occupancy_grid, array_of_coordinates = chess_vision.get_Occupancy_and_Coordinates(img)
+
+#coordinates can be used to find center of each chess piece if the square contains it
+#will be modified with how the architecture is set up
