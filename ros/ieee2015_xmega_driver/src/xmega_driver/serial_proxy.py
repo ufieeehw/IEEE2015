@@ -1,35 +1,28 @@
 #!/usr/bin/python
 from __future__ import division # Make all division floating point division
 
+# Misc
+import os
+import threading
+import time
+
+# Package stuff
+from .parse_types import parse_types_file
+
 # Serial
 import serial
-import threading
-import numpy
 
 # Math
 import numpy as np
 
-# Ros
-import rospy
-import tf.transformations as tf_trans
-import tf
-import threading
-import time
-
-# Ros Msgs
-from std_msgs.msg import Header, Float32, Float64, String
-from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion, Vector3
-from sensor_msgs.msg import Imu
-from ieee2015_xmega_driver.msg import XMega_Message
-
 lock = threading.Lock()
+default_path_to_types = os.path.join('..', '..', '..', '..', 'xmega', 'types.h')
+
 
 def thread_lock(function_to_lock):
     '''thread_lock(function) -> locked function 
     Thread locking decorator
-
         If you use this as a decorator for a function, it will apply a threading lock during the execution of that function,
-
         Which guarantees that no ROS callbacks can change the state of data while it is executing. This
             is critical to make sure that a new message being sent doesn't cause a weird serial interruption
     '''
@@ -47,14 +40,18 @@ def thread_lock(function_to_lock):
 
 
 class Communicator(object):
-    def __init__(self, port, baud_rate, msg_sub_topic='robot/send_xmega_msg', verbose=True):
+    def __init__(self, port, baud_rate, types_path=default_path_to_types, verbose=True):
         '''Superclass for XMega communication
         Purpose: Communicate with an XMega via serial link
         Function:
             Read (Messages FROM Xmega):
                 Loop permanently, listening for a serial message - interpret that message based on
                  predetermined parameters defined in the message type, defined in [1] and described
-                 in its readme.
+                 in its readme. 
+                Once a message of known type is recieved, it is called from the action_dict
+                 In a practical sense, to add a function to the action dict one should use bind_xmega_callback_function
+                 to bind a function to a message type.
+
             Write (Messages TO Xmega):
                 Silently listen for something published on the ROS message listener topic
                 The ROS message is composed of a type and a data field - defined in [2]
@@ -65,7 +62,6 @@ class Communicator(object):
              of that type is recieved.
         Underdefined:
             - How the length of an outgoing message is determined from a ROS Topic
-            - What is a 'poll_message' and what is a 'data_message' and if there needs to be a difference
 
         Notes:
             This was designed to work with the communication protocol as we defined it. It does not do anything that relies
@@ -76,51 +72,47 @@ class Communicator(object):
                 length (0-255 bytes)
                 -- Would this improve things?
 
+        TODO:
+            Adding a simple internal message queue could resolve some thread-lock message loss issues. Need to test more extensively 
+             to see whether or not this is an issue
+
+
         Bibliography:
             [1] https://github.com/ufieeehw/IEEE2015/tree/master/xmega
             [2] https://github.com/ufieeehw/IEEE2015/tree/master/ros/ieee2015_xmega_driver/msg
         '''
         self.verbose = verbose
 
-        # ROS Setup
-        rospy.init_node('XMega_Connector')
-        # Messages being sent from ROS to the XMega
-        self.send_msg_sub = rospy.Subscriber(msg_sub_topic, XMega_Message, self.got_ros_msg)
         try:
             self.serial = serial.Serial(port, baud_rate)
         except(serial.serialutil.SerialException):
-            print("ieee2015_communicator could not open port " + port + 
-                "\nIf you have the Xmega plugged in, try setting up the Udev rules"
+            raise(
+                Exception("Communicator could not open port " + port + 
+                    "\nIf you have the Xmega plugged in, try setting up the Udev rules"
+                )
             )
+
+        # Mapping from hex to string values, will by populated by bind_types
+        self.string_to_hex = {}  # Used for messages going to xmega
+        self.hex_to_string = {}  # Used for messages coming from xmega
+
         # Defines which action function to call on the received data
-        self.action_dict = {
-        }
+        self.action_dict = {}
         # Defines the relationship between poll_message names and the hex name
-        self.poll_messages = {
+        self.outgoing_msg_types = {
             'example_poll_msg': '0F'
         }
+
         # First two bits determine the length of the message
-        self.byte_type_defs = {
-            0b00000000: 0,
-            0b01000000: 1,
-            0b10000000: 2,
-            0b11000000: None,
-        }
+        self.byte_type_defs = {}  # This will be populated by self.bind_types
+
+        # Bind types.h info for the serial proxy
+        self.bind_types(types_path)
 
     def err_log(self, *args):
-        '''Print the inputs as a list if class verbosity is True
-        '''
+        '''Print the inputs as a list if class verbosity is True'''
         if self.verbose:
             print args
-
-    @thread_lock
-    def got_ros_msg(self, msg):
-        '''Only supports 2 byte and empty messages right now!'''
-        self.err_log("Got poll message of type ", msg.type)
-        if msg.empty_flag:
-            self.write_packet(msg.type)
-        else:
-            self.write_packet(msg.type, msg.data)
 
     @thread_lock
     def send_keep_alive(self):
@@ -146,9 +138,9 @@ class Communicator(object):
 
         while True:
             # Timed watchdog messages
-            time = time.time()
-            if (time - old_time) > 0.5:
-                old_time = time
+            cur_time = time.time()
+            if (cur_time - old_time) > 0.5:
+                old_time = cur_time
                 self.send_keep_alive()
 
             # Handle the first byte, determining type
@@ -215,9 +207,9 @@ class Communicator(object):
             type is _type because "type" is a python protected name
         '''
         self.err_log("Processing message of type ", _type)
-        if _type in self.poll_messages.keys():
+        if _type in self.outgoing_msg_types.keys():
             self.err_log("Write type recognized as a polling message")
-            write_data = self.poll_messages[_type]
+            write_data = self.outgoing_msg_types[_type]
             self.err_log("Writing as ", write_data)
             self.serial.write(chr(write_data))
             if data is not None:
@@ -230,138 +222,67 @@ class Communicator(object):
         else:
             self.err_log("Write type not recognized")
 
+    def bind_callback(self, msg_type, function):
+        '''All messages of type $msg_type recieved from the xmega will be sent to the function $function
+        The function will be called such that its argument is the data content of the message.
 
-class IEEE_Communicator(Communicator):
-    def __init__(self, port='/dev/xmega_tty', baud_rate=256000):
-        '''IEEE Communicator sub-class of the broader XMega Communicator class
-        XMega Sensor Manifest:
-            - IMU (9DOF) - 12 bytes (only using 6 DOF) [An IMU is an intertial measurement unit]
-            - Light Sensor
-            - 4x: Encoders/Odometry
-            - 1-2x: Solenoid State (XMega will hold this internally)
-            - 1-2x: On/Kill Switches
-            - 1-2x: Battery Monitors
-
-        XMega Actuator Manifest:
-            - 4x: Wheel Motors (Set Motor Velocities)
-            - Unk: Non-Wheel control motors (Set torque)
-            - 4-5x: Servos (Arm and a few places, set angle)
-            - 4x: Status LED's (Toggle)
-            - 1-2x: Solenoids (Go, no-go!)
+        This means that for a poll message, the argument will be None, for a message of predefined length, the 
+         argument will be a string of everything after the type identifier, and for an N-Byte message, the argument will be 
+         everything after the length token.
         '''
-        super(self.__class__, self).__init__(port, baud_rate)
+        if msg_type in self.string_to_hex.keys():
+            self.action_dict.update({self.string_to_hex[msg_type]: function})
+        else:
+            print self.string_to_hex
+            raise(Exception("Type " + msg_type + " is not known to the serial proxy, have you bound types?"
+                "\n This Error may be caused by not indicating the correct path to the types.h file in the "
+                "serial_proxy initialization, or by having a malformed types.h file"))
 
-        # Define your publisher here
-        self.accel_data_pub = rospy.Publisher('robot/imu', Imu, queue_size=1)
 
-        # For messages of known length, get the length from this table
-        # Determine which action function to call on the received data
-        self.action_dict.update({
-            # C0 + $num_bytes + $message
-            0xF0: self.got_xmega_error,
-            0xC0: self.towbot_nunchuck_echo,
-            0x40: self.got_test,
-        })
-        self.poll_messages.update({
-            'poll_imu': 0x01,
-            'debug': 0x40,
-        })
+    def bind_types(self, types_path):
+        '''bind_types -> types
+        Purpose: 
+            Given a types_path (the relative path to the 'types.h' file in the xmega folder), this will automatically
+             parse that file and figure out the relationships between string type names and their corresponding hex names
+             An example of such a relationship is 'poll_imu': 0x01 or 'special_message': 0xF0.
 
-    def got_xmega_error(self, msg_data):
-        self.err_log("Got error,", msg_data)
+            The reason this was done was to avoid having to explicitly declare that '0xC0' (Something very much subject to change)
+             was related to a particular function or sensor. Instead, someone can indirectly refer to something more abstract, such as
+             'poll_imu', this way we can change the behavior of the ROS end OR the XMega end message naming without seriously affecting 
+             the other.
 
-    def got_test(self, msg_data):
-        print "Recieved test!"
-        if msg_data is not None:
-            print "Data:", msg_data
+        Examples:
+        Here is an example of what the output of parse_types might look like.
+        types = [
+            {'msg_length': ' 0', 'type_name': 'NO_DATA_TYPE', 'hex_name': '0x00'}
+            {'msg_length': ' 1', 'type_name': 'DATA_1B_TYPE', 'hex_name': '0x40'}
+            {'msg_length': ' 2', 'type_name': 'DATA_2B_TYPE', 'hex_name': '0x80'}
+            {'msg_length': ' None', 'type_name': 'DATA_NB_TYPE', 'hex_name': '0xC0'}
+            {'type_name': 'ERROR_MASK', 'mask': ' error', 'hex_name': '0x30'}
+            {'type_name': 'KILL_TYPE', 'out': ' kill', 'hex_name': '0x01'}
+            {'type_name': 'START_TYPE', 'out': ' start', 'hex_name': '0x02'}
+            {'type_name': 'KEEP_ALIVE_TYPE', 'out': ' keep_alive', 'hex_name': '0x03'}
+            {'type_name': 'IMU_NOTIFY_TYPE', 'out': ' poll_imu', 'hex_name': '0x04'}
+        ]
 
-    def got_imu_reading(self, msg_data):
-        '''Handle data read from the IMU
-        The IMU we have is 9-DOF, meaning that it reads:
-            Linear acceleration in XYZ
-            Rotational velocity in XYZ
-            Gyroscope Readings in X and Y axis
-            Magnetometer/Compass readings around Z axis
-
-        We also found some spare IMUs that additionally read barometric altitude
-
-        IMU Message:
-            std_msgs/Header header
-            geometry_msgs/Quaternion orientation
-            float64[9] orientation_covariance
-            geometry_msgs/Vector3 angular_velocity
-            float64[9] angular_velocity_covariance
-            geometry_msgs/Vector3 linear_acceleration
-            float64[9] linear_acceleration_covariance
         '''
-        # Where vel -> velocity, and acc -> acceleration
-        decomposition = {
-            'lin_acc_x': 0,
-            'lin_acc_y': 0,
-            'lin_acc_z': 0,
-            'ang_vel_x': 0,
-            'ang_vel_y': 0,
-            'ang_vel_z': 0,
-            'bearing': 0,
-            'barometric_altitude': 0,
-        }
-        angular_vel = (
-            decomposition['ang_vel_x'],
-            decomposition['ang_vel_y'],
-            decomposition['ang_vel_z'],
-        )
-        linear_acc = (
-            decomposition['lin_acc_x'],
-            decomposition['lin_acc_y'],
-            decomposition['lin_acc_z'],
-        )
-
-        orientation = tf_trans.quaternion_from_euler(0, 0, decomposition['bearing'])
-        IMU_msg = Imu(
-            header=Header(
-                stamp=rospy.Time.now(),
-                frame_id='/robot',
-            ),
-            orientation=Quaternion(*orientation), 
-            orientation_covariance=
-                [0.03**2, 0,       0,
-                 0,       0.03**2, 0,
-                 0,       0,       0.03**2,],
-            angular_velocity=Vector3(*angular_vel),
-            angular_velocity_covariance=
-                [0.03**2, 0,       0,
-                 0,       0.03**2, 0,
-                 0,       0,       0.03**2,],
-
-            linear_acceleration=Vector3(*linear_acc),
-            linear_acceleration_covariance=
-                [0.03**2, 0,       0,
-                 0,       0.03**2, 0,
-                 0,       0,       0.03**2,],
-        )
-
-        self.accel_data_pub()
-
-    def towbot_nunchuck_echo(self, msg_data):
-        '''Towbot nunchuck demo
-        TODO: Rosify this
-            byte 1: Stick X (80 is middle)
-            byte 2: Stick Y (80 is middle)
-            byte 3: Acc X
-            byte 4: Acc Y
-            byte 5: Acc Z
-            byte 6: last 2 bits are C and Z buttons
-        '''
-        msg_format = ['Stick X', 'Stick Y', 'Acc X', 'Acc Y', 'Acc Z', 'Bullshit']
-        for character, meaning in zip(msg_data, msg_format):
-            print meaning + ':', character
-        self.err_log("We're up in this shit towbot nunchuck!")
-
-        self.write_packet('init_towbot_poll')
-        return
-
-
-if __name__=='__main__':
-    Comms = IEEE_Communicator(port='/dev/xmega_tty')
-    Comms.read_packets()
-    rospy.spin()
+        types = parse_types_file(types_path)
+        for _type in types:
+            print type(_type)
+            if 'in' in _type.keys():
+                self.string_to_hex.update(
+                    {_type['in']: _type['hex_name']}
+                )
+            if 'out' in _type.keys():
+                self.outgoing_msg_types.update(
+                    {_type['hex_name']: _type['out']}
+                )
+            if 'msg_length' in _type.keys():
+                if _type['msg_length'].lower() == 'none':
+                    self.byte_type_defs.update(
+                        {_type['hex_name']: None}
+                    )
+                else:
+                    self.byte_type_defs.update(
+                        {_type['hex_name']: _type['msg_length']}
+                    )
