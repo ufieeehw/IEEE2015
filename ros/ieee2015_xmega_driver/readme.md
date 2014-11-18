@@ -18,6 +18,7 @@ This is the ros-side communication protocol for interfacing with the XMega micro
 
 # TODO
 * Add a parser for the XMega-side communication protocol's definition header, to avoid making frequent changes. This should map the relationships of type names to ROS topics
+* Add more failure tolerance - if there is a serial desync nobody knows what will happen
 
 # Glossary
 

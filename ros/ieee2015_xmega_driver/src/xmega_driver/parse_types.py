@@ -10,7 +10,6 @@ class Type_Parser(object):
 
     Very rudimentary, does not account for weird things in comments, 
      requires rigorous following of whitespace conventions
-
     '''
 
     @classmethod
@@ -23,7 +22,6 @@ class Type_Parser(object):
                 types.append(line_dict)  # Should do this with a nested dictionary
                 print 'Line parsing revealed:', line_dict
         return types
-
 
     @classmethod 
     def load_types(self, types_path):

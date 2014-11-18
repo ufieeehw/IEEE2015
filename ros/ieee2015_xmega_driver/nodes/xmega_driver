@@ -14,7 +14,7 @@ import roslib; roslib.load_manifest('ieee2015_xmega_driver')
 import xmega_driver
 
 # Ros Msgs
-from std_msgs.msg import Header, Float32, Float64, String
+from std_msgs.msg import Header, Float64, String
 from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion, Vector3
 from sensor_msgs.msg import Imu
 from ieee2015_xmega_driver.msg import XMega_Message
@@ -39,12 +39,14 @@ class Xmega_Driver(object):
             - 1-2x: Solenoids (Go, no-go!)
 
         TODO:
-            - Make types.h location configurable as a ros parameter
             - Add better threading locks (ones that don't cause message loss)
             - Make the RECEIVING ros messages part make more sense
             -- I think this will mean instantiating specific subscribers in here and then using
                a more advanced thread-lock and queuing interface to deal with those threaded ros callbacks
             --- Forrest's TXROS is not out of the question
+            - Do something crazy with hotplug rules to make the serial proxy always run
+
+            - Raise an exception if somebody tries to send a message with inappropriate length
         '''
 
         # ROS Setup
@@ -52,14 +54,16 @@ class Xmega_Driver(object):
         self.serial_proxy = xmega_driver.Communicator(
             port='/dev/xmega_tty', 
             baud_rate=256000, 
-            types_path=types_path
+            types_path=types_path,
         )
 
         # Add ROS elements
         self.accel_data_pub = rospy.Publisher('robot/imu', Imu, queue_size=1)
 
         # Messages being sent from ROS to the XMega
-        self.send_msg_sub = rospy.Subscriber(msg_sub_topic, XMega_Message, self.got_ros_msg)
+        # To add a ROS->XMega message, you must...
+        # Potentially add binding for ros-sending functions as well.
+        self.debug_subscriber = rospy.Subscriber('robot/debug', String, self.got_ros_debug)
 
         # Bind callbacks for messages FROM the Xmega
         self.serial_proxy.bind_callback('vector_error', self.got_xmega_error)
@@ -72,14 +76,10 @@ class Xmega_Driver(object):
 
 ########## NOTHING WILL BE EXECUTED AFTER THIS LINE EXCEPT PREVIOUSLY BOUND CALLBACK FUNCTIONS ###############
 
-    @xmega_driver.thread_lock
-    def got_ros_msg(self, msg):
-        '''Only supports 2 byte and empty messages right now!'''
-        self.err_log("Got poll message of type ", msg.type)
-        if msg.empty_flag:
-            self.write_packet(msg.type)
-        else:
-            self.write_packet(msg.type, msg.data)
+    def got_ros_debug(self, msg):
+        string = msg.data
+        for char in string:
+            self.serial_proxy.add_message('ros_debug', char)
 
     def got_xmega_error(self, msg_data):
         self.err_log("Got error,", msg_data)

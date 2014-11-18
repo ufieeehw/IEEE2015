@@ -11,6 +11,7 @@ from .parse_types import parse_types_file
 
 # Serial
 import serial
+from collections import deque
 
 # Math
 import numpy as np
@@ -84,7 +85,7 @@ class Communicator(object):
         self.verbose = verbose
 
         try:
-            self.serial = serial.Serial(port, baud_rate)
+            self.serial = serial.Serial(port, baud_rate, timeout=0.05)
         except(serial.serialutil.SerialException):
             raise(
                 Exception("Communicator could not open port " + port + 
@@ -109,6 +110,8 @@ class Communicator(object):
         # Bind types.h info for the serial proxy
         self.bind_types(types_path)
 
+        self.message_queue = deque()
+
     def err_log(self, *args):
         '''Print the inputs as a list if class verbosity is True'''
         if self.verbose:
@@ -118,7 +121,7 @@ class Communicator(object):
     def send_keep_alive(self):
         '''Send a keep-alive message
         Critically, this includes a threading lock'''
-        self.write_packet('keep_alive')
+        self.add_message('keep_alive')
 
     def read_packets(self):
         '''read_packets
@@ -127,6 +130,9 @@ class Communicator(object):
              the appropriate action function
         Notes:
             This does not handle desynchronization with the microcontroller
+
+            I anticipate that there might be blocking issues relating to serial.read
+            In all honesty, read and write should be done in independent loops
         '''
         type_length = 1  # Bytes
         length_length = 1  # Bytes
@@ -137,11 +143,15 @@ class Communicator(object):
         old_time = time.time()
 
         while True:
-            # Timed watchdog messages
+            # Timed watchdog messages every 0.5 sec
             cur_time = time.time()
             if (cur_time - old_time) > 0.5:
                 old_time = cur_time
                 self.send_keep_alive()
+
+            # Handle ONE send message
+            outgoing_msg = self.message_queue.popleft()
+            self.write_packet(*outgoing_msg)  # "*" unpacks touple(_type, msg) into two arguments
 
             # Handle the first byte, determining type
             unprocessed_type = self.serial.read(type_length)
@@ -198,6 +208,12 @@ class Communicator(object):
             msg_data = self.serial.read(msg_length)
             self.err_log("Message content:", msg_data)
             action_function(msg_data)
+
+        else:
+
+
+    def add_message(self, _type, data):
+        self.message_queue.append((_type, data))
 
     def write_packet(self, _type, data=None):
         '''write_packet(self, _type, data=None)
