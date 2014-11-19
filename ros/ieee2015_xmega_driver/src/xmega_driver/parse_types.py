@@ -20,7 +20,7 @@ class Type_Parser(object):
             line_dict = self.parse_line(line)
             if line_dict is not None:
                 types.append(line_dict)  # Should do this with a nested dictionary
-                print 'Line parsing revealed:', line_dict
+                # print 'Line parsing revealed:', line_dict
         return types
 
     @classmethod 
@@ -41,6 +41,7 @@ class Type_Parser(object):
                 line_dict['hex_name'] = int(substring, 16)
             elif substring_type != 'define_statement':
                 line_dict[substring_type] = substring
+
         return line_dict
 
     @classmethod
@@ -66,7 +67,13 @@ class Type_Parser(object):
             parameters = content_after_slashes.split(';')
             for parameter in parameters:
                 _property, value = parameter.strip().split(':')
-                line_dict.update({_property.strip(): value.strip()})
+                if _property == 'msg_length':
+                    try:
+                        line_dict.update({'msg_length': int(value)})
+                    except(ValueError):
+                        line_dict.update({'msg_length': None})
+                else:    
+                    line_dict.update({_property.strip(): value.strip()})
 
             # line_dict.update(self.string_to_dict(content_after_slashes, order_after_slashes))
             return line_dict
@@ -79,4 +86,6 @@ def parse_types_file(path):
 
 
 if __name__ == '__main__':
-    Type_Parser.parse_types(os.path.join('..', '..', '..', '..', 'xmega', 'types.h'))
+    types = Type_Parser.parse_types(os.path.join('..', '..', '..', '..', 'xmega', 'types.h'))
+    for _type in types:
+        print _type
