@@ -37,7 +37,9 @@ class Type_Parser(object):
         substring_list = _string.split()
         line_dict = {}
         for substring, substring_type in zip(substring_list, substring_order):
-            if substring_type != 'define_statement':
+            if substring_type == 'hex_name':
+                line_dict['hex_name'] = int(substring, 16)
+            elif substring_type != 'define_statement':
                 line_dict[substring_type] = substring
         return line_dict
 
