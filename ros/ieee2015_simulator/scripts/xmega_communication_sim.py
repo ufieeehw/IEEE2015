@@ -13,4 +13,4 @@ while 1:
 	subprocess.check_call(["echo", "Hello Worl"])
 	subprocess.check_call(["^D"])
 	data = sys.stdin.readlines()
-	print "Counted", len(data), "lines."
+	print "Counted", len(data), "lines." 
