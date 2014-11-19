@@ -44,12 +44,18 @@ class Communicator(object):
     def __init__(self, port, baud_rate, types_path=default_path_to_types, verbose=True):
         '''Superclass for XMega communication
         Purpose: Communicate with an XMega via serial link
+        Arguments:
+            - port: Serial port to attach to
+            - baud_rate: Serial baud rate
+            - types_path: Path to the types.h file in jOS.h (Should be the xmega folder)
+            - verbose: Decide whether or not to print information messages
+
         Function:
             Read (Messages FROM Xmega):
                 Loop permanently, listening for a serial message - interpret that message based on
                  predetermined parameters defined in the message type, defined in [1] and described
                  in its readme. 
-                Once a message of known type is recieved, it is called from the action_dict
+                Once a message of known type is recieved, it is called from the callback_dict
                  In a practical sense, to add a function to the action dict one should use bind_xmega_callback_function
                  to bind a function to a message type.
 
@@ -59,7 +65,7 @@ class Communicator(object):
                  'type' determines the action (also called message type), and the data field
                  generally is the exact number that will be sent to the xmega. 
                 
-            The action_dict maps the hex message type to the function that should be called when a message
+            The callback_dict maps the hex message type to the function that should be called when a message
              of that type is recieved.
         Underdefined:
             - How the length of an outgoing message is determined from a ROS Topic
@@ -74,9 +80,11 @@ class Communicator(object):
                 -- Would this improve things?
 
         TODO:
-            Adding a simple internal message queue could resolve some thread-lock message loss issues. Need to test more extensively 
+            -(DONE) Adding a simple internal message queue could resolve some thread-lock message loss issues. Need to test more extensively 
              to see whether or not this is an issue
-
+            - Add the ability to configure multiple timed loops
+            - Check that the incoming messages are of the appropriate length (i.e. nobody is trying to pass a message longer
+                than its byte type specifies)
 
         Bibliography:
             [1] https://github.com/ufieeehw/IEEE2015/tree/master/xmega
@@ -85,7 +93,7 @@ class Communicator(object):
         self.verbose = verbose
 
         try:
-            self.serial = serial.Serial(port, baud_rate, timeout=0.05)
+            self.serial = serial.Serial(port, baud_rate, timeout=0.01)
         except(serial.serialutil.SerialException):
             raise(
                 Exception("Communicator could not open port " + port + 
@@ -98,7 +106,7 @@ class Communicator(object):
         self.hex_to_string = {}  # Used for messages coming from xmega
 
         # Defines which action function to call on the received data
-        self.action_dict = {}
+        self.callback_dict = {}
         # Defines the relationship between poll_message names and the hex name
         self.outgoing_msg_types = {
             'example_poll_msg': '0F'
@@ -107,9 +115,6 @@ class Communicator(object):
         # First two bits determine the length of the message
         self.byte_type_defs = {}  # This will be populated by self.bind_types
 
-        # Bind types.h info for the serial proxy
-        self.bind_types(types_path)
-
         self.message_queue = deque()
 
     def err_log(self, *args):
@@ -117,42 +122,52 @@ class Communicator(object):
         if self.verbose:
             print args
 
-    @thread_lock
     def send_keep_alive(self):
         '''Send a keep-alive message
         Critically, this includes a threading lock'''
         self.add_message('keep_alive')
 
-    def read_packets(self):
+    def run_serial_loop(self):
+        read_loop = threading.Thread(target=self._read_loop)
+        write_loop = threading.Thread(target=self._write_loop)
+        read_loop.daemon = True
+        write_loop.daemon = True
+        write_loop.start()
+        read_loop.start()
+
+    def _write_loop(self):
+        # Initialize time
+        old_time = time.time()
+        while True:
+            # Timed watchdog messages every 0.5 sec
+            cur_time = time.time()
+            if (cur_time - old_time) > 0.5:
+                old_time = cur_time
+                self._write_packet('keep_alive')
+
+            # Handle ONE send message
+            outgoing_msg = self.message_queue.popleft()
+            self._write_packet(*outgoing_msg)  # "*" unpacks touple(_type, msg) into two arguments
+
+    def _read_loop(self):
         '''read_packets
         Function:
             Permanently loops, waiting for serial messages from the XMega, and then calls 
              the appropriate action function
         Notes:
-            This does not handle desynchronization with the microcontroller
+            - This does not handle desynchronization with the microcontroller
+            - This does not adequately handle microcontroller errors
+            - I anticipate that there might be blocking issues relating to serial.read
+            - There may be problems with high-volume messaging because the callback functions 
+               may take much time to execute
 
-            I anticipate that there might be blocking issues relating to serial.read
-            In all honesty, read and write should be done in independent loops
         '''
         type_length = 1  # Bytes
         length_length = 1  # Bytes
         type_mask =  0b11000000
         error_mask = 0b00110000
 
-        # Initialize time
-        old_time = time.time()
-
         while True:
-            # Timed watchdog messages every 0.5 sec
-            cur_time = time.time()
-            if (cur_time - old_time) > 0.5:
-                old_time = cur_time
-                self.send_keep_alive()
-
-            # Handle ONE send message
-            outgoing_msg = self.message_queue.popleft()
-            self.write_packet(*outgoing_msg)  # "*" unpacks touple(_type, msg) into two arguments
-
             # Handle the first byte, determining type
             unprocessed_type = self.serial.read(type_length)
             self.err_log("shitty type ", unprocessed_type)
@@ -169,53 +184,35 @@ class Communicator(object):
                 elif msg_length > 0:
                     msg_data = self.serial.read(msg_length)
                     
-                if msg_type in self.action_dict.keys():
-                    action_function = self.action_dict[msg_type]
-                    action_function(msg_data)
+                if msg_type in self.callback_dict.keys():
+                    callback_function = self.callback_dict[msg_type]
+                    callback_function(msg_data)
                 else:
-                    self.err_log("No action fun for ", msg_type)
+                    self.err_log("No callback function for ", msg_type)
 
             # N-Byte Message
-            elif msg_type in self.action_dict.keys():
-                action_function = self.action_dict[msg_type]
-                self.err_log('Recognized type as', action_function.__name__)
+            elif msg_type in self.callback_dict.keys():
+                callback_function = self.callback_dict[msg_type]
+                self.err_log('Recognized type as', callback_function.__name__)
 
                 msg_length = self.serial.read(length_length)
                 msg_data = self.serial.read(msg_length)
                 self.err_log("Message content:", msg_data)
 
-                action_function(msg_data)
+                callback_function(msg_data)
 
             # Failure
             else:
                 self.err_log('Did not recognize type', msg_type)
 
-        if msg_byte_type in self.byte_type_defs.keys():
-            msg_length = self.byte_type_defs[msg_byte_type]
-            if msg_length > 0:
-                msg_data = None
-            else:
-                msg_data = self.serial.read(msg_length)
-            action_function = self.action_dict[msg_type]
-            action_function(msg_data)
+    def add_message(self, _type, data=None):
+        '''add_message(_type, data=None)
+        Add a message to the messaging queue. Use this when you want to send a message
+        '''
 
-        # N-Byte Message
-        elif msg_type in self.action_dict.keys():
-            action_function = self.action_dict[msg_type]
-
-            self.err_log('Recognized type as', action_function.__name__)
-            msg_length = self.serial.read(length_length)
-            msg_data = self.serial.read(msg_length)
-            self.err_log("Message content:", msg_data)
-            action_function(msg_data)
-
-        else:
-
-
-    def add_message(self, _type, data):
         self.message_queue.append((_type, data))
 
-    def write_packet(self, _type, data=None):
+    def _write_packet(self, _type, data=None):
         '''write_packet(self, _type, data=None)
         Function:
             This [effectively] listens to ROS messages on either the
@@ -247,7 +244,7 @@ class Communicator(object):
          everything after the length token.
         '''
         if msg_type in self.string_to_hex.keys():
-            self.action_dict.update({self.string_to_hex[msg_type]: function})
+            self.callback_dict.update({self.string_to_hex[msg_type]: function})
         else:
             print self.string_to_hex
             raise(Exception("Type " + msg_type + " is not known to the serial proxy, have you bound types?"

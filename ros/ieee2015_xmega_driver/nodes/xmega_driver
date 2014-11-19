@@ -47,6 +47,11 @@ class Xmega_Driver(object):
             - Do something crazy with hotplug rules to make the serial proxy always run
 
             - Raise an exception if somebody tries to send a message with inappropriate length
+
+        ROS Package Deployment:
+            In the distant future, it may be worth turning this into a pure ROS interface
+            - Set up a YAML file that configures a whole bunch of ROS topics that directly subscribe to the xmega
+            - Set up a YAML file that configures the message type to hex code magic.
         '''
 
         # ROS Setup
@@ -54,7 +59,6 @@ class Xmega_Driver(object):
         self.serial_proxy = xmega_driver.Communicator(
             port='/dev/xmega_tty', 
             baud_rate=256000, 
-            types_path=types_path,
         )
 
         # Add ROS elements
@@ -65,6 +69,11 @@ class Xmega_Driver(object):
         # Potentially add binding for ros-sending functions as well.
         self.debug_subscriber = rospy.Subscriber('robot/debug', String, self.got_ros_debug)
 
+
+        # Bind types file to serial proxy
+        # Bind types.h info for the serial proxy
+        self.serial_proxy.bind_types(types_path)
+
         # Bind callbacks for messages FROM the Xmega
         self.serial_proxy.bind_callback('vector_error', self.got_xmega_error)
         self.serial_proxy.bind_callback('message_error', self.got_xmega_error)
@@ -72,7 +81,7 @@ class Xmega_Driver(object):
         self.serial_proxy.bind_callback('imu_data', self.got_imu_reading)
 
         # Relinquish control of the program - this is an infinite loop
-        self.serial_proxy.read_packets()
+        self.serial_proxy.run_serial_loop()
 
 ########## NOTHING WILL BE EXECUTED AFTER THIS LINE EXCEPT PREVIOUSLY BOUND CALLBACK FUNCTIONS ###############
 
