@@ -1,11 +1,7 @@
 <launch>
-    <!-- <include file="$(find gazebo_ros)/launch/empty_world.launch"> -->
-    <!-- <arg name="world_name" value="$(find ieee2015_gazebo_sim)/media/ieee.world"/> -->
-
     <node name="xmega_driver" pkg="ieee2015_xmega_driver" type="xmega_driver"
         args="
         --types_path=$(find ieee2015_xmega_driver)/../../xmega/types.h
         "
         output="screen" ns="/robot" />
-
 </launch>

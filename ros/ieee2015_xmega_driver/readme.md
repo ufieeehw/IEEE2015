@@ -15,7 +15,8 @@ This is the ros-side communication protocol for interfacing with the XMega micro
 * Stand by for a better method of adding rostopics for the xmega to listen to
 
 # Simulating
-    Try socat to fake a serial port, sudo socat PTY,link=/dev/ttyUSB0 PTY,link=/dev/COM1
+    Try socat to fake a serial port, 
+    ```sudo socat PTY,link=/dev/ttyUSB0 PTY,link=/dev/COM1
     To fix permissions issues, do sudo chmod 666 /dev/ttyUSB0
 
 
