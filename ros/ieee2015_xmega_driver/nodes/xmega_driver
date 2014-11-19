@@ -80,10 +80,16 @@ class Xmega_Driver(object):
         self.serial_proxy.bind_callback('buffer_error', self.got_xmega_error)
         self.serial_proxy.bind_callback('imu_data', self.got_imu_reading)
 
+        # Start message
+        self.send_start_msg()
+
         # Relinquish control of the program - this is an infinite loop
         self.serial_proxy.run_serial_loop()
 
 ########## NOTHING WILL BE EXECUTED AFTER THIS LINE EXCEPT PREVIOUSLY BOUND CALLBACK FUNCTIONS ###############
+
+    def send_start_msg(self):
+        self.serial_proxy.add_message('start')
 
     def got_ros_debug(self, msg):
         string = msg.data
@@ -177,3 +183,4 @@ if __name__ == '__main__':
     types_path = args.types_path
     print 'types path:', types_path
     driver = Xmega_Driver(types_path)
+    rospy.spin()

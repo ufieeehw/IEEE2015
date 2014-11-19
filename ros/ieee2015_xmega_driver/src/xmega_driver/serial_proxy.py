@@ -12,6 +12,7 @@ from .parse_types import parse_types_file
 # Serial
 import serial
 from collections import deque
+import string
 
 # Math
 import numpy as np
@@ -86,6 +87,9 @@ class Communicator(object):
             - Check that the incoming messages are of the appropriate length (i.e. nobody is trying to pass a message longer
                 than its byte type specifies)
 
+        Unhandled Errors:
+            - Sudden unplugging of the USB
+
         Bibliography:
             [1] https://github.com/ufieeehw/IEEE2015/tree/master/xmega
             [2] https://github.com/ufieeehw/IEEE2015/tree/master/ros/ieee2015_xmega_driver/msg
@@ -93,17 +97,20 @@ class Communicator(object):
         self.verbose = verbose
 
         try:
-            self.serial = serial.Serial(port, baud_rate, timeout=0.01)
-        except(serial.serialutil.SerialException):
+            self.serial = serial.Serial(port, baud_rate, )#timeout=0.01)
+        except(serial.serialutil.SerialException), e:
             raise(
                 Exception("Communicator could not open port " + port + 
-                    "\nIf you have the Xmega plugged in, try setting up the Udev rules"
+                    "\nIf you have the Xmega plugged in, try setting up the Udev rules\n", e
                 )
             )
+        except(IOError):
+            self.err_log("Could not attach by baud rate - trying to use socat...")
+            self.serial = serial.Serial(port)
 
         # Mapping from hex to string values, will by populated by bind_types
-        self.string_to_hex = {}  # Used for messages going to xmega
-        self.hex_to_string = {}  # Used for messages coming from xmega
+        # self.string_to_hex = {}  # Used for messages going to xmega
+        self.incoming_msg_types = {}  # Used for messages coming from xmega
 
         # Defines which action function to call on the received data
         self.callback_dict = {}
@@ -120,7 +127,7 @@ class Communicator(object):
     def err_log(self, *args):
         '''Print the inputs as a list if class verbosity is True'''
         if self.verbose:
-            print args
+            print ['Xmega LOG:'], string.join(map(str, args))
 
     def send_keep_alive(self):
         '''Send a keep-alive message
@@ -136,6 +143,7 @@ class Communicator(object):
         read_loop.start()
 
     def _write_loop(self):
+        print("At start of write loop!")
         # Initialize time
         old_time = time.time()
         while True:
@@ -145,9 +153,10 @@ class Communicator(object):
                 old_time = cur_time
                 self._write_packet('keep_alive')
 
-            # Handle ONE send message
-            outgoing_msg = self.message_queue.popleft()
-            self._write_packet(*outgoing_msg)  # "*" unpacks touple(_type, msg) into two arguments
+            # Handle ONE outgoing message
+            if len(self.message_queue) > 0:
+                outgoing_msg = self.message_queue.popleft()
+                self._write_packet(*outgoing_msg)  # "*" unpacks touple(_type, msg) into two arguments
 
     def _read_loop(self):
         '''read_packets
@@ -160,7 +169,6 @@ class Communicator(object):
             - I anticipate that there might be blocking issues relating to serial.read
             - There may be problems with high-volume messaging because the callback functions 
                may take much time to execute
-
         '''
         type_length = 1  # Bytes
         length_length = 1  # Bytes
@@ -168,9 +176,10 @@ class Communicator(object):
         error_mask = 0b00110000
 
         while True:
+            print("At start of read loop!")
             # Handle the first byte, determining type
             unprocessed_type = self.serial.read(type_length)
-            self.err_log("shitty type ", unprocessed_type)
+            self.err_log("Simple outgoing type ", unprocessed_type)
             msg_type = ord(unprocessed_type)
             msg_byte_type = msg_type & type_mask
             b_error = (msg_type & error_mask) == error_mask
@@ -179,27 +188,31 @@ class Communicator(object):
             # Message of known length
             if msg_byte_type in self.byte_type_defs.keys():
                 msg_length = self.byte_type_defs[msg_byte_type]
+                print msg_length, type(msg_length)
+
+                # Poll message (zero length)
                 if msg_length == 0:
                     msg_data = None
+
+                # Defined byte length messages
                 elif msg_length > 0:
                     msg_data = self.serial.read(msg_length)
+
+                # N-Byte Message
+                elif msg_length is None:
+                    callback_function = self.callback_dict[msg_type]
+                    self.err_log('Recognized type as', callback_function.__name__)
+
+                    msg_length = self.serial.read(length_length)
+                    msg_data = self.serial.read(msg_length)
+                    self.err_log("Message content:", msg_data)
+                    callback_function(msg_data)
                     
                 if msg_type in self.callback_dict.keys():
                     callback_function = self.callback_dict[msg_type]
                     callback_function(msg_data)
                 else:
                     self.err_log("No callback function for ", msg_type)
-
-            # N-Byte Message
-            elif msg_type in self.callback_dict.keys():
-                callback_function = self.callback_dict[msg_type]
-                self.err_log('Recognized type as', callback_function.__name__)
-
-                msg_length = self.serial.read(length_length)
-                msg_data = self.serial.read(msg_length)
-                self.err_log("Message content:", msg_data)
-
-                callback_function(msg_data)
 
             # Failure
             else:
@@ -219,7 +232,7 @@ class Communicator(object):
         Notes:
             type is _type because "type" is a python protected name
         '''
-        self.err_log("Processing message of type ", _type)
+        self.err_log("Readying to send message of type ", _type)
         if _type in self.outgoing_msg_types.keys():
             self.err_log("Write type recognized as a polling message")
             write_data = self.outgoing_msg_types[_type]
@@ -243,14 +256,16 @@ class Communicator(object):
          argument will be a string of everything after the type identifier, and for an N-Byte message, the argument will be 
          everything after the length token.
         '''
-        if msg_type in self.string_to_hex.keys():
-            self.callback_dict.update({self.string_to_hex[msg_type]: function})
+        if msg_type in self.incoming_msg_types.keys(): # Check that the message type is known
+            self.callback_dict.update(
+                {
+                    self.incoming_msg_types[msg_type]: function
+                }
+            )
         else:
-            print self.string_to_hex
             raise(Exception("Type " + msg_type + " is not known to the serial proxy, have you bound types?"
                 "\n This Error may be caused by not indicating the correct path to the types.h file in the "
                 "serial_proxy initialization, or by having a malformed types.h file"))
-
 
     def bind_types(self, types_path):
         '''bind_types -> types
@@ -281,21 +296,15 @@ class Communicator(object):
         '''
         types = parse_types_file(types_path)
         for _type in types:
-            print type(_type)
             if 'in' in _type.keys():
-                self.string_to_hex.update(
+                self.incoming_msg_types.update(
                     {_type['in']: _type['hex_name']}
                 )
             if 'out' in _type.keys():
                 self.outgoing_msg_types.update(
-                    {_type['hex_name']: _type['out']}
+                    {_type['out']: _type['hex_name']}
                 )
             if 'msg_length' in _type.keys():
-                if _type['msg_length'].lower() == 'none':
-                    self.byte_type_defs.update(
-                        {_type['hex_name']: None}
-                    )
-                else:
-                    self.byte_type_defs.update(
-                        {_type['hex_name']: _type['msg_length']}
-                    )
+                self.byte_type_defs.update(
+                    {_type['hex_name']: _type['msg_length']}
+                )
