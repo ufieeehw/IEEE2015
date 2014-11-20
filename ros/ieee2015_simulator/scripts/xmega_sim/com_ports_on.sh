@@ -5,5 +5,4 @@ echo
 echo
 echo "Ports will be closed when this window is closed"
 
-socat pty,link=$HOME/COM1 pty,link=$HOME/COM2
-
+socat -d -d pty,raw,echo=1 pty,raw,echo=1
