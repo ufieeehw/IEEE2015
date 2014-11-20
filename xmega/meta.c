@@ -31,7 +31,6 @@ int debug_msg(Message m){
 
 //tell programt to start listening for messages
 int start_msg(Message m){
-  wipe_queue(OUT_QUEUE); //delete old messages
   start_ok = 1;   //begin listening/sending messages
   
   //start the watchdog timer (1 second timeout)
