@@ -265,18 +265,22 @@ class Serial_Proxy(object):
 
             # Message of known length
             if msg_byte_type in self.byte_type_defs.keys():
-                msg_length = self.byte_type_defs[msg_byte_type]
+                msg_defined_length = self.byte_type_defs[msg_byte_type]
 
                 # Poll message (zero length)
-                if msg_length == 0:
+                if msg_defined_length == 0:
+                    self.err_log("Reading as poll message")
                     msg_data = None
 
                 # Defined byte length messages (1 or 2 as of writing)
-                elif msg_length > 0:
-                    msg_data = self.serial.read(msg_length)
+                elif msg_defined_length > 0:
+                    self.err_log("Reading as defined length message")
+                    msg_data = self.serial.read(msg_defined_length)
 
                 # N-Byte Message
-                elif msg_length is NByte_Message_Token:
+                elif msg_defined_length is NByte_Message_Token:
+                    msg_length = ord(self.serial.read(length_length))  # Read the length byte and convert it to a number
+                    self.err_log("Comprehending N-Byte message as being of length", msg_length)
                     msg_data = self.serial.read(msg_length)
                     self.err_log("N-Byte Message content:", msg_data)
                     
