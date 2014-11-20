@@ -56,7 +56,7 @@ class Xmega_Driver(object):
 
         # ROS Setup
         rospy.init_node('XMega_Connector')
-        self.serial_proxy = xmega_driver.Communicator(
+        self.serial_proxy = xmega_driver.Serial_Proxy(
             port='/dev/xmega_tty', 
             baud_rate=256000, 
         )

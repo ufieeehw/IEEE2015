@@ -41,7 +41,7 @@ def thread_lock(function_to_lock):
     return locked_function
 
 
-class Communicator(object):
+class Serial_Proxy(object):
     def __init__(self, port, baud_rate, types_path=default_path_to_types, verbose=True):
         '''Superclass for XMega communication
         Purpose: Communicate with an XMega via serial link
@@ -55,7 +55,7 @@ class Communicator(object):
             Read (Messages FROM Xmega):
                 Loop permanently, listening for a serial message - interpret that message based on
                  predetermined parameters defined in the message type, defined in [1] and described
-                 in its readme. 
+                 in its readme.
                 Once a message of known type is recieved, it is called from the callback_dict
                  In a practical sense, to add a function to the action dict one should use bind_xmega_callback_function
                  to bind a function to a message type.
@@ -100,7 +100,7 @@ class Communicator(object):
             self.serial = serial.Serial(port, baud_rate, )#timeout=0.01)
         except(serial.serialutil.SerialException), e:
             raise(
-                Exception("Communicator could not open port " + port + 
+                Exception("Serial_Proxy could not open port " + port + 
                     "\nIf you have the Xmega plugged in, try setting up the Udev rules\n", e
                 )
             )
