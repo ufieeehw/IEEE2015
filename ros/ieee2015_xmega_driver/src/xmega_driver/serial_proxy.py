@@ -118,21 +118,13 @@ class Serial_Proxy(object):
         self.outgoing_msg_types = {
             'example_poll_msg': '0F'
         }
-
-        # First two bits determine the length of the message
         self.byte_type_defs = {}  # This will be populated by self.bind_types
-
         self.message_queue = deque()
 
     def err_log(self, *args):
         '''Print the inputs as a list if class verbosity is True'''
         if self.verbose:
             print ['Xmega LOG:'], string.join(map(str, args))
-
-    def send_keep_alive(self):
-        '''Send a keep-alive message
-        Critically, this includes a threading lock'''
-        self.add_message('keep_alive')
 
     def run_serial_loop(self):
         read_loop = threading.Thread(target=self._read_loop)
@@ -141,6 +133,70 @@ class Serial_Proxy(object):
         write_loop.daemon = True
         write_loop.start()
         read_loop.start()
+
+    def add_message(self, _type, data=None):
+        '''add_message(_type, data=None)
+        Add a message to the messaging queue. Use this when you want to send a message
+        '''
+        self.message_queue.append((_type, data))
+
+
+    def bind_callback(self, msg_type, function):
+        '''All messages of type $msg_type recieved from the xmega will be sent to the function $function
+        The function will be called such that its argument is the data content of the message.
+
+        This means that for a poll message, the argument will be None, for a message of predefined length, the 
+         argument will be a string of everything after the type identifier, and for an N-Byte message, the argument will be 
+         everything after the length token.
+        '''
+        if msg_type in self.incoming_msg_types.keys():  # Check that the message type is known
+            self.callback_dict.update({self.incoming_msg_types[msg_type]: function})
+        else:
+            raise(Exception("Type " + msg_type + " is not known to the serial proxy, have you bound types?"
+                "\n This Error may be caused by not indicating the correct path to the types.h file in the "
+                "serial_proxy initialization, or by having a malformed types.h file"))
+
+    def bind_types(self, types_path):
+        '''bind_types -> types
+        Purpose: 
+            Given a types_path (the relative path to the 'types.h' file in the xmega folder), this will automatically
+             parse that file and figure out the relationships between string type names and their corresponding hex names
+             An example of such a relationship is 'poll_imu': 0x01 or 'special_message': 0xF0.
+
+            The reason this was done was to avoid having to explicitly declare that '0xC0' (Something very much subject to change)
+             was related to a particular function or sensor. Instead, someone can indirectly refer to something more abstract, such as
+             'poll_imu', this way we can change the behavior of the ROS end OR the XMega end message naming without seriously affecting 
+             the other.
+
+        Examples:
+        Here is an example of what the output of parse_types might look like.
+        types = [
+            {'msg_length': ' 0', 'type_name': 'NO_DATA_TYPE', 'hex_name': 0x00}
+            {'msg_length': ' 1', 'type_name': 'DATA_1B_TYPE', 'hex_name': 0x40}
+            {'msg_length': ' 2', 'type_name': 'DATA_2B_TYPE', 'hex_name': 0x80}
+            {'msg_length': ' None', 'type_name': 'DATA_NB_TYPE', 'hex_name': 0xC0}
+            {'type_name': 'ERROR_MASK', 'mask': ' error', 'hex_name': 0x30}
+            {'type_name': 'KILL_TYPE', 'out': ' kill', 'hex_name': 0x01}
+            {'type_name': 'START_TYPE', 'out': ' start', 'hex_name': 0x02}
+            {'type_name': 'KEEP_ALIVE_TYPE', 'out': ' keep_alive', 'hex_name': 0x03}
+            {'type_name': 'IMU_NOTIFY_TYPE', 'out': ' poll_imu', 'hex_name': 0x04}
+        ]
+
+        '''
+        types = parse_types_file(types_path)
+        for _type in types:
+            if 'in' in _type.keys():
+                self.incoming_msg_types.update(
+                    {_type['in']: _type['hex_name']}
+                )
+            if 'out' in _type.keys():
+                self.outgoing_msg_types.update(
+                    {_type['out']: _type['hex_name']}
+                )
+            if 'msg_length' in _type.keys():
+                self.byte_type_defs.update(
+                    {_type['hex_name']: _type['msg_length']}
+                )
 
     def _write_loop(self):
         print("At start of write loop!")
@@ -172,7 +228,9 @@ class Serial_Proxy(object):
         '''
         type_length = 1  # Bytes
         length_length = 1  # Bytes
+        # First two bits determine the length of the message
         type_mask =  0b11000000
+        # 3rd and 4th bits determine error type
         error_mask = 0b00110000
 
         while True:
@@ -184,6 +242,8 @@ class Serial_Proxy(object):
             msg_byte_type = msg_type & type_mask
             b_error = (msg_type & error_mask) == error_mask
             self.err_log('Recieving message of type', msg_type)
+            if b_error:
+                self.err_log('By convention, this message is read as an error type message')
 
             # Message of known length
             if msg_byte_type in self.byte_type_defs.keys():
@@ -200,13 +260,10 @@ class Serial_Proxy(object):
 
                 # N-Byte Message
                 elif msg_length is None:
-                    callback_function = self.callback_dict[msg_type]
                     self.err_log('Recognized type as', callback_function.__name__)
-
                     msg_length = self.serial.read(length_length)
                     msg_data = self.serial.read(msg_length)
-                    self.err_log("Message content:", msg_data)
-                    callback_function(msg_data)
+                    self.err_log("N-Byte Message content:", msg_data)
                     
                 if msg_type in self.callback_dict.keys():
                     callback_function = self.callback_dict[msg_type]
@@ -218,13 +275,6 @@ class Serial_Proxy(object):
             else:
                 self.err_log('Did not recognize type', msg_type)
 
-    def add_message(self, _type, data=None):
-        '''add_message(_type, data=None)
-        Add a message to the messaging queue. Use this when you want to send a message
-        '''
-
-        self.message_queue.append((_type, data))
-
     def _write_packet(self, _type, data=None):
         '''write_packet(self, _type, data=None)
         Function:
@@ -232,11 +282,10 @@ class Serial_Proxy(object):
         Notes:
             type is _type because "type" is a python protected name
         '''
-        self.err_log("Readying to send message of type ", _type)
+        self.err_log("Readying to send message of type", _type)
         if _type in self.outgoing_msg_types.keys():
-            self.err_log("Write type recognized as a polling message")
             write_data = self.outgoing_msg_types[_type]
-            self.err_log("Writing as ", write_data)
+            self.err_log("Writing as", write_data)
             self.serial.write(chr(write_data))
             if data is not None:
                 self.err_log("Data, ")
@@ -247,64 +296,3 @@ class Serial_Proxy(object):
                 self.err_log("No other data to write")
         else:
             self.err_log("Write type not recognized")
-
-    def bind_callback(self, msg_type, function):
-        '''All messages of type $msg_type recieved from the xmega will be sent to the function $function
-        The function will be called such that its argument is the data content of the message.
-
-        This means that for a poll message, the argument will be None, for a message of predefined length, the 
-         argument will be a string of everything after the type identifier, and for an N-Byte message, the argument will be 
-         everything after the length token.
-        '''
-        if msg_type in self.incoming_msg_types.keys(): # Check that the message type is known
-            self.callback_dict.update(
-                {
-                    self.incoming_msg_types[msg_type]: function
-                }
-            )
-        else:
-            raise(Exception("Type " + msg_type + " is not known to the serial proxy, have you bound types?"
-                "\n This Error may be caused by not indicating the correct path to the types.h file in the "
-                "serial_proxy initialization, or by having a malformed types.h file"))
-
-    def bind_types(self, types_path):
-        '''bind_types -> types
-        Purpose: 
-            Given a types_path (the relative path to the 'types.h' file in the xmega folder), this will automatically
-             parse that file and figure out the relationships between string type names and their corresponding hex names
-             An example of such a relationship is 'poll_imu': 0x01 or 'special_message': 0xF0.
-
-            The reason this was done was to avoid having to explicitly declare that '0xC0' (Something very much subject to change)
-             was related to a particular function or sensor. Instead, someone can indirectly refer to something more abstract, such as
-             'poll_imu', this way we can change the behavior of the ROS end OR the XMega end message naming without seriously affecting 
-             the other.
-
-        Examples:
-        Here is an example of what the output of parse_types might look like.
-        types = [
-            {'msg_length': ' 0', 'type_name': 'NO_DATA_TYPE', 'hex_name': '0x00'}
-            {'msg_length': ' 1', 'type_name': 'DATA_1B_TYPE', 'hex_name': '0x40'}
-            {'msg_length': ' 2', 'type_name': 'DATA_2B_TYPE', 'hex_name': '0x80'}
-            {'msg_length': ' None', 'type_name': 'DATA_NB_TYPE', 'hex_name': '0xC0'}
-            {'type_name': 'ERROR_MASK', 'mask': ' error', 'hex_name': '0x30'}
-            {'type_name': 'KILL_TYPE', 'out': ' kill', 'hex_name': '0x01'}
-            {'type_name': 'START_TYPE', 'out': ' start', 'hex_name': '0x02'}
-            {'type_name': 'KEEP_ALIVE_TYPE', 'out': ' keep_alive', 'hex_name': '0x03'}
-            {'type_name': 'IMU_NOTIFY_TYPE', 'out': ' poll_imu', 'hex_name': '0x04'}
-        ]
-
-        '''
-        types = parse_types_file(types_path)
-        for _type in types:
-            if 'in' in _type.keys():
-                self.incoming_msg_types.update(
-                    {_type['in']: _type['hex_name']}
-                )
-            if 'out' in _type.keys():
-                self.outgoing_msg_types.update(
-                    {_type['out']: _type['hex_name']}
-                )
-            if 'msg_length' in _type.keys():
-                self.byte_type_defs.update(
-                    {_type['hex_name']: _type['msg_length']}
-                )
