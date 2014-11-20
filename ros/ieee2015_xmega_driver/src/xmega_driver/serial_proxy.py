@@ -20,6 +20,7 @@ import numpy as np
 lock = threading.Lock()
 default_path_to_types = os.path.join('..', '..', '..', '..', 'xmega', 'types.h')
 
+NByte_Message_Token = None
 
 def thread_lock(function_to_lock):
     '''thread_lock(function) -> locked function 
@@ -86,6 +87,7 @@ class Serial_Proxy(object):
             - Add the ability to configure multiple timed loops
             - Check that the incoming messages are of the appropriate length (i.e. nobody is trying to pass a message longer
                 than its byte type specifies)
+            - How to do ROS unittests?
 
         Unhandled Errors:
             - Sudden unplugging of the USB
@@ -138,8 +140,14 @@ class Serial_Proxy(object):
         '''add_message(_type, data=None)
         Add a message to the messaging queue. Use this when you want to send a message
         '''
+        self.err_log("Adding message of type ", _type, "to queue")
+        required_msg_length = self._msg_len(_type)
+        if required_msg_length is not None:
+            if data is not None:
+                assert len(data) == required_msg_length, "Message length not equal to that demanded by type!"
+            elif data is None:
+                assert required_msg_length == 0, "Cannot send data in a zero length message type!"
         self.message_queue.append((_type, data))
-
 
     def bind_callback(self, msg_type, function):
         '''All messages of type $msg_type recieved from the xmega will be sent to the function $function
@@ -198,8 +206,19 @@ class Serial_Proxy(object):
                     {_type['hex_name']: _type['msg_length']}
                 )
 
+    def _msg_len(self, _type):
+        '''Determine the length of a message given its type byte'''
+        length_mask =  0b11000000
+        msg_byte_type = length_mask & self.outgoing_msg_types[_type]
+        if msg_byte_type in self.byte_type_defs.keys():
+            msg_length = self.byte_type_defs[msg_byte_type]
+            return msg_length
+        # When milaur (towbot) is no longer dependent on this code, change the N-byte msg indicator from None to -1.
+        # None should mean "no valid message length found"
+        # else:
+            # return None
+
     def _write_loop(self):
-        print("At start of write loop!")
         # Initialize time
         old_time = time.time()
         while True:
@@ -226,20 +245,19 @@ class Serial_Proxy(object):
             - There may be problems with high-volume messaging because the callback functions 
                may take much time to execute
         '''
-        type_length = 1  # Bytes
-        length_length = 1  # Bytes
+        type_length = 1  # Bytes - length of 'type' token
+        length_length = 1  # Bytes - length of 'length' token (The second byte of an N-byte message is msg length)
         # First two bits determine the length of the message
-        type_mask =  0b11000000
+        length_mask =  0b11000000
         # 3rd and 4th bits determine error type
         error_mask = 0b00110000
 
         while True:
-            print("At start of read loop!")
             # Handle the first byte, determining type
             unprocessed_type = self.serial.read(type_length)
             self.err_log("Simple outgoing type ", unprocessed_type)
             msg_type = ord(unprocessed_type)
-            msg_byte_type = msg_type & type_mask
+            msg_byte_type = msg_type & length_mask
             b_error = (msg_type & error_mask) == error_mask
             self.err_log('Recieving message of type', msg_type)
             if b_error:
@@ -248,18 +266,17 @@ class Serial_Proxy(object):
             # Message of known length
             if msg_byte_type in self.byte_type_defs.keys():
                 msg_length = self.byte_type_defs[msg_byte_type]
-                print msg_length, type(msg_length)
 
                 # Poll message (zero length)
                 if msg_length == 0:
                     msg_data = None
 
-                # Defined byte length messages
+                # Defined byte length messages (1 or 2 as of writing)
                 elif msg_length > 0:
                     msg_data = self.serial.read(msg_length)
 
                 # N-Byte Message
-                elif msg_length is None:
+                elif msg_length is NByte_Message_Token:
                     self.err_log('Recognized type as', callback_function.__name__)
                     msg_length = self.serial.read(length_length)
                     msg_data = self.serial.read(msg_length)
@@ -282,13 +299,18 @@ class Serial_Proxy(object):
         Notes:
             type is _type because "type" is a python protected name
         '''
-        self.err_log("Readying to send message of type", _type)
         if _type in self.outgoing_msg_types.keys():
             write_data = self.outgoing_msg_types[_type]
             self.err_log("Writing as", write_data)
             self.serial.write(chr(write_data))
+
+            # N-Byte Message
+            if self._msg_len(_type) == NByte_Message_Token:
+                self.serial.write(chr(len(data)))  # Write the length byte
+
+            # Send the data one character at a time
             if data is not None:
-                self.err_log("Data, ")
+                self.err_log("Data,", data)
                 for character in data:
                     self.err_log("writing character ", character)
                     self.serial.write(character)

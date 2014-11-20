@@ -69,8 +69,6 @@ class Xmega_Driver(object):
         # Potentially add binding for ros-sending functions as well.
         self.debug_subscriber = rospy.Subscriber('robot/debug', String, self.got_ros_debug)
 
-
-        # Bind types file to serial proxy
         # Bind types.h info for the serial proxy
         self.serial_proxy.bind_types(types_path)
 
@@ -89,9 +87,11 @@ class Xmega_Driver(object):
 ########## NOTHING WILL BE EXECUTED AFTER THIS LINE EXCEPT PREVIOUSLY BOUND CALLBACK FUNCTIONS ###############
 
     def send_start_msg(self):
+        '''Send the start message that tells the XMega the robot is ready to begin working'''
         self.serial_proxy.add_message('start')
 
     def got_ros_debug(self, msg):
+        '''This is an example of how you might send a message to the XMega'''
         string = msg.data
         for char in string:
             self.serial_proxy.add_message('ros_debug', char)
