@@ -277,8 +277,6 @@ class Serial_Proxy(object):
 
                 # N-Byte Message
                 elif msg_length is NByte_Message_Token:
-                    self.err_log('Recognized type as', callback_function.__name__)
-                    msg_length = self.serial.read(length_length)
                     msg_data = self.serial.read(msg_length)
                     self.err_log("N-Byte Message content:", msg_data)
                     

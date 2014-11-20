@@ -97,7 +97,7 @@ class Xmega_Driver(object):
             self.serial_proxy.add_message('ros_debug', char)
 
     def got_xmega_error(self, msg_data):
-        self.err_log("Got error,", msg_data)
+        print "Got error,", msg_data
 
     def got_test(self, msg_data):
         print "Recieved test!"
