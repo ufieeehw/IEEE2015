@@ -25,7 +25,7 @@ int debug_msg(Message m){
   
   //send outgoing message
   Message out = get_msg(DEBUG_TYPE, 1);
-  out.data[0] = 'a';
+  out.data[0] = *m.data;
   return queue_push(out, OUT_QUEUE);
 }
 
