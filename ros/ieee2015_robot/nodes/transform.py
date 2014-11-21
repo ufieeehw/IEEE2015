@@ -17,26 +17,30 @@ class Gazebo_Transformer(object):
 
     def convertElbow(self, angle): 
         #_elbow_angle = np.pi - (elbow + elbow_angle_offset) data received, revert the offset
+        global gl_angle
+        gl_angle = angle
         elbow_angle_offset = 1.75
-        angle = np.pi + angle.data #- elbow_angle_offset
+        elbow = np.pi - angle.data - elbow_angle_offset #remove offset
+        elbow = elbow - np.pi #Before 0 degrees = 3.14, now 0 degrees = 0
+        elbow = -elbow #Make below horizon positive, that is what the joint uses
+        
+        elbow = shoulder_angle + elbow #Find the angle relative to the shoulder. I did the trig, don't worry :P
 
-        print("Publishing elbow angle: {}".format(angle))
-        self.elbow_pub.publish(data = angle)
-    
+        print("Publishing elbow angle: {}".format(elbow))
+        self.elbow_pub.publish(data = elbow)
+
 
     def convertShoulder(self, angle):
-        #_shoulder_angle = shoulder + shoulder_angle_offset
+        #_shoulder_angle = shoulder + shoulder_angle_offset, revert the offset
         shoulder_angle_offset = 0.3 - np.pi/2
-        angle = angle.data - shoulder_angle_offset
+        shoulder = angle.data - shoulder_angle_offset
+        global shoulder_angle
+        shoulder_angle = shoulder #To be used to find the elbow angle
 
-    ## The following lines are for the Gazebo simulation where the angles are offset
-    #if angle >= 0:
-    #    angle = pi - angle
-    #else:
-    #    angle = -pi - angle
+        print("Publishing shoulder angle: {}".format(shoulder))
+        self.shoulder_pub.publish(data = -shoulder) 
+        self.convertElbow(gl_angle) #Make sure Elbow has the up to date shoulder_angle 
 
-        print("Publishing shoulder angle: {}".format(angle))
-        self.shoulder_pub.publish(data = -angle)
 
 if __name__ == '__main__':
     Transformer = Gazebo_Transformer()
