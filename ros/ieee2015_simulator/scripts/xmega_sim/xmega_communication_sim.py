@@ -1,13 +1,14 @@
+# MUST RUN AS SUDO 
+# must install socat to operate
+# www.dest-unreach.org/socat/
+# or 
+# sudo apt-get install socat
+
 import subprocess
 import sys
 import serial
 import time
 import os
-
-# must install socat to operate
-# www.dest-unreach.org/socat/
-# or 
-# sudo apt-get install socat
 
 print 
 print "Xmega simulation setup..."
@@ -15,18 +16,15 @@ print
 print "The proper PTS ports are now displayed in the popup terminal"
 print "Locate the port numbers and enter them now"
 
-
-# subprocess to open fake TTy Ports
+# subprocess to change permission and open pseudo TTy Ports
 subprocess.call(["chmod", "u+x", "./com_ports_on.sh"])
-
 subprocess.Popen(["xterm", "-e", "./com_ports_on.sh"])
 
-time.sleep(.5)
+time.sleep(.5) # delay to allow time for chmod to recognize xmega_tty
 
-subprocess.call(["chmod", "666", "/dev/xmega_tty"])
+subprocess.call(["chmod", "666", "/dev/xmega_tty"]) #change permission to allow ros access
 
 linked_path = os.path.realpath("/dev/xmega_tty")
-
 sliced_path = linked_path[9:] # returns pts number the tty port is linked to
 
 #convert_one = '/dev/pts/' + str(port_one)
