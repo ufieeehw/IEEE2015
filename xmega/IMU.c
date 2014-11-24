@@ -17,7 +17,7 @@ void IMU_init(){
 	PORTC.DIRSET = 0xFF;
 	
 	//Step 2: Set the control register's sampling frequency
-	uint8_t IMU_Control_Data[2] = {0b00100000, 0b01100111, 0x24, 0x94, 0x25, 0x00, 0x26, 0x00}; //This is what will be written to the IMU to set the sampling frequency
+	uint8_t IMU_Control_Data[8] = {0b00100000, 0b01100111, 0x24, 0x94, 0x25, 0x00, 0x26, 0x00}; //This is what will be written to the IMU to set the sampling frequency
 	for(int i=0; i<8; i++){
 	PORTE.OUTCLR = PIN4_bm; //Set the SS line low
 	SPIE_DATA = IMU_Control_Data[2*i]; //Load SPIE_DATA with the first byte, the address of the IMU we are accessing
