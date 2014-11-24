@@ -58,7 +58,8 @@ for eachfile in fileTxt:
 		if "PORT" in eachLine:
 			index = eachLine.rfind("PORT")
 			temp = eachLine[index:index+5]
-			if temp != "PORT " and temp != "PORT_":
+			letter = eachLine[index+4:index+5]
+			if ord(letter) >= 65 and ord(letter) <= 90:
 				templist.append(temp)
 	portList[str(eachfile)] = templist
 
@@ -87,6 +88,7 @@ for eachfile in pinList:
 	pinList[eachfile] = dict.fromkeys(portList[eachfile])
 	for eachport in pinList[eachfile]:
 		temp = eachport + "."
+		temp2 = eachport + "_"
 		pinFound = False
 		tempList = []
 		for eachLine in fileTxt[eachfile]:
@@ -95,6 +97,13 @@ for eachfile in pinList:
 				index1 = eachLine.rfind(eachport + ".")
 				index2 = eachLine.rfind(";")
 				tempList.append(eachLine[index1:index2])
+			if temp2 in eachLine:
+				pinFound = True
+				index1 = eachLine.rfind(eachport + "_")
+				index2 = eachLine.rfind(";")
+				pin = eachLine[index1:index2]
+				if "=" in pin:
+					tempList.append(eachLine[index1:index2])
 		if not pinFound:
 			tempList.append("No pins found")
 		pinList[eachfile][eachport] = tempList
