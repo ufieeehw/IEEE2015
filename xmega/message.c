@@ -3,6 +3,7 @@
 #include <string.h>
 #include "message.h"
 #include "types.h"
+#include "meta.h"
 
 //initialize the global variables (no messages and null pointers)
 int message_count = 0;
@@ -86,6 +87,9 @@ int queue_pop(Message* m, int direction){
 int queue_push(Message m, int direction){
   if(MAX_MESSAGE <= message_count) return MESSAGE_ERROR_TYPE;  //no more space
   
+  //don't push outgoing messages if we haven't started
+  if(!start_ok && direction) return;
+  
   Message *new_msg = get_node();  //get the pointer
   new_msg->type = m.type;   //copy the data fields
   new_msg->size = m.size;
@@ -138,7 +142,7 @@ Message get_msg(uint8_t type, uint8_t size){
     case 1: cache_num = DATA_CACHE_1B; break;
     case 2: cache_num = DATA_CACHE_2B; break;
     case 4: cache_num = DATA_CACHE_4B; break;
-    case 6: cache_num = DATA_CACHE_4B; break;
+    case 6: cache_num = DATA_CACHE_6B; break;
     case 12: cache_num = DATA_CACHE_12B; break;
   }
   
@@ -152,10 +156,9 @@ Message get_msg(uint8_t type, uint8_t size){
         return m; //we're done, return message
       }
     }  
-  } else {
-    m.data = (uint8_t*) malloc(m.size);  //allocate the storage
-    m.cache_tag = 0;  //no tag
   }
+  m.data = (uint8_t*) malloc(m.size);  //allocate the storage
+  m.cache_tag = 0;  //no tag
   
   return m; //return the message
 }

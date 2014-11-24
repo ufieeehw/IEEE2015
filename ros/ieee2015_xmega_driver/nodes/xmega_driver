@@ -1,0 +1,186 @@
+#!/usr/bin/python
+from __future__ import division # Make all division floating point division
+
+# Misc
+import os
+import argparse
+
+# Ros
+import rospy
+import tf.transformations as tf_trans
+
+# Ros packages
+import roslib; roslib.load_manifest('ieee2015_xmega_driver')
+import xmega_driver
+
+# Ros Msgs
+from std_msgs.msg import Header, Float64, String
+from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion, Vector3
+from sensor_msgs.msg import Imu
+from ieee2015_xmega_driver.msg import XMega_Message
+
+
+class Xmega_Driver(object):
+    def __init__(self, types_path, msg_sub_topic='robot/send_xmega_msg'):
+        '''Xmega driver -- handles the serial interface with the Xmega128A1U for the IEEE 2015 robot.
+        XMega Sensor Manifest:
+            - IMU (9DOF) - 12 bytes (only using 6 DOF) [An IMU is an intertial measurement unit]
+            - Light Sensor
+            - 4x: Encoders/Odometry
+            - 1-2x: Solenoid State (XMega will hold this internally)
+            - 1-2x: On/Kill Switches
+            - 1-2x: Battery Monitors
+
+        XMega Actuator Manifest:
+            - 4x: Wheel Motors (Set Motor Velocities)
+            - Unk: Non-Wheel control motors (Set torque)
+            - 4-5x: Servos (Arm and a few places, set angle)
+            - 4x: Status LED's (Toggle)
+            - 1-2x: Solenoids (Go, no-go!)
+
+        TODO:
+            - Add better threading locks (ones that don't cause message loss)
+            - Make the RECEIVING ros messages part make more sense
+            -- I think this will mean instantiating specific subscribers in here and then using
+               a more advanced thread-lock and queuing interface to deal with those threaded ros callbacks
+            --- Forrest's TXROS is not out of the question
+            - Do something crazy with hotplug rules to make the serial proxy always run
+
+            - Raise an exception if somebody tries to send a message with inappropriate length
+
+        ROS Package Deployment:
+            In the distant future, it may be worth turning this into a pure ROS interface
+            - Set up a YAML file that configures a whole bunch of ROS topics that directly subscribe to the xmega
+            - Set up a YAML file that configures the message type to hex code magic.
+        '''
+
+        # ROS Setup
+        rospy.init_node('XMega_Connector')
+        self.serial_proxy = xmega_driver.Serial_Proxy(
+            port='/dev/xmega_tty', 
+            baud_rate=256000, 
+        )
+
+        # Add ROS elements
+        self.accel_data_pub = rospy.Publisher('robot/imu', Imu, queue_size=1)
+
+        # Messages being sent from ROS to the XMega
+        # To add a ROS->XMega message, you must...
+        # Potentially add binding for ros-sending functions as well.
+        self.debug_subscriber = rospy.Subscriber('robot/debug', String, self.got_ros_debug)
+
+        # Bind types.h info for the serial proxy
+        self.serial_proxy.bind_types(types_path)
+
+        # Bind callbacks for messages FROM the Xmega
+        self.serial_proxy.bind_callback('vector_error', self.got_xmega_error)
+        self.serial_proxy.bind_callback('message_error', self.got_xmega_error)
+        self.serial_proxy.bind_callback('buffer_error', self.got_xmega_error)
+        self.serial_proxy.bind_callback('imu_data', self.got_imu_reading)
+
+        # Start message
+        self.send_start_msg()
+
+        # Relinquish control of the program - this is an infinite loop
+        self.serial_proxy.run_serial_loop()
+
+########## NOTHING WILL BE EXECUTED AFTER THIS LINE EXCEPT PREVIOUSLY BOUND CALLBACK FUNCTIONS ###############
+
+    def send_start_msg(self):
+        '''Send the start message that tells the XMega the robot is ready to begin working'''
+        self.serial_proxy.add_message('start')
+
+    def got_ros_debug(self, msg):
+        '''This is an example of how you might send a message to the XMega'''
+        string = msg.data
+        for char in string:
+            self.serial_proxy.add_message('ros_debug', char)
+
+    def got_xmega_error(self, msg_data):
+        print "Got error,", msg_data
+
+    def got_test(self, msg_data):
+        print "Recieved test!"
+        if msg_data is not None:
+            print "Data:", msg_data
+
+    def got_imu_reading(self, msg_data):
+        '''Handle data read from the IMU
+        The IMU we have is 9-DOF, meaning that it reads:
+            Linear acceleration in XYZ
+            Rotational velocity in XYZ
+            Gyroscope Readings in X and Y axis
+            Magnetometer/Compass readings around Z axis
+
+        We also found some spare IMUs that additionally read barometric altitude
+
+        IMU Message:
+            std_msgs/Header header
+            geometry_msgs/Quaternion orientation
+            float64[9] orientation_covariance
+            geometry_msgs/Vector3 angular_velocity
+            float64[9] angular_velocity_covariance
+            geometry_msgs/Vector3 linear_acceleration
+            float64[9] linear_acceleration_covariance
+        '''
+        # Where vel -> velocity, and acc -> acceleration
+        decomposition = {
+            'lin_acc_x': 0,
+            'lin_acc_y': 0,
+            'lin_acc_z': 0,
+            'ang_vel_x': 0,
+            'ang_vel_y': 0,
+            'ang_vel_z': 0,
+            'bearing': 0,
+            'barometric_altitude': 0,
+        }
+        angular_vel = (
+            decomposition['ang_vel_x'],
+            decomposition['ang_vel_y'],
+            decomposition['ang_vel_z'],
+        )
+        linear_acc = (
+            decomposition['lin_acc_x'],
+            decomposition['lin_acc_y'],
+            decomposition['lin_acc_z'],
+        )
+
+        orientation = tf_trans.quaternion_from_euler(0, 0, decomposition['bearing'])
+        IMU_msg = Imu(
+            header=Header(
+                stamp=rospy.Time.now(),
+                frame_id='/robot',
+            ),
+            orientation=Quaternion(*orientation), 
+            orientation_covariance=
+                [0.03**2, 0,       0,
+                 0,       0.03**2, 0,
+                 0,       0,       0.03**2,],
+            angular_velocity=Vector3(*angular_vel),
+            angular_velocity_covariance=
+                [0.03**2, 0,       0,
+                 0,       0.03**2, 0,
+                 0,       0,       0.03**2,],
+
+            linear_acceleration=Vector3(*linear_acc),
+            linear_acceleration_covariance=
+                [0.03**2, 0,       0,
+                 0,       0.03**2, 0,
+                 0,       0,       0.03**2,],
+        )
+
+        self.accel_data_pub()
+
+
+if __name__ == '__main__':
+    usage_msg = "Serial interface with the XMega128A1U for the IEEE2015 team"
+    desc_msg = "Specify a types_path that points to types.h in the xmega folder to handle types parsing"
+    parser = argparse.ArgumentParser(usage=usage_msg, description=desc_msg)
+    parser.add_argument('--types_path', dest='types_path',
+                      help='Designate the absolute location of the types.h file')
+
+    args = parser.parse_args(rospy.myargv()[1:])
+    types_path = args.types_path
+    print 'types path:', types_path
+    driver = Xmega_Driver(types_path)
+    rospy.spin()
