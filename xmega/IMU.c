@@ -17,9 +17,10 @@ void IMU_init(){
 	PORTC.DIRSET = 0xFF;
 	
 	//Step 2: Set the control register's sampling frequency
-	uint8_t IMU_Control_Data[2] = {0b00100000, 0b01100111}; //This is what will be written to the IMU to set the sampling frequency
+	uint8_t IMU_Control_Data[2] = {0b00100000, 0b01100111, 0x24, 0x94, 0x25, 0x00, 0x26, 0x00}; //This is what will be written to the IMU to set the sampling frequency
+	for(int i=0; i<8; i++){
 	PORTE.OUTCLR = PIN4_bm; //Set the SS line low
-	SPIE_DATA = IMU_Control_Data[0]; //Load SPIE_DATA with the first byte, the address of the IMU we are accessing
+	SPIE_DATA = IMU_Control_Data[2*i]; //Load SPIE_DATA with the first byte, the address of the IMU we are accessing
 	SPI_Wait_Counter = 0;
 	while((!SPIE_STATUS&0x80)||SPI_Wait_Counter<10){
 		SPI_Wait_Counter+=1;
@@ -28,13 +29,14 @@ void IMU_init(){
 	//The act of checking the flag, and then accessing the SPIE_DATA register, clears the flag
 	//for the next transfer
 	
-	SPIE_DATA = IMU_Control_Data[1]; //Transmits the next byte, which selects sampling frequency
+	SPIE_DATA = IMU_Control_Data[2*i+1]; //Transmits the next byte, which selects sampling frequency
 	//Next, wait until the transfer is complete before ending the transfer
 	SPI_Wait_Counter = 0;
 	while((!SPIE_STATUS&0x80)||SPI_Wait_Counter<10){
 		SPI_Wait_Counter+=1;
 		}
 	PORTE.OUTSET = PIN4_bm;  //Set the SS line high to complete the transfer
+	}
 }
 int IMU_get_data(Message m){
   uint8_t SPI_Wait_Counter;
