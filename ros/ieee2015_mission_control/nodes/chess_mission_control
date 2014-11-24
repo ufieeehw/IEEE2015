@@ -1,0 +1,96 @@
+#!/usr/bin/python
+from __future__ import division
+'''This node is under construction! It will come together over the weekend
+Notes to implementers:
+    - When you have code in an external package, use roslib.load_manifest(*ROS* package name)
+        -- An example - for chess vision, is that you must load the manifest for ieee2015_vision to access
+            the chess_vision *python* package in ieee2015_vision
+            So, a ROS package can contain multiple Python packages.
+
+When testing your changes,
+    - Try doing a catkin_make -C ~/catkin_ws and check for errors
+    - Then do rosrun ieee2015_mission_control chess_mission_control
+
+'''
+
+import rospy
+
+# Packages
+import roslib
+roslib.load_manifest('ieee2015_vision')
+import chess_vision  # Import the Chess Vision package
+
+roslib.load_manifest('ieee2015_ai')
+import chess_ai # Import the chess ai package
+
+
+# Temporary...
+ARM_HOME = (100, 100)
+PICKING_HEIGHT = 10
+GRABBING_HEIGHT = 4
+tf_bot_to_board = None  # Fill this in!
+# /Temporary
+
+
+# Precomments...
+
+# Go to start position "home"
+# Send the vision service
+# Get back from the vision service, with a new occupancy grid
+
+# Using chess module in here...
+# Use the occupancy grid to get board state <- given previous occupancy grid and board state
+
+# Send the current board state to the AI
+# Get the decision
+
+# Use the decision to command the arm
+# --> Go to target piece
+# --> Use vision to correct (internal to the servo controller)
+# --> Grab piece, rise
+# Return "Home"
+# ? Use vision to check that we did what we think we did (lump in with the repeat check)
+# Get a completion/sucess message
+
+# Wait for human move
+# Return to start
+
+# end Precomments....
+
+img = imread('asdsad)')
+
+class Mission_Control(object):
+    def __init__(self):
+        pass
+        
+    def execute(self):
+
+        send_arm_to_pos()
+        'move arm to home position'
+        img = take_picture()
+        occupany_grid  = get_board_state(img)
+        new_fe = make_fe_from_old_and_new(occupancy_grid, old_occupancy)
+        piece_to_move = chess_ai.decide(FE)
+
+        'move arm to grab piece'
+        'pick up piece'
+
+        answer = rosservice.call('/do_arm_action', piece_to_move)
+
+
+
+########################################################################################
+#the following are method calls the mission control will have to make with regards to 
+#ai and vision using the imported packages
+########################################################################################
+
+#this method will need to take in an image given to it by mission control
+#don't know how to take in image from mission control after each players move
+#this new occupancy grid is what will be used to make comparisons between the grid we 
+#just took in, and the grid mission control has stored as the last grid/turn
+# new_occupancy_grid, array_of_coordinates = chess_vision.get_Occupancy_and_Coordinates(img)
+
+print "Running ros node!"
+
+#coordinates can be used to find center of each chess piece if the square contains it
+#will be modified with how the architecture is set up

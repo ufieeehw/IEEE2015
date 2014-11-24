@@ -96,7 +96,7 @@ class Joint_State_Visualizer(object):
         self.ax.grid(color='r', which='major', axis='both', linestyle='--', linewidth=1)
         for item_name, item_queue in self.plot_dict.items():
             y = np.array(item_queue)
-            self.ax.plot(x, y, 'o', label=item_name)
+            self.ax.plot(x, y, '-', label=item_name)
         self.ax.legend()
         plt.title(self.name)
 
@@ -114,9 +114,9 @@ if __name__ == '__main__':
     args = parser.parse_args(rospy.myargv()[1:])
     name = args.name
     topic = args.topic
-    if (not name) or (not topic):
-        assert(False, "Need a topic name and a name name!")
-        exit()
+    # if (not name) or (not topic):
+        # assert(False, "Need a topic name and a name name!")
+        # exit()
     JSV = Joint_State_Visualizer(topic, name=name,
         plot_items=['goal_pos', 'current_pos', 'error', 'velocity', 'load'])
 

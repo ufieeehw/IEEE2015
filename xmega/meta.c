@@ -25,13 +25,12 @@ int debug_msg(Message m){
   
   //send outgoing message
   Message out = get_msg(DEBUG_TYPE, 1);
-  out.data[0] = 'a';
+  out.data[0] = *m.data;
   return queue_push(out, OUT_QUEUE);
 }
 
 //tell programt to start listening for messages
 int start_msg(Message m){
-  wipe_queue(OUT_QUEUE); //delete old messages
   start_ok = 1;   //begin listening/sending messages
   
   //start the watchdog timer (1 second timeout)

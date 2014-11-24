@@ -11,6 +11,8 @@
 #include "table.h"
 #include "meta.h"
 #include "IMU.h"
+#include "NewStep.h"
+
 //NO_DATA_TYPE function pointers (messages with only a type field)
 int (*no_data_func[NO_DATA_ARRAY_SIZE]) (Message m) = {
   no_func,        //0x00 - reserved (OK)
@@ -34,7 +36,7 @@ int (*data_1b_func[DATA_1B_ARRAY_SIZE]) (Message m) = {
 
 //DATA_2B_TYPE function pointers (messaegs with 2 bytes of data)
 int (*data_2b_func[DATA_2B_ARRAY_SIZE]) (Message m) = {
-  no_func,        //0x80 - unused
+  stepMotorMessage,        //0x80 - unused
   no_func,        //0x81 - unused
   no_func,        //0x82 - unused
   no_func         //0x83 - unused
