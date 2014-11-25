@@ -74,10 +74,10 @@ void resetAngle(){
 }
 void initStep(){
 	//initialize I/O port here
-	PORTC_DIR = 0xff;
-	CLEARBIT(PORT, ENABLEPIN);	//turn on motor
-	SETBIT(PORT, DIRPIN);
-	currentAngle = 0;
+	// PORTC_DIR = 0xff;
+	// CLEARBIT(PORT, ENABLEPIN);	//turn on motor
+	// SETBIT(PORT, DIRPIN);
+	// currentAngle = 0;
 }
 
 int stepMotorMessage(Message m){

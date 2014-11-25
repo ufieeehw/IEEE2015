@@ -31,7 +31,7 @@ DO NOT have inline comments on a line with a #define statement if they are not f
 //NO_DATA_TYPE messages [0x01-0x2F]
 #define KILL_TYPE             0x01 // out: kill
 #define START_TYPE            0x02 // out: start
-#define KEEP_ALIVE_TYPE       0x03 // out: keep_alive
+#define KEEP_ALIVE_TYPE       0x03 // out: keep_alive; in: keep_alive
 #define IMU_NOTIFY_TYPE       0x04 // out: poll_imu
 
 
@@ -40,7 +40,7 @@ DO NOT have inline comments on a line with a #define statement if they are not f
 
 
 //DATA_2B_TYPE messages [0x80-0xAF]
-#define STEP_MOTOR_TYPE       0x80
+#define STEP_MOTOR_TYPE       0x80 // out: stepper_motor
 
 
 //DATA_NB_TYPE messages [0xC0-0xEF]
