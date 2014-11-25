@@ -82,7 +82,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true',
                       help='Set verbosity of the xmega driver')
     args = parser.parse_args()
-    this_file_path = os.path.realpath(__file__)
+    this_file_path = os.path.dirname(os.path.realpath(__file__))
     verbosity = args.verbose
 
     types_path = os.path.join(this_file_path, '..', 'types.h')
