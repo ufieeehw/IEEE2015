@@ -229,7 +229,7 @@ class Serial_Proxy(object):
                 self._write_packet('keep_alive')
 
             # Handle ONE outgoing message
-            if len(self.message_queue) > 0:
+            if len(self.message_queue) > 0:  # This might have to be a try except to be threadsafe
                 outgoing_msg = self.message_queue.popleft()
                 self._write_packet(*outgoing_msg)  # "*" unpacks touple(_type, msg) into two arguments
 

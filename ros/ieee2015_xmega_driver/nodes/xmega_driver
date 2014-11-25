@@ -15,13 +15,13 @@ import xmega_driver
 
 # Ros Msgs
 from std_msgs.msg import Header, Float64, String
-from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion, Vector3
+from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion, Vector3, TwistStamped
 from sensor_msgs.msg import Imu
 from ieee2015_xmega_driver.msg import XMega_Message
 
 
 class Xmega_Driver(object):
-    def __init__(self, types_path, msg_sub_topic='robot/send_xmega_msg'):
+    def __init__(self, types_path):
         '''Xmega driver -- handles the serial interface with the Xmega128A1U for the IEEE 2015 robot.
         XMega Sensor Manifest:
             - IMU (9DOF) - 12 bytes (only using 6 DOF) [An IMU is an intertial measurement unit]
@@ -68,6 +68,7 @@ class Xmega_Driver(object):
         # To add a ROS->XMega message, you must...
         # Potentially add binding for ros-sending functions as well.
         self.debug_subscriber = rospy.Subscriber('robot/debug', String, self.got_ros_debug)
+        self.vel_sub = rospy.subscriber('robot/desired_velocity', TwistStamped, self.got_desired_vel)
 
         # Bind types.h info for the serial proxy
         self.serial_proxy.bind_types(types_path)
@@ -95,6 +96,34 @@ class Xmega_Driver(object):
         string = msg.data
         for char in string:
             self.serial_proxy.add_message('ros_debug', char)
+
+    def got_desired_vel(self, msg):
+        INCH = 25.4e-3
+        width =  9.345*INCH
+        length = 8.119*INCH
+
+        wheels = [
+            ((-length/2, -width/2, 0), (+1, -1, 0)), # rear right
+            ((-length/2, +width/2, 0), (+1, +1, 0)), # rear left
+            ((+length/2, -width/2, 0), (+1, +1, 0)), # front right
+            ((+length/2, +width/2, 0), (+1, -1, 0)), # front left
+        ]
+
+        wheel_diameter = 54e-3 # 54 mm
+        wheel_radius = wheel_diameter / 2
+
+        xyz_array = lambda o: numpy.array([o.x, o.y, o.z])
+
+        def trajectory_to_wheel_speeds(msg):
+
+            def get_vel_at_point(body_point):
+                return xyz_array(msg.twist.linear) + numpy.cross(xyz_array(msg.twist.angular), body_point)
+
+            ws_req = SetWheelSpeedsRequest()
+            [ws_req.wheel1, ws_req.wheel2, ws_req.wheel3, ws_req.wheel4] = [
+                get_vel_at_point(wheel_pos).dot(transformations.unit_vector(wheel_dir)) / wheel_radius * math.sqrt(2)
+                for wheel_pos, wheel_dir in wheels]
+
 
     def got_xmega_error(self, msg_data):
         print "Got error,", msg_data
