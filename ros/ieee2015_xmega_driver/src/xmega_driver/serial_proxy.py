@@ -14,9 +14,6 @@ import serial
 from collections import deque
 import string
 
-# Math
-import numpy as np
-
 lock = threading.Lock()
 default_path_to_types = os.path.join('..', '..', '..', '..', 'xmega', 'types.h')
 
