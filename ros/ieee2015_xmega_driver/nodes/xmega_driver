@@ -68,7 +68,7 @@ class Xmega_Driver(object):
         # To add a ROS->XMega message, you must...
         # Potentially add binding for ros-sending functions as well.
         self.debug_subscriber = rospy.Subscriber('robot/debug', String, self.got_ros_debug)
-        self.vel_sub = rospy.subscriber('robot/desired_velocity', TwistStamped, self.got_desired_vel)
+        self.vel_sub = rospy.Subscriber('robot/desired_velocity', TwistStamped, self.got_desired_vel)
 
         # Bind types.h info for the serial proxy
         self.serial_proxy.bind_types(types_path)
