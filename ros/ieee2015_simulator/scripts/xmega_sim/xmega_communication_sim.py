@@ -91,7 +91,6 @@ def type_determine_out(hex_value):
 
 
 def step_motor_call(hex_value):
-	return '0x01'
 
 # <--------------------------------------------------------------------------------------->
 
@@ -103,6 +102,16 @@ def debug_type_call(hex_value):
 
 # <--------------------------------------------------------------------------------------->
 
+def startup_loop():
+	if to_hex == '0x2':
+		print "RECIEVED STARTUP BYTE"
+		proper_start = True
+	else:
+		print "ERROR - Did not recieve startup byte"
+		master_shutdown = False
+
+# <--------------------------------------------------------------------------------------->
+
 # write values to ROS depending on recieved values - In hex or as char???
 
 def write_to_ros(hexx):
@@ -110,26 +119,22 @@ def write_to_ros(hexx):
 
 # <--------------------------------------------------------------------------------------->
 
-# Read and Convert values beeing sent from Ros to the xMega
+
+# Read and Convert values being sent from Ros to the xMega
 
 def read_from_ros():
 
+	# Loop through at least one time to check that startup is first byte recieved
+	
 	global proper_start 
+
+	if proper_start == False:
+		startup_loop()
 
 	Message = read_ser.read() 					# read one byte
 	to_hex = hex_determine(Message)				# convert byte to hex
 	hex_value = type_determine_out(to_hex)		# what is the byte telling us to do?
 	return to_hex								# return value to main loop
-
-	# Loop through at least one time to check that startup is first byte recieved
-	if proper_start == False:
-		if to_hex == '0x2':
-			print "RECIEVED STARTUP BYTE"
-			proper_start = True
-		else:
-			print "ERROR - Did not recieve startup byte"
-			master_shutdown = False
-
 			
 
 # <-------------------------------------MAIN LOOP----------------------------------------->
@@ -154,21 +159,36 @@ while master_shutdown:
 			write_to_ros(to_send)
 			data_returned = True
 
+			'''
+
+			Am going to work this in to somehow get real debug types
+
+			From xMega OS
+
+			 //send outgoing message
+  			Message out = get_msg(DEBUG_TYPE, 1);
+ 			out.data[0] = *m.data;
+  			return queue_push(out, OUT_QUEUE);
+
+			'''
+
 		# recieved call to stepper motor
 		if(to_decimal >= 128 and to_decimal <= 175 ):
 			to_send = step_motor_call(second_value)
-			write_to_ros(to_send)
-			data_returned = True
-
-		if(data_returned == False):
-			print "No Data Returned"
-
-
+			print "Call to Stepmotor with value", second_value
+			data_returned = False
 
 	# recieved call to poll the IMU for data
-	if (initial_value == '0x4'):
+	elif (initial_value == '0x4'):
 		# Need to discuss return values for IMU polling in simulation
+		print "Polled the IMU and returned value"
 		write_to_ros("0xEF")
+
+
+
+	if(data_returned == False):
+		print "No Data Returned"
+
 
 
 
