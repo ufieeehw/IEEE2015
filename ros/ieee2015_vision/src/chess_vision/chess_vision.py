@@ -132,3 +132,12 @@ def findDifferencesArrays(old_occupancy_grid, new_occupancy_grid, board_state):
         board_state[indexOfFound] = missingPiece
 
     return board_state
+
+
+def changePlayer(w_or_b_turn):
+    if (w_or_b_turn == 'w'):
+        w_or_b_turn = 'b'
+    elif (w_or_b_turn == 'b'):
+        w_or_b_turn = 'w'
+    else:
+        print 'yeah there is a big problem....ya derp'
