@@ -137,7 +137,9 @@ def findDifferencesArrays(old_occupancy_grid, new_occupancy_grid, board_state):
 def changePlayer(w_or_b_turn):
     if (w_or_b_turn == 'w'):
         w_or_b_turn = 'b'
+        return w_or_b_turn
     elif (w_or_b_turn == 'b'):
         w_or_b_turn = 'w'
+        return w_or_b_turn
     else:
         print 'yeah there is a big problem....ya derp'
