@@ -5,18 +5,19 @@ import cv2
 
 
 def threshold_for_contours(img_from_array):
+
     hsvimg = cv2.cvtColor(img_from_array, cv2.COLOR_BGR2HSV)
 
     #print type(hsvimg)
-    lower_blue = np.array([110, 50, 50], np.uint8)
+    lower_blue = np.array([108, 115, 74], np.uint8)
     #estimated values until testing
-    upper_blue = np.array([140, 255, 255], np.uint8)
+    upper_blue = np.array([155, 201, 215], np.uint8)
     #estimated values until testing
 
     #threshold_for_contours boundaries to only get orange colors
-    lower_orange = np.array([5, 100, 100], np.uint8)
+    lower_orange = np.array([0, 100, 148], np.uint8)
     #estimated values until testing
-    upper_orange = np.array([27, 255, 255], np.uint8)
+    upper_orange = np.array([91, 231, 224], np.uint8)
     #estimated values until testing
 
     #heres where it is actually threshold_for_contourse
@@ -76,31 +77,6 @@ def determine_color_and_piece_existence(Bcontours, Ocontours):
         return square_occupant
 
 '''
-def determine_color_and_piece_existence(Bcontours, Ocontours):
-    #global bluepiece
-    global piece_exists
-    #piece_exists = False
-    global contours_blue
-    global contours_orange
-
-    if (len(Ocontours) == 0 and len(Bcontours) > 0):
-        bluepiece = True
-        piece_exists = True
-        return bluepiece, piece_exists
-    elif (len(Bcontours) == 0 and len(Ocontours) > 0):
-        bluepiece = False
-        piece_exists = True
-        return bluepiece, piece_exists
-    elif (len(Ocontours) == 0 and len(Bcontours) == 0):
-        piece_exists = False
-        #bluepiece = False
-        return piece_exists
-    else:
-        piece_exists = False
-        #bluepiece = False
-        return  piece_exists
-'''
-'''
 def determine_center( bluepiece, Bcontours, Ocontours):
 
     if(bluepiece == 6 and piece_exists == True):
@@ -129,8 +105,7 @@ def determine_center( bluepiece, Bcontours, Ocontours):
 
 
 def main(array_of_images):
-
-    piece_attributes_array = []
+    occupancy_grid = []
     array_of_coordinates = []
     global square_occupant
     square_occupant = 0
@@ -153,6 +128,6 @@ def main(array_of_images):
 
         array_of_coordinates.append([x_coordinate, y_coordinate])
 
-        piece_attributes_array.append(square_occupant)
+        occupancy_grid.append(square_occupant)
 
-    return piece_attributes_array, array_of_coordinates
+    return occupancy_grid, array_of_coordinates
