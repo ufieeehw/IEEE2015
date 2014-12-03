@@ -1,4 +1,4 @@
-# MUST RUN AS SUDO 
+# MUST RUN AS SUDO UNLESS SHELL RUNS AS SUDO AUTOMATICALLY
 # must install socat to operate
 # www.dest-unreach.org/socat/
 # or 
@@ -11,40 +11,66 @@ import time
 import os
 
 print 
-print "Xmega simulation setup..."
-print 
-print "The proper PTS ports are now displayed in the popup terminal"
-
-# subprocess to change permission and open pseudo TTy Ports
-subprocess.call(["chmod", "u+x", "./com_ports_on.sh"])
-subprocess.Popen(["xterm", "-e", "./com_ports_on.sh"])
-
-time.sleep(.5) # delay to allow time for chmod to recognize xmega_tty
-
-subprocess.call(["chmod", "666", "/dev/xmega_tty"]) #change permission to allow ros access
-
-linked_path = os.path.realpath("/dev/xmega_tty")
-sliced_path = linked_path[9:] # returns pts number the tty port is linked to
-
-linked_path_two = os.path.realpath("/dev/ttyS30")
-sliced_path_two = linked_path_two[9:] # returns pts number the tty port is linked to
-
-convert_one = '/dev/pts/' + str(sliced_path_two)
-convert_two = '/dev/pts/' + str(sliced_path)
-
-print 'Waiting for signal from xmega driver at ' , convert_two
-print 'Waiting for signal from xmega driver at ' , convert_one
-
-read_ser = serial.Serial(convert_one)
-read_ser_n = serial.Serial(convert_two)
-
-first_types = ['0x5e','0xC0','0x43','0x80']
-second_types = ['0xC0','0xC0']
-third_types = ['0x01','0x02','0x03','0x04']
+print "XMEGA SIMULATION"
 
 proper_start = False # boolean used to check for startup byte
 master_shutdown = True
-data_returned = False
+read_ser = 0
+read_ser_n = 0
+
+# <--------------------------------Function Definitions--------------------------------->
+
+# Main initialization function 
+
+def init():
+
+	global read_ser
+	global read_ser_n
+	count = 0;
+	name = False
+
+	# subprocess to change permission and open pseudo TTY Ports
+
+	subprocess.call(["chmod", "u+x", "./com_ports_on.sh"])
+	subprocess.Popen('./com_ports_on.sh')
+
+	# run loop to allow time for OS to recognize xmega_tty and ttyS30
+	# If loop runs 200 times it is assumed there is an error with setup
+
+	print "-----------------------------------------------"
+	while name == False and count != 200:
+		time.sleep(.0005)
+		print "Configuring"
+		name = os.path.exists('/dev/ttyS30')
+		count+=1
+
+
+	if name == True:
+		print "-----------------------------------------------"
+		print "Socat COM simulation succesful"
+		print "Ports will be closed when this window is closed"
+		print "The proper PTS ports are now displayed in the popup terminal"
+		print "-----------------------------------------------"
+	elif name == False:
+		print "Could not create tty ports"
+		sys.exit(0)
+
+	subprocess.call(["chmod", "666", "/dev/xmega_tty"]) #change permission to allow ros access
+
+	linked_path = os.path.realpath("/dev/xmega_tty")
+	sliced_path = linked_path[9:] # returns pts number the tty port is linked to
+
+	linked_path_two = os.path.realpath("/dev/ttyS30")
+	sliced_path_two = linked_path_two[9:] # returns pts number the tty port is linked to
+
+	convert_two = '/dev/pts/' + str(sliced_path)
+	convert_one = '/dev/pts/' + str(sliced_path_two)
+
+	print 'Waiting for signal from xmega driver at ' , convert_one
+	print 'Waiting for signal from xmega driver at ' , convert_two
+
+	read_ser = serial.Serial(convert_one)
+	read_ser_n = serial.Serial(convert_two)
 
 
 # <--------------------------------------------------------------------------------------->
@@ -58,7 +84,6 @@ def hex_determine(message):
 # <--------------------------------------------------------------------------------------->
 
 # function to output type and value of byte recieved
-
 
 def type_determine_out(hex_value):
 
@@ -89,20 +114,22 @@ def type_determine_out(hex_value):
 
 # Want to fill with all possible step motor returns 
 
-
 def step_motor_call(hex_value):
+	return '0x00'
 
 # <--------------------------------------------------------------------------------------->
 
 # Want to fill with all possible debug returns 
-
 
 def debug_type_call(hex_value):
 	return '0x00'
 
 # <--------------------------------------------------------------------------------------->
 
-def startup_loop():
+def startup_loop(to_hex):
+
+	global proper_start 
+
 	if to_hex == '0x2':
 		print "RECIEVED STARTUP BYTE"
 		proper_start = True
@@ -119,7 +146,6 @@ def write_to_ros(hexx):
 
 # <--------------------------------------------------------------------------------------->
 
-
 # Read and Convert values being sent from Ros to the xMega
 
 def read_from_ros():
@@ -128,24 +154,25 @@ def read_from_ros():
 	
 	global proper_start 
 
-	if proper_start == False:
-		startup_loop()
-
 	Message = read_ser.read() 					# read one byte
 	to_hex = hex_determine(Message)				# convert byte to hex
+
+	if proper_start == False:
+		startup_loop(to_hex)
+
 	hex_value = type_determine_out(to_hex)		# what is the byte telling us to do?
 	return to_hex								# return value to main loop
-			
+
+# <----------------------------- End of Functions Section -------------------------------->
+
+init()
 
 # <-------------------------------------MAIN LOOP----------------------------------------->
 
-
 while master_shutdown:
 
-	global data_returned
 	data_returned = False
 	initial_value = read_from_ros()
-
 
 
 	# recieived keep alive byte and listening to next byte
@@ -183,7 +210,6 @@ while master_shutdown:
 		# Need to discuss return values for IMU polling in simulation
 		print "Polled the IMU and returned value"
 		write_to_ros("0xEF")
-
 
 
 	if(data_returned == False):
