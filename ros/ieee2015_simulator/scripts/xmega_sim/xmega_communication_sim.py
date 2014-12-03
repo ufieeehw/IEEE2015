@@ -52,7 +52,11 @@ def init():
 		print "The proper PTS ports are now displayed in the popup terminal"
 		print "-----------------------------------------------"
 	elif name == False:
+		print
 		print "Could not create tty ports"
+		print
+		print "Please run progam as sudo to continue"
+		print
 		sys.exit(0)
 
 	subprocess.call(["chmod", "666", "/dev/xmega_tty"]) #change permission to allow ros access
