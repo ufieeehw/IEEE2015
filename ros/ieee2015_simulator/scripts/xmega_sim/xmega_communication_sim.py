@@ -18,6 +18,12 @@ master_shutdown = True
 read_ser = 0
 read_ser_n = 0
 
+# subprocess to change permission and open pseudo TTY Ports
+
+subprocess.call(["chmod", "u+x", "./com_ports_on.sh"])
+subprocess.Popen('./com_ports_on.sh')
+
+
 # <--------------------------------Function Definitions--------------------------------->
 
 # Main initialization function 
@@ -29,10 +35,7 @@ def init():
 	count = 0;
 	name = False
 
-	# subprocess to change permission and open pseudo TTY Ports
-
-	subprocess.call(["chmod", "u+x", "./com_ports_on.sh"])
-	subprocess.Popen('./com_ports_on.sh')
+	
 
 	# run loop to allow time for OS to recognize xmega_tty and ttyS30
 	# If loop runs 200 times it is assumed there is an error with setup
