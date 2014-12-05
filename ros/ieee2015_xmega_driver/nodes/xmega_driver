@@ -4,6 +4,7 @@ from __future__ import division # Make all division floating point division
 # Misc
 import os
 import argparse
+import time
 
 # Ros
 import rospy
@@ -47,6 +48,7 @@ class Xmega_Driver(object):
             - Do something crazy with hotplug rules to make the serial proxy always run
 
             - Raise an exception if somebody tries to send a message with inappropriate length
+            - We NEED to add a delimiter to make sure messages do what they are supposed to
 
         ROS Package Deployment:
             In the distant future, it may be worth turning this into a pure ROS interface
@@ -58,17 +60,18 @@ class Xmega_Driver(object):
         rospy.init_node('XMega_Connector')
         self.serial_proxy = xmega_driver.Serial_Proxy(
             port='/dev/xmega_tty', 
+            # port='/dev/ttyUSB0',
             baud_rate=256000, 
+            verbose=False,
         )
 
         # Add ROS elements
-        self.accel_data_pub = rospy.Publisher('robot/imu', Imu, queue_size=1)
-
+        self.accel_data_pub = rospy.Publisher('imu', Imu, queue_size=1)
         # Messages being sent from ROS to the XMega
         # To add a ROS->XMega message, you must...
         # Potentially add binding for ros-sending functions as well.
-        self.debug_subscriber = rospy.Subscriber('robot/debug', String, self.got_ros_debug)
-        self.vel_sub = rospy.Subscriber('robot/desired_velocity', TwistStamped, self.got_desired_vel)
+        self.debug_subscriber = rospy.Subscriber('debug', String, self.got_ros_debug)
+        self.vel_sub = rospy.Subscriber('desired_velocity', TwistStamped, self.got_desired_vel)
 
         # Bind types.h info for the serial proxy
         self.serial_proxy.bind_types(types_path)
@@ -81,6 +84,7 @@ class Xmega_Driver(object):
 
         # Start message
         self.send_start_msg()
+        self.start_polling_loops()
 
         # Relinquish control of the program - this is an infinite loop
         self.serial_proxy.run_serial_loop()
@@ -90,6 +94,21 @@ class Xmega_Driver(object):
     def send_start_msg(self):
         '''Send the start message that tells the XMega the robot is ready to begin working'''
         self.serial_proxy.add_message('start')
+
+    def start_polling_loops(self):
+        def imu_loop():
+            old_time = time.time()
+            while(1):
+                cur_time = time.time()
+                if (cur_time - old_time) > 0.2:
+                    old_time = cur_time
+                    self.serial_proxy.add_message('poll_imu')
+
+        imu_poll = threading.Thread(target=self._read_loop)
+        imu_poll.daemon = True
+        imu_poll.start()
+        
+
 
     def got_ros_debug(self, msg):
         '''This is an example of how you might send a message to the XMega'''
@@ -153,16 +172,57 @@ class Xmega_Driver(object):
             float64[9] linear_acceleration_covariance
         '''
         # Where vel -> velocity, and acc -> acceleration
+
+        def combine_bytes(high_byte, low_byte):
+            '''combine two bytes
+            TODO:
+                Make this tolerate an arbitrary sequence of bytes
+            '''
+            # Combine the two bytes into a 16 bit int
+            number = (high_byte << 8) | low_byte  
+            if number & 0b1000000000000000:
+                # If the sign bit is 1, compute the two's complement decimal value
+                return -((~number & 0xFFFF) + 1)  
+            else:
+                # If the sign bit is not negative, the answer is the number exactly
+                return number
+
+        order = [
+            'ACCX_L', 'ACCX_H', 
+            'ACCY_L', 'ACCY_H', 
+            'ACCZ_L', 'ACCZ_H', 
+            'MX_L', 'MX_H', 
+            'MY_L', 'MY_H',
+            'MZ_L', 'MZ_H',
+        ]
+
+        msg_contents = {}
+        for character, meaning in zip(msg_data, order):
+            msg_contents[meaning] = ord(character)
+
         decomposition = {
-            'lin_acc_x': 0,
-            'lin_acc_y': 0,
-            'lin_acc_z': 0,
-            'ang_vel_x': 0,
-            'ang_vel_y': 0,
-            'ang_vel_z': 0,
-            'bearing': 0,
-            'barometric_altitude': 0,
+            'lin_acc_x': combine_bytes(msg_contents['ACCX_H'], msg_contents['ACCX_L']),
+            'lin_acc_y': combine_bytes(msg_contents['ACCY_H'], msg_contents['ACCY_L']),
+            'lin_acc_z': combine_bytes(msg_contents['ACCZ_H'], msg_contents['ACCZ_L']),
+            'ang_vel_x': 0.0,
+            'ang_vel_y': 0.0,
+            'ang_vel_z': 0.0,
+            'magnetic_x': combine_bytes(msg_contents['MX_H'], msg_contents['MX_L']),
+            'magnetic_y': combine_bytes(msg_contents['MY_H'], msg_contents['MY_L']),
+            'magnetic_z': combine_bytes(msg_contents['MZ_H'], msg_contents['MZ_L']),
+            'barometric_altitude': 0.0,
         }
+
+        # print '--------------------'
+        # for name, value in decomposition.items():
+            # print name, ':', value
+
+        mag_orientation = (
+            decomposition['magnetic_x'],
+            decomposition['magnetic_y'],
+            decomposition['magnetic_z'],
+        )
+
         angular_vel = (
             decomposition['ang_vel_x'],
             decomposition['ang_vel_y'],
@@ -174,7 +234,7 @@ class Xmega_Driver(object):
             decomposition['lin_acc_z'],
         )
 
-        orientation = tf_trans.quaternion_from_euler(0, 0, decomposition['bearing'])
+        orientation = tf_trans.quaternion_from_euler(*mag_orientation)
         IMU_msg = Imu(
             header=Header(
                 stamp=rospy.Time.now(),
@@ -185,7 +245,8 @@ class Xmega_Driver(object):
                 [0.03**2, 0,       0,
                  0,       0.03**2, 0,
                  0,       0,       0.03**2,],
-            angular_velocity=Vector3(*angular_vel),
+            # angular_velocity=Vector3(*angular_vel), # This was a hack to display mag_orientation est
+            angular_velocity=Vector3(*mag_orientation),
             angular_velocity_covariance=
                 [0.03**2, 0,       0,
                  0,       0.03**2, 0,
@@ -198,7 +259,7 @@ class Xmega_Driver(object):
                  0,       0,       0.03**2,],
         )
 
-        self.accel_data_pub()
+        self.accel_data_pub.publish(IMU_msg)
 
 
 if __name__ == '__main__':

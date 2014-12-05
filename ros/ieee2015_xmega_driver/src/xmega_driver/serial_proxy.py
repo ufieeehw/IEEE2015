@@ -224,7 +224,7 @@ class Serial_Proxy(object):
             if (cur_time - old_time) > 0.5:
                 old_time = cur_time
                 self._write_packet('keep_alive')
-
+                
             # Handle ONE outgoing message
             if len(self.message_queue) > 0:  # This might have to be a try except to be threadsafe
                 outgoing_msg = self.message_queue.popleft()
@@ -258,6 +258,7 @@ class Serial_Proxy(object):
             b_error = (msg_type & error_mask) == error_mask
             self.err_log('Recieving message of type', msg_type)
             if b_error:
+                # Unhandled
                 self.err_log('By convention, this message is read as an error type message')
 
             # Message of known length
@@ -314,6 +315,7 @@ class Serial_Proxy(object):
                     self.err_log("writing character ", character)
                     self.serial.write(character)
             else:
-                self.err_log("No other data to write")
+                pass
+                # self.err_log("No other data to write")
         else:
             self.err_log("Write type not recognized")

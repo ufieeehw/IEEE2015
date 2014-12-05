@@ -7,6 +7,16 @@ This package contains ROS tools for debugging the robot, automating out some of 
 
 # Utilities
 
+Arm click-control
+    roslaunch ieee2015_diagnostics arm_click_control.launch
+
+Arm state visualization (Includes torques, angles, velocities)
+    rosrun ieee2015_diagnostics visualize_arm_behavior topic='/robot/elbow_controller'
+
+Magnetometer visualization (Includes X,Y Mag)
+    rosrun ieee2015_diagnostics viualize_imu_output topic='/robot/imu'
+
+
 ## TODO
 
 - Visualize angle-error vs. time for all servos
@@ -17,3 +27,6 @@ This package contains ROS tools for debugging the robot, automating out some of 
 - Send a user-inputted location instruction
 - Test servo PID
 - Test send-to-position with a calibration view
+
+### Plots
+- Make a unified plotting package for plotting ROS stuff....RVIZ?
