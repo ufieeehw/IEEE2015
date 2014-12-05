@@ -5,6 +5,7 @@ from __future__ import division # Make all division floating point division
 import os
 import argparse
 import time
+import threading
 
 # Ros
 import rospy
@@ -104,7 +105,7 @@ class Xmega_Driver(object):
                     old_time = cur_time
                     self.serial_proxy.add_message('poll_imu')
 
-        imu_poll = threading.Thread(target=self._read_loop)
+        imu_poll = threading.Thread(target=imu_loop)
         imu_poll.daemon = True
         imu_poll.start()
         
