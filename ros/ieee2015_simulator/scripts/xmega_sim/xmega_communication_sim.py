@@ -21,7 +21,10 @@ read_ser_n = 0
 # subprocess to change permission and open pseudo TTY Ports
 
 subprocess.call(["chmod", "u+x", "./com_ports_on.sh"])
+subprocess.call(["chmod", "u+x", "./ROS_send.py"])
 subprocess.Popen('./com_ports_on.sh')
+subprocess.Popen(["xterm", "-e", "python ROS_send.py; bash"])
+
 
 
 # <--------------------------------Function Definitions--------------------------------->
@@ -173,6 +176,7 @@ def read_from_ros():
 # <----------------------------- End of Functions Section -------------------------------->
 
 init()
+
 
 # <-------------------------------------MAIN LOOP----------------------------------------->
 
