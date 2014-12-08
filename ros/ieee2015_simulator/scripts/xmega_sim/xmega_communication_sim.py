@@ -18,13 +18,9 @@ master_shutdown = True
 read_ser = 0
 read_ser_n = 0
 
-# subprocess to change permission and open pseudo TTY Ports
 
 subprocess.call(["chmod", "u+x", "./com_ports_on.sh"])
-subprocess.call(["chmod", "u+x", "./ROS_send.py"])
 subprocess.Popen('./com_ports_on.sh')
-subprocess.Popen(["xterm", "-e", "python ROS_send.py; bash"])
-
 
 
 # <--------------------------------Function Definitions--------------------------------->
@@ -38,14 +34,13 @@ def init():
 	count = 0;
 	name = False
 
-	
 
 	# run loop to allow time for OS to recognize xmega_tty and ttyS30
 	# If loop runs 200 times it is assumed there is an error with setup
 
 	print "-----------------------------------------------"
 	while name == False and count != 200:
-		time.sleep(.0005)
+		time.sleep(.5)
 		print "Configuring"
 		name = os.path.exists('/dev/ttyS30')
 		count+=1
@@ -78,6 +73,8 @@ def init():
 
 	print 'Waiting for signal from xmega driver at ' , convert_one
 	print 'Waiting for signal from xmega driver at ' , convert_two
+	print 
+	print 'Can now start ROS Launch from main terminal'
 
 	read_ser = serial.Serial(convert_one)
 	read_ser_n = serial.Serial(convert_two)
