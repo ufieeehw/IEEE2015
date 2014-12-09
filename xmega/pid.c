@@ -92,21 +92,21 @@ static pid_wheel_data_t wheelData[4];
 
 void pid_init() {
   //init all of the history queue
-  Encoder_History leftfront_history = {
-    .data = malloc(2*ENCODER_QUEUE_SIZE),
-    .start = ENCODER_QUEUE_SIZE-1,
+  Error_History leftfront_history = {
+    .data = malloc(2*ERROR_QUEUE_SIZE),
+    .start = ERROR_QUEUE_SIZE-1,
   }; 
-  Encoder_History leftrear_history = {
-    .data = malloc(2*ENCODER_QUEUE_SIZE),
-    .start = ENCODER_QUEUE_SIZE-1,
+  Error_History leftrear_history = {
+    .data = malloc(2*ERROR_QUEUE_SIZE),
+    .start = ERROR_QUEUE_SIZE-1,
   }; 
-  Encoder_History rightfront_history = {
-    .data = malloc(2*ENCODER_QUEUE_SIZE),
-    .start = ENCODER_QUEUE_SIZE-1,
+  Error_History rightfront_history = {
+    .data = malloc(2*ERROR_QUEUE_SIZE),
+    .start = ERROR_QUEUE_SIZE-1,
   }; 
-  Encoder_History rightrear_history = {
-    .data = malloc(2*ENCODER_QUEUE_SIZE),
-    .start = ENCODER_QUEUE_SIZE-1,
+  Error_History rightrear_history = {
+    .data = malloc(2*ERROR_QUEUE_SIZE),
+    .start = ERROR_QUEUE_SIZE-1,
   }; 
   
 	//wheelPort1 = PORTA;
@@ -174,7 +174,7 @@ void pid_compute(uint8_t motor) {
   float iTerm = iTermSum * wheelData[motor].ki; //multiply by punishment
   
 	// Compute the output (sum of p,i,and d)
-	return (wheelData[num].kp * errors[PID_HISTORY_SIZE - 1]) + iTerm + dTerm;
+	return (wheelData[motor].kp * errors[PID_HISTORY_SIZE - 1]) + iTerm + dTerm;
 }
 
 // Set the default PID gain values for a given wheel
