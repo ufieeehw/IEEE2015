@@ -265,10 +265,10 @@ void pid_set_speed_multiplier_handler(char* message, uint8_t len) {
 
 ISR(PID_TICK_OVF) {
 	// Push errors to history
-	error_history_push(pid_measureSpeed(LEFT_FRONT_MOTOR), LEFT_FRONT_MOTOR);
-	error_history_push(pid_measureSpeed(RIGHT_FRONT_MOTOR), RIGHT_FRONT_MOTOR);
-	error_history_push(pid_measureSpeed(RIGHT_REAR_MOTOR), RIGHT_REAR_MOTOR);
-	error_history_push(pid_measureSpeed(LEFT_REAR_MOTOR), LEFT_REAR_MOTOR);
+	error_history_push(pid_measure_error(LEFT_FRONT_MOTOR), LEFT_FRONT_MOTOR);
+	error_history_push(pid_measure_error(RIGHT_FRONT_MOTOR), RIGHT_FRONT_MOTOR);
+	error_history_push(pid_measure_error(RIGHT_REAR_MOTOR), RIGHT_REAR_MOTOR);
+	error_history_push(pid_measure_error(LEFT_REAR_MOTOR), LEFT_REAR_MOTOR);
 }
 
 unsigned int grayToBinary(unsigned int num)
