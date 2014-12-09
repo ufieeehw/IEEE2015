@@ -8,7 +8,7 @@ the chess_vision *python* package in ieee2015_vision
 So, a ROS package can contain multiple Python packages.
 When testing your changes,
 - Try doing a catkin_make -C ~/catkin_ws and check for errors
-- Then do rosrun ieee2015_mission_control chess_mission_control.py
+- Then do rosrun ieee2015_mission_control chess_mission_control
 '''
 import rospy
 import cv2
@@ -23,7 +23,7 @@ ARM_HOME = (100, 100)
 PICKING_HEIGHT = 10
 GRABBING_HEIGHT = 4
 tf_bot_to_board = None  # Fill this in!
-global w_or_b_turn = 'w'  # could be whatever we choose initally
+global w_or_b_turn  # could be whatever we choose initally
 
 # /Temporary
 # Precomments...
@@ -67,6 +67,7 @@ class Mission_Control(object):
 
             new_occupancy_grid = []
             #needs to be a field
+            w_or_b_turn = 'w'
 
             #also needs to be a field
             #ideally we never want this in here but for testing, yeah
