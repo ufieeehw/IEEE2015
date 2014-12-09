@@ -28,26 +28,32 @@ void init(){
 	CLK.CTRL = CLK_SCLKSEL_RC32M_gc; // switch to the 32 Mhz clock
   
   //do component driver initializations
-  meta_init();  //initialize meta functions (should come first)
-  IMU_init();
-  initStep();
+  //meta_init();  //initialize meta functions (should come first)
+  //IMU_init();
+  //initStep();
   pid_init();
   //ADD MORE HERE
   
   //initialize communications
-  init_msg_queue();
-  initialize_usart();
+  //init_msg_queue();
+  //initialize_usart();
 }
 
 /* main function, don't change without consulting Josh */
 int main(){
   init(); //call initializations
   
-  for(int i=0;i<70;i++) void encoder_history_push(uint16_t data, uint8_t motor);
+  for(int i=0;i<72;i++) error_history_push(i,0);
+  volatile int a = error_history_at(0,0);
+  volatile int b = error_history_at(4,0);
+  volatile int c = error_history_at(10,0);
+  int16_t d[4] = {0};
+  int16_t e[16] = {0};
+  error_history_batch(d,4,0);
+  error_history_batch(e,16,0);
   
   while(1){
-    
-  
+    //do nothing
   }
   
   uint16_t loop_count = 0;  //init the loop count

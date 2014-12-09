@@ -7,14 +7,12 @@
 #include "pid.h"
 #include "pololu.h"
 
-#define constP 120
-#define constI 0
-#define constD 0.0004
+#define constP      120
+#define constI      0
+#define constD      0.0004
+#define PID_HISTORY 8
 
-//no
 #define TEST_CPU 32000000
-
-//Testing shit
 
 // Configuration Values
 static TC0_t *pid_tick_timer = &TCC0;
@@ -27,30 +25,30 @@ static float radPerTick = (2*M_PI)/1856.0;
 static const float sampleTime = 10e-3;
 
 static pololu_t pololu_1 = {
-	.PORT = &PORTD;
-	.TC2 = &TCD2;
-	.motor2 = false;
+	.PORT = &PORTD,
+	.TC2 = &TCD2,
+	.motor2 = 0,
 };
 static pololu_t pololu_2 = {
-	.PORT = &PORTD;
-	.TC2 = &TCD2;
-	.motor2 = true;
+	.PORT = &PORTD,
+	.TC2 = &TCD2,
+	.motor2 = 1,
 };
 static pololu_t pololu_3 = {
-	.PORT = &PORTF;
-	.TC2 = &TCF2;
-	.motor2 = false;
+	.PORT = &PORTF,
+	.TC2 = &TCF2,
+	.motor2 = 0,
 };
 static pololu_t pololu_4 = {
-	.PORT = &PORTF;
-	.TC2 = &TCF2;
-	.motor2 = true;
+	.PORT = &PORTF,
+	.TC2 = &TCF2,
+	.motor2 = 1,
 };
 
-static Encoder_History leftfront_history; 
-static Encoder_History leftrear_history;
-static Encoder_History rightfront_history;
-static Encoder_History rightrear_history;
+static Error_History leftfront_history; 
+static Error_History leftrear_history;
+static Error_History rightfront_history;
+static Error_History rightrear_history;
 
 // File-Scope Variables and Structures
 typedef struct{
@@ -86,19 +84,19 @@ static pid_wheel_data_t wheelData[4];
 void pid_init() {
   //init all of the history queue
   Encoder_History leftfront_history = {
-    .data = uint16_t[64],
+    .data = malloc(2*ENCODER_QUEUE_SIZE),
     .start = ENCODER_QUEUE_SIZE-1,
   }; 
   Encoder_History leftrear_history = {
-    .data = uint16_t[64],
+    .data = malloc(2*ENCODER_QUEUE_SIZE),
     .start = ENCODER_QUEUE_SIZE-1,
   }; 
   Encoder_History rightfront_history = {
-    .data = uint16_t[64],
+    .data = malloc(2*ENCODER_QUEUE_SIZE),
     .start = ENCODER_QUEUE_SIZE-1,
   }; 
   Encoder_History rightrear_history = {
-    .data = uint16_t[64],
+    .data = malloc(2*ENCODER_QUEUE_SIZE),
     .start = ENCODER_QUEUE_SIZE-1,
   }; 
   
@@ -166,11 +164,11 @@ static void pid_compute(wheelNum num) {
 	//Compute the output
 	data->output = (data->kp * error) + (data->ki * data->errSum) + (data->kd * dErr);
 	
-	char buff[20];
-	if(num == WHEEL1){
-		sprintf(buff,"out = %.4f | ", data->output);
-		usart_sendstring(buff);
-	}
+	//char buff[20];
+	//if(num == WHEEL1){
+	//	sprintf(buff,"out = %.4f | ", data->output);
+	//	usart_sendstring(buff);
+	//}
 	
 	//Remember some things for later
 	data->lastErr = error;
@@ -190,11 +188,11 @@ static void pid_measureSpeed(wheelNum num) {
 	sei();
 	data->AVG_speed = (ticks - data->pid_last_ticks)*radPerTick/sampleTime;
 
-	char buff[20];
-	if(num == WHEEL1){
-		sprintf(buff,"speed = %.4f ", data->AVG_speed);
-		usart_sendstring(buff);
-	}
+	//char buff[20];
+	//if(num == WHEEL1){
+	//	sprintf(buff,"speed = %.4f ", data->AVG_speed);
+	//	usart_sendstring(buff);
+	//}
 	data->pid_last_ticks = ticks;
 }
 
@@ -307,48 +305,48 @@ unsigned int grayToBinary(unsigned int num)
 	return num;
 }
 
-//push an encoder sample to specified queue
-void encoder_history_push(uint16_t data, uint8_t motor){ 
-  Encoder_History* encoder;
+//push an error sample to specified queue
+void error_history_push(int16_t data, uint8_t motor){ 
+  Error_History* error;
   switch (motor){
-    case LEFT_FRONT_MOTOR:  encoder = &leftfront_encoder;
-    case LEFT_REAR_MOTOR:   encoder = &leftrear_encoder;
-    case RIGHT_FRONT_MOTOR: encoder = &rightfront_encoder;
-    case RIGHT_REAR_MOTOR:  encoder = &rightrear_encoder;
+    case LEFT_FRONT_MOTOR:  error = &leftfront_history;
+    case LEFT_REAR_MOTOR:   error = &leftrear_history;
+    case RIGHT_FRONT_MOTOR: error = &rightfront_history;
+    case RIGHT_REAR_MOTOR:  error = &rightrear_history;
   }
-  encoder->data[encoder->start] = data;
-  encoder->start = (encoder->start + 1) % ENCODER_QUEUE_SIZE;
+  error->data[error->start] = data;
+  error->start = (error->start + 1) % ERROR_QUEUE_SIZE;
 }
 
 //get a single history entry
-uint16_t encoder_history_at(uint8_t index, uint8_t motor){ 
-  Encoder_History* encoder;
+uint16_t error_history_at(int8_t index, uint8_t motor){ 
+  Error_History* error;
   switch (motor){
-    case LEFT_FRONT_MOTOR:  encoder = &leftfront_encoder;
-    case LEFT_REAR_MOTOR:   encoder = &leftrear_encoder;
-    case RIGHT_FRONT_MOTOR: encoder = &rightfront_encoder;
-    case RIGHT_REAR_MOTOR:  encoder = &rightrear_encoder;
+    case LEFT_FRONT_MOTOR:  error = &leftfront_history;
+    case LEFT_REAR_MOTOR:   error = &leftrear_history;
+    case RIGHT_FRONT_MOTOR: error = &rightfront_history;
+    case RIGHT_REAR_MOTOR:  error = &rightrear_history;
   }
-  return encoder->data[encoder->start];
+  return error->data[error->start];
 }
 
 //return batched history entries
-void encoder_history_batch(uint16_t* buffer, uint8_t size){ 
-  Encoder_History* encoder;
+void error_history_batch(int16_t* buffer, uint8_t size, uint8_t motor){ 
+  Error_History* error;
   switch (motor){
-    case LEFT_FRONT_MOTOR:  encoder = &leftfront_encoder;
-    case LEFT_REAR_MOTOR:   encoder = &leftrear_encoder;
-    case RIGHT_FRONT_MOTOR: encoder = &rightfront_encoder;
-    case RIGHT_REAR_MOTOR:  encoder = &rightrear_encoder;
+    case LEFT_FRONT_MOTOR:  error = &leftfront_history;
+    case LEFT_REAR_MOTOR:   error = &leftrear_history;
+    case RIGHT_FRONT_MOTOR: error = &rightfront_history;
+    case RIGHT_REAR_MOTOR:  error = &rightrear_history;
   }
   
-  if(encoder->start - size < 0){ //check value range
-    int overfolw_addr = 64 + encoder->start - size;
-    int overflow_amt = size-encoder->start-1;
-    memcpy(buffer, encoder->data+overflow_addr, overflow_amt)
-    memcpy(buffer+overflow_amt, encoder->data, encoder->start+1); //copy newer data
+  if(error->start - size < 0){ //check value range
+    int overflow_addr = 64 + error->start - size;
+    int overflow_amt = size-error->start-1;
+    memcpy(buffer, error->data+overflow_addr, overflow_amt);
+    memcpy(buffer+overflow_amt, error->data, error->start+1); //copy newer data
   } else { //no overflow
-    memcpy(buffer, encoder->data + encoder->start, size)
+    memcpy(buffer, error->data + error->start, size);
   }
 }
 
