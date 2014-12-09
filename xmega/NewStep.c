@@ -1,7 +1,7 @@
 /*
 	Message expects 2 byte int value between -1800 to 1800 
 	This value corresponds to the target angle * 10
-		I am type 0xB0
+		I am type 0x80
 */
 
 #include "types.h"

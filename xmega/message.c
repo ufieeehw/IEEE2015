@@ -88,7 +88,7 @@ int queue_push(Message m, int direction){
   if(MAX_MESSAGE <= message_count) return MESSAGE_ERROR_TYPE;  //no more space
   
   //don't push outgoing messages if we haven't started
-  if(!start_ok && direction) return;
+  if(!start_ok && direction) return MESSAGE_ERROR_TYPE;
   
   Message *new_msg = get_node();  //get the pointer
   new_msg->type = m.type;   //copy the data fields

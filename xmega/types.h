@@ -44,7 +44,7 @@ DO NOT have inline comments on a line with a #define statement if they are not f
 
 
 //DATA_NB_TYPE messages [0xC0-0xEF]
-
+#define MOTOR_SPEED_TYPE      0xC0 // out: motor_speed
 #define IMU_DATA_TYPE         0xEF // in: imu_data
 
 

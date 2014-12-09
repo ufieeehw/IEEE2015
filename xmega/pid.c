@@ -48,10 +48,23 @@ static pololu_t pololu_LR = {
 	.motor2 = 1,
 };
 
-static Error_History leftfront_history; 
-static Error_History leftrear_history;
-static Error_History rightfront_history;
-static Error_History rightrear_history;
+//initialize all of the history queues
+static Error_History leftfront_history = {
+  .data = 0,
+  .start = ERROR_QUEUE_SIZE-1,
+}; 
+static Error_History leftrear_history = {
+  .data = 0,
+  .start = ERROR_QUEUE_SIZE-1,
+}; 
+static Error_History rightfront_history = {
+  .data = 0,
+  .start = ERROR_QUEUE_SIZE-1,
+}; 
+static Error_History rightrear_history = {
+  .data = 0,
+  .start = ERROR_QUEUE_SIZE-1,
+}; 
 
 // File-Scope Variables and Structures
 //	AVG_speed: Average speed of given wheel in rads/S
@@ -103,28 +116,16 @@ static const pid_wheel_data_t DEFAULT = {
 // Array of wheel data (per wheel?)
 static pid_wheel_data_t wheelData[4];
 
-void pid_init() {
-  //init all of the history queue
-  Error_History leftfront_history = {
-    .data = malloc(2*ERROR_QUEUE_SIZE),
-    .start = ERROR_QUEUE_SIZE-1,
-  }; 
-  Error_History leftrear_history = {
-    .data = malloc(2*ERROR_QUEUE_SIZE),
-    .start = ERROR_QUEUE_SIZE-1,
-  }; 
-  Error_History rightfront_history = {
-    .data = malloc(2*ERROR_QUEUE_SIZE),
-    .start = ERROR_QUEUE_SIZE-1,
-  }; 
-  Error_History rightrear_history = {
-    .data = malloc(2*ERROR_QUEUE_SIZE),
-    .start = ERROR_QUEUE_SIZE-1,
-  }; 
-  
+void pid_init() {  
 	//wheelPort1 = PORTA;
 	//wheelPort2 = PORTB;
-
+  
+  //setup the queue buffers if not declared
+  if(!leftfront_history.data) leftfront_history.data = malloc(2*ERROR_QUEUE_SIZE);
+  if(!rightfront_history.data) rightfront_history.data = malloc(2*ERROR_QUEUE_SIZE);
+  if(!leftrear_history.data) leftrear_history.data = malloc(2*ERROR_QUEUE_SIZE);
+  if(!rightrear_history.data) rightrear_history.data = malloc(2*ERROR_QUEUE_SIZE);
+    
 	//Initialize Pololus
 	pololuInit(&pololu_LF);
 	pololuInit(&pololu_RF);
@@ -163,15 +164,13 @@ void pid_init() {
 	pid_tick_timer->INTCTRLA = TC_OVFINTLVL_LO_gc;
 
 	// Set PID gain defaults per wheel
-	pid_setTunings(constP, constI, constD, WHEEL1);
-	pid_setTunings(constP, constI, constD, WHEEL2);
-	pid_setTunings(constP, constI, constD, WHEEL3);
-	pid_setTunings(constP, constI, constD, WHEEL4);
-
-	sei();
+	pid_setTunings(constP, constI, constD, LEFT_FRONT_MOTOR);
+	pid_setTunings(constP, constI, constD, LEFT_REAR_MOTOR);
+	pid_setTunings(constP, constI, constD, RIGHT_FRONT_MOTOR);
+	pid_setTunings(constP, constI, constD, RIGHT_REAR_MOTOR);
 }
 
-void pid_compute(uint8_t motor) {
+uint16_t pid_compute(uint8_t motor) {
 	// Compute all working error variables
 	int16_t errors[PID_HISTORY_SIZE];
   error_history_batch(errors, PID_HISTORY_SIZE, motor);
@@ -299,7 +298,7 @@ void error_history_push(int16_t data, uint8_t motor){
 }
 
 //get a single history entry
-uint16_t error_history_at(int8_t index, uint8_t motor){ 
+int16_t error_history_at(int8_t index, uint8_t motor){ 
   Error_History* error;
   switch (motor){
     case LEFT_FRONT_MOTOR:  error = &leftfront_history;

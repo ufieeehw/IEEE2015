@@ -12,6 +12,7 @@
 #include "meta.h"
 #include "IMU.h"
 #include "NewStep.h"
+#include "pid.h"
 
 //NO_DATA_TYPE function pointers (messages with only a type field)
 int (*no_data_func[NO_DATA_ARRAY_SIZE]) (Message m) = {
@@ -36,7 +37,7 @@ int (*data_1b_func[DATA_1B_ARRAY_SIZE]) (Message m) = {
 
 //DATA_2B_TYPE function pointers (messaegs with 2 bytes of data)
 int (*data_2b_func[DATA_2B_ARRAY_SIZE]) (Message m) = {
-  stepMotorMessage,        //0x80 - unused
+  stepMotorMessage,        //0x80 - step motor
   no_func,        //0x81 - unused
   no_func,        //0x82 - unused
   no_func         //0x83 - unused
@@ -45,7 +46,7 @@ int (*data_2b_func[DATA_2B_ARRAY_SIZE]) (Message m) = {
 
 //DATA_NB_TYPE function pointers (arbitrary length messages)
 int (*data_nb_func[DATA_NB_ARRAY_SIZE]) (Message m) = {
-  no_func,        //0xC0 - unused
+  pid_speed_msg,  //0xC0 - motor_speed
   no_func,        //0xC1 - unused
   no_func,        //0xC2 - unused
   no_func         //0xC3 - unused

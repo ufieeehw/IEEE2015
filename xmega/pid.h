@@ -22,9 +22,9 @@ void error_history_batch(int16_t* buffer, uint8_t size, uint8_t motor); //return
 void update_pid(void); //call a pid update
 int pid_speed_msg(Message msg);
 
-void pid_setTunings(float Kp, float Ki, float Kd, wheelNum num);
-float pid_getSpeed(wheelNum num);
-void pid_setSpeed(float speed, wheelNum num);
+void pid_setTunings(float Kp, float Ki, float Kd, uint8_t motor);
+float pid_getSpeed(uint8_t motor);
+void pid_setSpeed(float speed, uint8_t motor);
 void pid_get_speed_handler(char* message, uint8_t len);
 void pid_get_odometry_handler(char* message, uint8_t len);
 void pid_get_speed_multiplier_handler(char* message, uint8_t len);
