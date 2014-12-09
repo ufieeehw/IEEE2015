@@ -12,9 +12,12 @@
 #include "meta.h"
 #include "IMU.h"
 #include "NewStep.h"
+#include "pid.h"
 
-//Quantum definitions (how many buffer operations per function call)
+//Quantum definitions (how many operations per funciton call)
+#define MAX_LOOP_COUNT  255
 #define BUFFER_ALLOWED  16
+#define LOOP_PER_PID    04
 
 /* initialization (and reset) function for the robot, add your own code */
 void init(){
@@ -28,6 +31,7 @@ void init(){
   meta_init();  //initialize meta functions (should come first)
   IMU_init();
   initStep();
+  pid_init();
   //ADD MORE HERE
   
   //initialize communications
@@ -38,6 +42,15 @@ void init(){
 /* main function, don't change without consulting Josh */
 int main(){
   init(); //call initializations
+  
+  for(int i=0;i<70;i++) void encoder_history_push(uint16_t data, uint8_t motor);
+  
+  while(1){
+    
+  
+  }
+  
+  uint16_t loop_count = 0;  //init the loop count
     
   //enable interrupts
   PMIC.CTRL = 7; //enable all interrupt levels
@@ -45,6 +58,8 @@ int main(){
   
   while(1){  //don't break out of loop
     resolve_buffers(BUFFER_ALLOWED); //resolve some of the buffer
+    
+    if((loop_count % LOOP_PER_PID) == 0) update_pid(); //call the pid update
     
     if(in_queue){ //if there is a message, throw to the handler
       Message m; //set pointer to null

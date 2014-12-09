@@ -92,6 +92,27 @@ static const pid_wheel_data_t DEFAULT = {
 static pid_wheel_data_t wheelData[4];
 
 void pid_init() {
+  //init all of the history queue
+  Encoder_History leftfront_history = {
+    .data = uint16_t[64],
+    .start = ENCODER_QUEUE_SIZE-1,
+  }; 
+  Encoder_History leftrear_history = {
+    .data = uint16_t[64],
+    .start = ENCODER_QUEUE_SIZE-1,
+  }; 
+  Encoder_History rightfront_history = {
+    .data = uint16_t[64],
+    .start = ENCODER_QUEUE_SIZE-1,
+  }; 
+  Encoder_History rightrear_history = {
+    .data = uint16_t[64],
+    .start = ENCODER_QUEUE_SIZE-1,
+  }; 
+  
+	//wheelPort1 = PORTA;
+	//wheelPort2 = PORTB;
+
 	//Initialize Pololus
 	pololuInit(&pololu_1);
 	pololuInit(&pololu_2);
