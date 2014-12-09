@@ -192,22 +192,19 @@ void pid_setTunings(float Kp, float Ki, float Kd, uint8_t motor) {
 	wheelData[motor].kd = Kd / sampleTime;
 }
 
-static void pid_measureSpeed(uint8_t motor) {
+int16_t pid_measureSpeed(uint8_t motor) {
 	// Pull current number of ticks for given motor 'num'
 	uint16_t ticks = wheelData[motor].ticks;
-	// Average Speed would be the change in ticks
-	wheelData[motor].AVG_speed = ticks - wheelData[motor].pid_last_ticks;
 	// Replace the current number ticks as the previous number of ticks
 	wheelData[motor].pid_last_ticks = ticks;
+	// return change in ticks
+	return ticks - wheelData[motor].pid_last_ticks;
 }
 
-float pid_getSpeed(uint8_t motor) {
+uint16_t pid_getSpeed(uint8_t motor) {
 	return wheelData[motor].AVG_speed;
 }
 
-void pid_setSpeed(int16_t speed, uint8_t motor) {
-	wheelData[motor].setpoint = speed;
-}
 
 /*******************************************************************
 -----> Handler Functions <-----
@@ -223,13 +220,13 @@ int pid_speed_msg(Message msg) {
 		Will be used as callback to set current desired wheel speeds
 	*/
 	float* data = (float*) msg.data;
-	wheelData.setpoint[LEFT_FRONT_MOTOR] = (uint16_t) rads_to_ticks(data[0]);
-	wheelData.setpoint[RIGHT_FRONT_MOTOR] = (uint16_t) rads_to_ticks(data[1]);
-	wheelData.setpoint[RIGHT_REAR_MOTOR] = (uint16_t) rads_to_ticks(data[2]);
-	wheelData.setpoint[LEFT_REAR_MOTOR] = (uint16_t) rads_to_ticks(data[3]);
+	wheelData[LEFT_FRONT_MOTOR].setpoint = (uint16_t) rads_to_ticks(data[0]);
+	wheelData[RIGHT_FRONT_MOTOR].setpoint = (uint16_t) rads_to_ticks(data[1]);
+	wheelData[RIGHT_REAR_MOTOR].setpoint = (uint16_t) rads_to_ticks(data[2]);
+	wheelData[LEFT_REAR_MOTOR].setpoint = (uint16_t) rads_to_ticks(data[3]);
 	}
 
-static void pid_get_odometry(float* returnData) {
+void pid_get_odometry(float* returnData) {
 	for(int i = 0; i < 4; i++) {
 		int16_t ticks = wheelData[i].ticks;
 		volatile int16_t tmp = ticks - wheelData[i].odometry_last_ticks;
