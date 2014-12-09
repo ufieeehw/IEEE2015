@@ -1,6 +1,7 @@
 
 #ifndef PID_H_
 #define PID_H_
+#include "message.h"
 
 typedef enum{
 	WHEEL1,
@@ -27,10 +28,11 @@ void encoder_history_push(uint16_t data, uint8_t motor); //push an encoder sampl
 uint16_t encoder_history_at(uint8_t index, uint8_t motor); //get a history entry
 void encoder_history_batch(uint16_t* buffer, uint8_t size); //return batched history entries
 void update_pid(void); //call a pid update
+int pid_speed_msg(Message msg);
+
 void pid_setTunings(float Kp, float Ki, float Kd, wheelNum num);
 float pid_getSpeed(wheelNum num);
 void pid_setSpeed(float speed, wheelNum num);
-void pid_set_speed_handler(float speed);
 void pid_get_speed_handler(char* message, uint8_t len);
 void pid_get_odometry_handler(char* message, uint8_t len);
 void pid_get_speed_multiplier_handler(char* message, uint8_t len);

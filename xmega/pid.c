@@ -47,18 +47,26 @@ static pololu_t pololu_4 = {
 	.motor2 = true;
 };
 
-static Encoder_History leftfront_history; 
-static Encoder_History leftrear_history;
-static Encoder_History rightfront_history;
-static Encoder_History rightrear_history;
+//static Encoder_History leftfront_history; 
+//static Encoder_History leftrear_history;
+//static Encoder_History rightfront_history;
+//static Encoder_History rightrear_history;
 
 // File-Scope Variables and Structures
+//	AVG_speed: Average speed of given wheel in rads/S
+//	ticks: Measurement of current ticks for given sample
+//	output: Current output of PID controller per wheel
+//	setpoint: The desired speed for the PID controller
+//	errSum: running sum of speed error per wheel
+//	pid_last_ticks: Measurement of ticks from previous sample
+
 typedef struct{
 	// Wheel Direction
 	//MotorDirection direction = MOTOR_NEUTRAL;
 	// Values for measuring the speed of the wheel
 	volatile float AVG_speed; // 0
-	volatile int32_t ticks; // 0
+	volatile int32_t ticks; // The
+	
 	// Values for the actual pid controller
 	float input, output, setpoint, errSum, lastErr, kp, ki, kd; // all 0
 	int32_t pid_last_ticks; // 0
@@ -112,7 +120,8 @@ void pid_init() {
 	wheelPort2->INT1MASK = 0x0A;
 
 	// Initialize the PID tick timer
-	pid_tick_timer->CTRLA = TC_CLKSEL_DIV64_gc; //Uses timer on portC since all timers on PORT E and D will be used for wheels.
+	// Uses timer on portC since all timers on PORT E and D will be used for wheels.
+	pid_tick_timer->CTRLA = TC_CLKSEL_DIV64_gc;
 	pid_tick_timer->CTRLB = 0x00;
 	pid_tick_timer->CTRLC = 0x00;
 	pid_tick_timer->CTRLD = 0x00;
@@ -122,6 +131,7 @@ void pid_init() {
 	pid_tick_timer->PER = round(TEST_CPU * sampleTime / 64.);
 	pid_tick_timer->INTCTRLA = TC_OVFINTLVL_LO_gc;
 
+	// Set PID gain defaults per wheel
 	pid_setTunings(constP, constI, constD, WHEEL1);
 	pid_setTunings(constP, constI, constD, WHEEL2);
 	pid_setTunings(constP, constI, constD, WHEEL3);
@@ -131,61 +141,48 @@ void pid_init() {
 }
 
 static void pid_compute(wheelNum num) {
-	pid_wheel_data_t *data = &wheelData[num];
 	// Compute all working error variables
-	float error = data->setpoint - data->AVG_speed;
-	data->errSum += error;
-	float dErr = (error - data->lastErr);
-	if(data->ki * data->errSum >= 1024) {
-		data->errSum = 1024/data->ki;
+	float error = wheelData[num].setpoint - wheelData[num].AVG_speed;
+	wheelData[num].errSum += error;
+	float dErr = (error - wheelData[num].lastErr);
+	
+	if(wheelData[num].ki * wheelData[num].errSum >= 1024) {
+		wheelData[num].errSum = 1024/wheelData[num].ki;
 	} 
-	else if(data->ki * data->errSum <= -1024) {
-		data->errSum = -1024/data->ki;
-	}
-	//Compute the output
-	data->output = (data->kp * error) + (data->ki * data->errSum) + (data->kd * dErr);
-	
-	char buff[20];
-	if(num == WHEEL1){
-		sprintf(buff,"out = %.4f | ", data->output);
-		usart_sendstring(buff);
+	else if(wheelData[num].ki * wheelData[num].errSum <= -1024) {
+		wheelData[num].errSum = -1024/wheelData[num].ki;
 	}
 	
-	//Remember some things for later
-	data->lastErr = error;
+	// Compute the output
+	wheelData[num].output = (wheelData[num].kp * error) + (wheelData[num].ki * wheelData[num].errSum) + (wheelData[num].kd * dErr);
+	
+	// Remember some things for later
+	wheelData[num].lastErr = error;
 }
 
+// Set the default PID gain values for a given wheel
 void pid_setTunings(float Kp, float Ki, float Kd, wheelNum num) {
-	pid_wheel_data_t *data = &wheelData[num];
-	data->kp = Kp;
-	data->ki = Ki*sampleTime;
-	data->kd = Kd/sampleTime;
+	wheelData[num].kp = Kp;
+	wheelData[num].ki = Ki * sampleTime;
+	wheelData[num].kd = Kd / sampleTime;
 }
 
 static void pid_measureSpeed(wheelNum num) {
 	pid_wheel_data_t *data = &wheelData[num];
-	cli();
 	int32_t ticks = data->ticks;
-	sei();
 	data->AVG_speed = (ticks - data->pid_last_ticks)*radPerTick/sampleTime;
-
-	char buff[20];
-	if(num == WHEEL1){
-		sprintf(buff,"speed = %.4f ", data->AVG_speed);
-		usart_sendstring(buff);
-	}
+	
 	data->pid_last_ticks = ticks;
 }
 
 float pid_getSpeed(wheelNum num) {
-	pid_wheel_data_t *data = &wheelData[num];
-	return data->AVG_speed;
+	return wheelData.AVG_speed;
 }
 
 void pid_setSpeed(float speed, wheelNum num) {
-	pid_wheel_data_t *data = &wheelData[num];
-	data->setpoint = speed;
+	wheelData[num].setpoint = speed;
 }
+
 /*******************************************************************
 -----> Handler Functions <-----
 *******************************************************************/
@@ -195,10 +192,8 @@ void pid_setSpeed(float speed, wheelNum num) {
 // 16 bytes, little endian 32bit numbers that represent the desired wheel speed
 // multiplied by 1000. Pass a pointer to the low byte of
 // len := the length of the message. E.g. the number of bytes in the array
-void pid_set_speed_handler(float speed) {
-	cli();
+void pid_speed_msg(float speed) {
 	for(int i = 0; i < 4; i++) pid_setSpeed(speed, (wheelNum)i);
-	sei();
 }
 
 /*
