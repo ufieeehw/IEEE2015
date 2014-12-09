@@ -21,11 +21,10 @@
  * 
  */
 
-#include <asf.h>
-#include "pololu.h"
 #include <avr/io.h>
 #include <math.h>
 #include "pid.h"
+#include "pololu.h"
 
 #define PERIOD  208
 

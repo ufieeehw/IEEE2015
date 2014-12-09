@@ -9,16 +9,16 @@
 #define RIGHT_REAR_MOTOR  3
 
 //pid queue definitions
-#define ENCODER_QUEUE_SIZE    64
+#define ERROR_QUEUE_SIZE    64
 typedef struct {
-  uint16_t* data;   //pointer to data buffer
+  int16_t* data;   //pointer to data buffer
   uint8_t start;    //first index with data
-} Encoder_History;
+} Error_History;
 
 void pid_init(void);
-void encoder_history_push(uint16_t data, uint8_t motor); //push an encoder sample
-uint16_t encoder_history_at(uint8_t index, uint8_t motor); //get a history entry
-void encoder_history_batch(uint16_t* buffer, uint8_t size); //return batched history entries
+void error_history_push(int16_t data, uint8_t motor); //push an error sample
+int16_t error_history_at(int8_t index, uint8_t motor); //get a history entry
+void error_history_batch(int16_t* buffer, uint8_t size, uint8_t motor); //return batched history entries
 void update_pid(void); //call a pid update
 int pid_speed_msg(Message msg);
 

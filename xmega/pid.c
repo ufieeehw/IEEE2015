@@ -7,9 +7,11 @@
 #include "pid.h"
 #include "pololu.h"
 
-#define constP 120
-#define constI 0
-#define constD 0.0004
+#define constP            120
+#define constI            0
+#define constD            0.0004
+#define PID_HISTORY_SIZE  8
+#define PID_HISTORY_LOG   3
 
 #define TEST_CPU 32000000
 
@@ -26,30 +28,30 @@ static float radPerTick = (2*M_PI)/1856.0;
 static const float sampleTime = 10e-3;
 
 static pololu_t pololu_1 = {
-	.PORT = &PORTD;
-	.TC2 = &TCD2;
-	.motor2 = false;
+	.PORT = &PORTD,
+	.TC2 = &TCD2,
+	.motor2 = 0,
 };
 static pololu_t pololu_2 = {
-	.PORT = &PORTD;
-	.TC2 = &TCD2;
-	.motor2 = true;
+	.PORT = &PORTD,
+	.TC2 = &TCD2,
+	.motor2 = 1,
 };
 static pololu_t pololu_3 = {
-	.PORT = &PORTF;
-	.TC2 = &TCF2;
-	.motor2 = false;
+	.PORT = &PORTF,
+	.TC2 = &TCF2,
+	.motor2 = 0,
 };
 static pololu_t pololu_4 = {
-	.PORT = &PORTF;
-	.TC2 = &TCF2;
-	.motor2 = true;
+	.PORT = &PORTF,
+	.TC2 = &TCF2,
+	.motor2 = 1,
 };
 
-static Encoder_History leftfront_history; 
-static Encoder_History leftrear_history;
-static Encoder_History rightfront_history;
-static Encoder_History rightrear_history;
+static Error_History leftfront_history; 
+static Error_History leftrear_history;
+static Error_History rightfront_history;
+static Error_History rightrear_history;
 
 // File-Scope Variables and Structures
 //	AVG_speed: Average speed of given wheel in rads/S
@@ -104,19 +106,19 @@ static pid_wheel_data_t wheelData[4];
 void pid_init() {
   //init all of the history queue
   Encoder_History leftfront_history = {
-    .data = uint16_t[64],
+    .data = malloc(2*ENCODER_QUEUE_SIZE),
     .start = ENCODER_QUEUE_SIZE-1,
   }; 
   Encoder_History leftrear_history = {
-    .data = uint16_t[64],
+    .data = malloc(2*ENCODER_QUEUE_SIZE),
     .start = ENCODER_QUEUE_SIZE-1,
   }; 
   Encoder_History rightfront_history = {
-    .data = uint16_t[64],
+    .data = malloc(2*ENCODER_QUEUE_SIZE),
     .start = ENCODER_QUEUE_SIZE-1,
   }; 
   Encoder_History rightrear_history = {
-    .data = uint16_t[64],
+    .data = malloc(2*ENCODER_QUEUE_SIZE),
     .start = ENCODER_QUEUE_SIZE-1,
   }; 
   
@@ -171,24 +173,21 @@ void pid_init() {
 	sei();
 }
 
-static void pid_compute(wheelNum num) {
+void pid_compute(uint8_t motor) {
 	// Compute all working error variables
-	float error = wheelData[num].setpoint - wheelData[num].AVG_speed;
-	wheelData[num].errSum += error;
-	float dErr = (error - wheelData[num].lastErr);
+	int16_t errors[PID_HISTORY_SIZE];
+  error_history_batch(errors, PID_HISTORY_SIZE, motor);
 	
-	if(wheelData[num].ki * wheelData[num].errSum >= 1024) {
-		wheelData[num].errSum = 1024/wheelData[num].ki;
-	} 
-	else if(wheelData[num].ki * wheelData[num].errSum <= -1024) {
-		wheelData[num].errSum = -1024/wheelData[num].ki;
-	}
-	
-	// Compute the output
-	wheelData[num].output = (wheelData[num].kp * error) + (wheelData[num].ki * wheelData[num].errSum) + (wheelData[num].kd * dErr);
-	
-	// Remember some things for later
-	wheelData[num].lastErr = error;
+  //derivative term is difference / size of history * kd
+  float dTerm = ((errors[PID_HISTORY_SIZE-1] - errors[0]) \
+    >> PID_HISTORY_LOG) * wheelData[motor].kd;
+    
+  int16_t iTermSum = 0; //integral term is sum of error history
+  for(int i=0;i<PID_HISTORY_SIZE;++i) iTermSum += errors[i];
+  float iTerm = iTermSum * wheelData[motor].ki; //multiply by punishment
+  
+	// Compute the output (sum of p,i,and d)
+	return (wheelData[num].kp * errors[PID_HISTORY_SIZE - 1]) + iTerm + dTerm;
 }
 
 // Set the default PID gain values for a given wheel
@@ -208,7 +207,7 @@ static void pid_measureSpeed(wheelNum num) {
 }
 
 float pid_getSpeed(wheelNum num) {
-	return wheelData.AVG_speed;
+	return wheelData[num].AVG_speed;
 }
 
 void pid_setSpeed(float speed, wheelNum num) {
@@ -270,15 +269,6 @@ ISR(PID_TICK_OVF) {
 	pid_measureSpeed(WHEEL2);
 	pid_measureSpeed(WHEEL3);
 	pid_measureSpeed(WHEEL4);
-	pid_compute(WHEEL1);
-	pid_compute(WHEEL2);
-	pid_compute(WHEEL3);
-	pid_compute(WHEEL4);
-	//Divide by 100 to smooth output during testing. 
-	pololu_set_velocity(&pololu_1, wheelData[WHEEL1].output);
-	pololu_set_velocity(&pololu_2, wheelData[WHEEL2].output);
-	pololu_set_velocity(&pololu_3, wheelData[WHEEL3].output);
-	pololu_set_velocity(&pololu_4, wheelData[WHEEL4].output);
 }
 
 unsigned int grayToBinary(unsigned int num)
@@ -291,54 +281,58 @@ unsigned int grayToBinary(unsigned int num)
 	return num;
 }
 
-//push an encoder sample to specified queue
-void encoder_history_push(uint16_t data, uint8_t motor){ 
-  Encoder_History* encoder;
+//push an error sample to specified queue
+void error_history_push(int16_t data, uint8_t motor){ 
+  Error_History* error;
   switch (motor){
-    case LEFT_FRONT_MOTOR:  encoder = &leftfront_encoder;
-    case LEFT_REAR_MOTOR:   encoder = &leftrear_encoder;
-    case RIGHT_FRONT_MOTOR: encoder = &rightfront_encoder;
-    case RIGHT_REAR_MOTOR:  encoder = &rightrear_encoder;
+    case LEFT_FRONT_MOTOR:  error = &leftfront_history;
+    case LEFT_REAR_MOTOR:   error = &leftrear_history;
+    case RIGHT_FRONT_MOTOR: error = &rightfront_history;
+    case RIGHT_REAR_MOTOR:  error = &rightrear_history;
   }
-  encoder->data[encoder->start] = data;
-  encoder->start = (encoder->start + 1) % ENCODER_QUEUE_SIZE;
+  error->data[error->start] = data;
+  error->start = (error->start + 1) % ERROR_QUEUE_SIZE;
 }
 
 //get a single history entry
-uint16_t encoder_history_at(uint8_t index, uint8_t motor){ 
-  Encoder_History* encoder;
+uint16_t error_history_at(int8_t index, uint8_t motor){ 
+  Error_History* error;
   switch (motor){
-    case LEFT_FRONT_MOTOR:  encoder = &leftfront_encoder;
-    case LEFT_REAR_MOTOR:   encoder = &leftrear_encoder;
-    case RIGHT_FRONT_MOTOR: encoder = &rightfront_encoder;
-    case RIGHT_REAR_MOTOR:  encoder = &rightrear_encoder;
+    case LEFT_FRONT_MOTOR:  error = &leftfront_history;
+    case LEFT_REAR_MOTOR:   error = &leftrear_history;
+    case RIGHT_FRONT_MOTOR: error = &rightfront_history;
+    case RIGHT_REAR_MOTOR:  error = &rightrear_history;
   }
-  return encoder->data[encoder->start];
+  return error->data[error->start];
 }
 
 //return batched history entries
-void encoder_history_batch(uint16_t* buffer, uint8_t size){ 
-  Encoder_History* encoder;
+void error_history_batch(int16_t* buffer, uint8_t size, uint8_t motor){ 
+  Error_History* error;
   switch (motor){
-    case LEFT_FRONT_MOTOR:  encoder = &leftfront_encoder;
-    case LEFT_REAR_MOTOR:   encoder = &leftrear_encoder;
-    case RIGHT_FRONT_MOTOR: encoder = &rightfront_encoder;
-    case RIGHT_REAR_MOTOR:  encoder = &rightrear_encoder;
+    case LEFT_FRONT_MOTOR:  error = &leftfront_history;
+    case LEFT_REAR_MOTOR:   error = &leftrear_history;
+    case RIGHT_FRONT_MOTOR: error = &rightfront_history;
+    case RIGHT_REAR_MOTOR:  error = &rightrear_history;
   }
   
-  if(encoder->start - size < 0){ //check value range
-    int overfolw_addr = 64 + encoder->start - size;
-    int overflow_amt = size-encoder->start-1;
-    memcpy(buffer, encoder->data+overflow_addr, overflow_amt)
-    memcpy(buffer+overflow_amt, encoder->data, encoder->start+1); //copy newer data
+  if(error->start - size < 0){ //check value range
+    int overflow_addr = 64 + error->start - size;
+    int overflow_amt = size-error->start-1;
+    memcpy(buffer, error->data+overflow_addr, overflow_amt);
+    memcpy(buffer+overflow_amt, error->data, error->start+1); //copy newer data
   } else { //no overflow
-    memcpy(buffer, encoder->data + encoder->start, size)
+    memcpy(buffer, error->data + error->start, size);
   }
 }
 
 //call a pid update
 void update_pid(void){ 
-  //placeholder
+  //do the maths
+	pololu_set_velocity(&pololu_1, pid_compute(LEFT_FRONT_MOTOR));
+	pololu_set_velocity(&pololu_2, pid_compute(LEFT_REAR_MOTOR));
+	pololu_set_velocity(&pololu_3, pid_compute(RIGHT_FRONT_MOTOR));
+	pololu_set_velocity(&pololu_4, pid_compute(RIGHT_REAR_MOTOR));
 }
 
 ISR(PORTE_INT0_vect){

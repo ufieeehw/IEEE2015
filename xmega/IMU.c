@@ -39,6 +39,7 @@ void IMU_init(){
 	PORTD.OUTSET = PIN4_bm;  //Set the SS line high to complete the transfer
 	}
 }
+
 int IMU_get_data(Message m){
   uint8_t SPI_Wait_Counter;
   Message out = get_msg(IMU_DATA_TYPE, 12);
@@ -77,7 +78,8 @@ int IMU_get_data(Message m){
   memcpy(out.data, IMU_Received_Data, out.size);
   queue_push(out, OUT_QUEUE);
   return OK;
-	}
+		 }
+		 }
 }
 
 //{ACCX_H, ACCX_L, ACCY_H, ACCY_L, ACCZ_H, ACCZ_L, MX_H, MX_L, MY_H, MY_L, MZ_H, MZ_L}
