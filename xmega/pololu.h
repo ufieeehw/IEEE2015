@@ -2,12 +2,10 @@
 #ifndef POLOLU_DRIVER_H_INCLUDED
 #define POLOLU_DRIVER_H_INCLUDED
 
-#include <asf.h>
-
 typedef struct {
 	PORT_t *PORT;
 	TC2_t * TC2;
-	Bool motor2;
+	uint8_t motor2;
 	} pololu_t;
 
 void pololuInit(pololu_t *pololu);
