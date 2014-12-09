@@ -23,7 +23,7 @@ void update_pid(void); //call a pid update
 int pid_speed_msg(Message msg);
 
 void pid_setTunings(float Kp, float Ki, float Kd, uint8_t motor);
-float pid_getSpeed(uint8_t motor);
+uint16_t pid_getSpeed(uint8_t motor);
 void pid_setSpeed(float speed, uint8_t motor);
 void pid_get_speed_handler(char* message, uint8_t len);
 void pid_get_odometry_handler(char* message, uint8_t len);
