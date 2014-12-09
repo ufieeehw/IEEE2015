@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "types.h"
 #include "pid.h"
 #include "pololu.h"
 
@@ -52,23 +53,11 @@ static pololu_t pololu_LR = {
 	.motor2 = 1,
 };
 
-//initialize all of the history queues
-static Error_History leftfront_history = {
-  .data = 0,
-  .start = ERROR_QUEUE_SIZE-1,
-}; 
-static Error_History leftrear_history = {
-  .data = 0,
-  .start = ERROR_QUEUE_SIZE-1,
-}; 
-static Error_History rightfront_history = {
-  .data = 0,
-  .start = ERROR_QUEUE_SIZE-1,
-}; 
-static Error_History rightrear_history = {
-  .data = 0,
-  .start = ERROR_QUEUE_SIZE-1,
-}; 
+//dedine the history queues for PID
+static Error_History* leftfront_history;
+static Error_History* rightfront_history;
+static Error_History* leftrear_history;
+static Error_History* rightrear_history;
 
 // File-Scope Variables and Structures
 //	AVG_speed: Average speed of given wheel in rads/S
@@ -120,11 +109,27 @@ void pid_init() {
 	//wheelPort1 = PORTA;
 	//wheelPort2 = PORTB;
   
-  //setup the queue buffers if not declared
-  if(!leftfront_history.data) leftfront_history.data = malloc(2*ERROR_QUEUE_SIZE);
-  if(!rightfront_history.data) rightfront_history.data = malloc(2*ERROR_QUEUE_SIZE);
-  if(!leftrear_history.data) leftrear_history.data = malloc(2*ERROR_QUEUE_SIZE);
-  if(!rightrear_history.data) rightrear_history.data = malloc(2*ERROR_QUEUE_SIZE);
+  //setup the buffers if not declared
+  if(!leftfront_history){
+    leftfront_history = (Error_History*) malloc(sizeof(Error_History));
+    leftfront_history->data = (int16_t*) malloc(2*ERROR_QUEUE_SIZE);
+    leftfront_history->start = ERROR_QUEUE_SIZE-1;
+  }
+  if(!rightfront_history){
+    rightfront_history = (Error_History*) malloc(sizeof(Error_History));
+    rightfront_history->data = (int16_t*) malloc(2*ERROR_QUEUE_SIZE);
+    rightfront_history->start = ERROR_QUEUE_SIZE-1;
+  }
+  if(!leftrear_history){
+    leftrear_history = (Error_History*) malloc(sizeof(Error_History));
+    leftrear_history->data = (int16_t*) malloc(2*ERROR_QUEUE_SIZE);
+    leftrear_history->start = ERROR_QUEUE_SIZE-1;
+  }
+  if(!rightrear_history){
+    rightrear_history = (Error_History*) malloc(sizeof(Error_History));
+    rightrear_history->data = (int16_t*) malloc(2*ERROR_QUEUE_SIZE);
+    rightrear_history->start = ERROR_QUEUE_SIZE-1;
+  }
     
 	//Initialize Pololus
 	pololuInit(&pololu_LF);
@@ -224,7 +229,9 @@ int pid_speed_msg(Message msg) {
 	wheelData[RIGHT_FRONT_MOTOR].setpoint = (uint16_t) rads_to_ticks(data[1]);
 	wheelData[RIGHT_REAR_MOTOR].setpoint = (uint16_t) rads_to_ticks(data[2]);
 	wheelData[LEFT_REAR_MOTOR].setpoint = (uint16_t) rads_to_ticks(data[3]);
-	}
+	
+	return OK;
+}
 
 void pid_get_odometry(float* returnData) {
 	for(int i = 0; i < 4; i++) {
@@ -282,44 +289,47 @@ unsigned int grayToBinary(unsigned int num)
 void error_history_push(int16_t data, uint8_t motor){ 
   Error_History* error;
   switch (motor){
-    case LEFT_FRONT_MOTOR:  error = &leftfront_history;
-    case LEFT_REAR_MOTOR:   error = &leftrear_history;
-    case RIGHT_FRONT_MOTOR: error = &rightfront_history;
-    case RIGHT_REAR_MOTOR:  error = &rightrear_history;
+    case LEFT_FRONT_MOTOR:  error = leftfront_history;
+    case LEFT_REAR_MOTOR:   error = leftrear_history;
+    case RIGHT_FRONT_MOTOR: error = rightfront_history;
+    case RIGHT_REAR_MOTOR:  error = rightrear_history;
   }
-  error->data[error->start] = data;
-  error->start = (error->start + 1) % ERROR_QUEUE_SIZE;
+  error->start += 1;
+  if(error->start >= ERROR_QUEUE_SIZE) error->start = 0;
+  error->data[(error->start)] = data;
 }
 
 //get a single history entry
 int16_t error_history_at(int8_t index, uint8_t motor){ 
   Error_History* error;
   switch (motor){
-    case LEFT_FRONT_MOTOR:  error = &leftfront_history;
-    case LEFT_REAR_MOTOR:   error = &leftrear_history;
-    case RIGHT_FRONT_MOTOR: error = &rightfront_history;
-    case RIGHT_REAR_MOTOR:  error = &rightrear_history;
+    case LEFT_FRONT_MOTOR:  error = leftfront_history;
+    case LEFT_REAR_MOTOR:   error = leftrear_history;
+    case RIGHT_FRONT_MOTOR: error = rightfront_history;
+    case RIGHT_REAR_MOTOR:  error = rightrear_history;
   }
-  return error->data[error->start];
+  index = error->start - index;
+  if(index < 0) index += ERROR_QUEUE_SIZE;
+  return error->data[index];
 }
 
 //return batched history entries
 void error_history_batch(int16_t* buffer, uint8_t size, uint8_t motor){ 
   Error_History* error;
   switch (motor){
-    case LEFT_FRONT_MOTOR:  error = &leftfront_history;
-    case LEFT_REAR_MOTOR:   error = &leftrear_history;
-    case RIGHT_FRONT_MOTOR: error = &rightfront_history;
-    case RIGHT_REAR_MOTOR:  error = &rightrear_history;
+    case LEFT_FRONT_MOTOR:  error = leftfront_history;
+    case LEFT_REAR_MOTOR:   error = leftrear_history;
+    case RIGHT_FRONT_MOTOR: error = rightfront_history;
+    case RIGHT_REAR_MOTOR:  error = rightrear_history;
   }
   
-  if(error->start - size < 0){ //check value range
-    int overflow_addr = 64 + error->start - size;
+  if(error->start < size){ //check value range
+    int overflow_addr = ERROR_QUEUE_SIZE + error->start - size + 1;
     int overflow_amt = size-error->start-1;
-    memcpy(buffer, error->data+overflow_addr, overflow_amt);
-    memcpy(buffer+overflow_amt, error->data, error->start+1); //copy newer data
+    memcpy(buffer, error->data + overflow_addr, overflow_amt<<1);
+    memcpy(buffer+overflow_amt, error->data, (error->start+1)<<1); //copy newer data
   } else { //no overflow
-    memcpy(buffer, error->data + error->start, size);
+    memcpy(buffer, error->data + error->start - size + 1, size<<1);
   }
 }
 
