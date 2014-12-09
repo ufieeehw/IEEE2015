@@ -11,17 +11,16 @@
 #define constI 0
 #define constD 0.0004
 
-//no
 #define TEST_CPU 32000000
-
-//Testing shit
 
 // Configuration Values
 static TC0_t *pid_tick_timer = &TCC0;
 #define PID_TICK_OVF TCC0_OVF_vect
 
-static PORT_t *wheelPort1 = &PORTE; // Originally PORTE
-static PORT_t *wheelPort2 = &PORTB; // Originally PORTD
+// PORTs to be used with wheel encoders
+//	Once port can handle interrupts for 2 encoders
+static PORT_t *wheelPort1 = &PORTE;
+static PORT_t *wheelPort2 = &PORTB;
 
 static float radPerTick = (2*M_PI)/1856.0;
 static const float sampleTime = 10e-3;
@@ -47,10 +46,10 @@ static pololu_t pololu_4 = {
 	.motor2 = true;
 };
 
-//static Encoder_History leftfront_history; 
-//static Encoder_History leftrear_history;
-//static Encoder_History rightfront_history;
-//static Encoder_History rightrear_history;
+static Encoder_History leftfront_history; 
+static Encoder_History leftrear_history;
+static Encoder_History rightfront_history;
+static Encoder_History rightrear_history;
 
 // File-Scope Variables and Structures
 //	AVG_speed: Average speed of given wheel in rads/S
@@ -61,16 +60,27 @@ static pololu_t pololu_4 = {
 //	pid_last_ticks: Measurement of ticks from previous sample
 
 typedef struct{
-	// Wheel Direction
-	//MotorDirection direction = MOTOR_NEUTRAL;
-	// Values for measuring the speed of the wheel
-	volatile float AVG_speed; // 0
-	volatile int32_t ticks; // The
+	/*	Values for measuring the speed of the wheel
+	 *	AVG_speed:		Current running speed measured in rads/s
+	 *	ticks:			Current number of ticks per given sample
+	 *	output:			Current output of PID controller
+	 *	setpoint:		Desired speed (in rads/s) for given wheel
+	 *	errSum:			Running total of error in PID controller
+	 *	lastErr:		Error from previous sample
+	 *	kp:				PID proportional gain
+	 *	ki:				PID integral gain
+	 *	kd:				PID derivative gain
+	 *	pid_last_ticks:	Number of ticks from the previous sample
+	 *  odometry_last_ticks: No idea
+	 */
+	
+	volatile float AVG_speed;
+	volatile uint16_t ticks;
 	
 	// Values for the actual pid controller
 	float input, output, setpoint, errSum, lastErr, kp, ki, kd; // all 0
-	int32_t pid_last_ticks; // 0
-	int32_t odometry_last_ticks; // 0
+	uint16_t pid_last_ticks; // 0
+	uint16_t odometry_last_ticks; // 0
 } pid_wheel_data_t;
 
 static const pid_wheel_data_t DEFAULT = {
@@ -141,7 +151,7 @@ void pid_init() {
 	wheelPort2->INT1MASK = 0x0A;
 
 	// Initialize the PID tick timer
-	// Uses timer on portC since all timers on PORT E and D will be used for wheels.
+	// Uses timer on portC
 	pid_tick_timer->CTRLA = TC_CLKSEL_DIV64_gc;
 	pid_tick_timer->CTRLB = 0x00;
 	pid_tick_timer->CTRLC = 0x00;
@@ -189,11 +199,12 @@ void pid_setTunings(float Kp, float Ki, float Kd, wheelNum num) {
 }
 
 static void pid_measureSpeed(wheelNum num) {
-	pid_wheel_data_t *data = &wheelData[num];
-	int32_t ticks = data->ticks;
-	data->AVG_speed = (ticks - data->pid_last_ticks)*radPerTick/sampleTime;
-	
-	data->pid_last_ticks = ticks;
+	// Pull current number of ticks for given motor 'num'
+	int16_t ticks = wheelData[num].ticks;
+	// Average Speed would be the change in ticks converted to rads/S where S = 1ms
+	wheelData[num].AVG_speed = (ticks - wheelData[num].pid_last_ticks)*radPerTick/sampleTime;
+	// Replace the current number ticks as the previous number of ticks
+	wheelData[num].pid_last_ticks = ticks;
 }
 
 float pid_getSpeed(wheelNum num) {
@@ -214,43 +225,21 @@ void pid_setSpeed(float speed, wheelNum num) {
 // multiplied by 1000. Pass a pointer to the low byte of
 // len := the length of the message. E.g. the number of bytes in the array
 void pid_speed_msg(float speed) {
-	for(int i = 0; i < 4; i++) pid_setSpeed(speed, (wheelNum)i);
+	//for(int i = 0; i < 4; i++) pid_setSpeed(speed, (wheelNum)i);
+	/*
+		Will be used as callback to set current desired wheel speeds
+	*/
 }
-
-/*
-void pid_get_speed_handler(char* message, uint8_t len) {
-	char wheelSpeeds[16];
-	uart_float_to_char32((char*)&wheelSpeeds[0], pid_getSpeed(WHEEL1));
-	uart_float_to_char32((char*)&wheelSpeeds[4], pid_getSpeed(WHEEL2));
-	uart_float_to_char32((char*)&wheelSpeeds[8], pid_getSpeed(WHEEL3));
-	uart_float_to_char32((char*)&wheelSpeeds[12], pid_getSpeed(WHEEL4));
-	uart_send_msg_block(PIDgetSpeed, wheelSpeeds, 17);
-}*/
 
 static void pid_get_odometry(float* returnData) {
 	for(int i = 0; i < 4; i++) {
-		pid_wheel_data_t *data = &wheelData[i];
-		cli();
-		int32_t ticks = data->ticks;
-		sei();
-		volatile int32_t tmp = ticks - data->odometry_last_ticks;
+		int16_t ticks = wheelData[i].ticks;
+		volatile int16_t tmp = ticks - wheelData[i].odometry_last_ticks;
 		volatile float tmp2 = tmp * radPerTick;
 		returnData[i] = tmp2;
-		data->odometry_last_ticks = ticks;
+		wheelData[i].odometry_last_ticks = ticks;
 	}
 }
-
-/*
-void pid_get_odometry_handler(char* message, uint8_t len) {
-	char odometry[16];
-	float wheelOdometry[4];
-	pid_get_odometry(wheelOdometry);
-	for(int i = 0; i < 4; i++) {
-		uart_float_to_char32(odometry+i*4, wheelOdometry[i]);
-	}
-	uart_send_msg_block(PIDgetOdometry, odometry, 17);
-}
-*/
 
 static inline void pid_set_speed_multiplier(float val) {
 	radPerTick = val;

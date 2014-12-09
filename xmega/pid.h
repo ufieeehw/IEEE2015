@@ -1,14 +1,6 @@
-
 #ifndef PID_H_
 #define PID_H_
 #include "message.h"
-
-typedef enum{
-	WHEEL1,
-	WHEEL2,
-	WHEEL3,
-	WHEEL4
-} wheelNum;
 
 //PID definitions
 #define LEFT_FRONT_MOTOR  0
