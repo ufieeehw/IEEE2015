@@ -13,6 +13,10 @@
 #define PID_HISTORY_SIZE  8
 #define PID_HISTORY_LOG   3
 
+// Macros to help convert rads/s to ticks and vice versa
+#define ticks_to_rads(x) ((x) * (radPerTick/sampleTime)) 
+#define rads_to_ticks(x) ((x) * (sampleTime/radPerTick))
+
 #define TEST_CPU 32000000
 
 // Configuration Values
@@ -80,8 +84,6 @@ typedef struct{
 	 *	ticks:			Current number of ticks per given sample
 	 *	output:			Current output of PID controller
 	 *	setpoint:		Desired speed (in rads/s) for given wheel
-	 *	errSum:			Running total of error in PID controller
-	 *	lastErr:		Error from previous sample
 	 *	kp:				PID proportional gain
 	 *	ki:				PID integral gain
 	 *	kd:				PID derivative gain
@@ -89,23 +91,21 @@ typedef struct{
 	 *  odometry_last_ticks: No idea
 	 */
 	
-	volatile float AVG_speed;
+	volatile int16_t AVG_speed;
+	int16_t setpoint;
 	volatile uint16_t ticks;
-	
+	uint16_t pid_last_ticks;
+	int16_t output;
 	// Values for the actual pid controller
-	float input, output, setpoint, errSum, lastErr, kp, ki, kd; // all 0
-	uint16_t pid_last_ticks; // 0
-	uint16_t odometry_last_ticks; // 0
+	float kp, ki, kd;
+	
+	uint16_t odometry_last_ticks; // we ain't there yet
 } pid_wheel_data_t;
 
 static const pid_wheel_data_t DEFAULT = {
 	.AVG_speed = 0,
-	.ticks = 0,
-	.input = 0,
 	.output = 0,
 	.setpoint = 0,
-	.errSum = 0,
-	.lastErr = 0,
 	.kp = 0,
 	.ki = 0,
 	.kd = 0,
@@ -158,8 +158,6 @@ void pid_init() {
 	pid_tick_timer->CTRLC = 0x00;
 	pid_tick_timer->CTRLD = 0x00;
 	pid_tick_timer->CTRLE = 0x00;
-
-	//pid_tick_timer->PER = round(F_CPU * sampleTime / 64.);
 	pid_tick_timer->PER = round(TEST_CPU * sampleTime / 64.);
 	pid_tick_timer->INTCTRLA = TC_OVFINTLVL_LO_gc;
 
@@ -196,9 +194,9 @@ void pid_setTunings(float Kp, float Ki, float Kd, uint8_t motor) {
 
 static void pid_measureSpeed(uint8_t motor) {
 	// Pull current number of ticks for given motor 'num'
-	int16_t ticks = wheelData[motor].ticks;
-	// Average Speed would be the change in ticks converted to rads/S where S = 1ms
-	wheelData[motor].AVG_speed = (ticks - wheelData[motor].pid_last_ticks)*radPerTick/sampleTime;
+	uint16_t ticks = wheelData[motor].ticks;
+	// Average Speed would be the change in ticks
+	wheelData[motor].AVG_speed = ticks - wheelData[motor].pid_last_ticks;
 	// Replace the current number ticks as the previous number of ticks
 	wheelData[motor].pid_last_ticks = ticks;
 }
@@ -207,7 +205,7 @@ float pid_getSpeed(uint8_t motor) {
 	return wheelData[motor].AVG_speed;
 }
 
-void pid_setSpeed(float speed, uint8_t motor) {
+void pid_setSpeed(int16_t speed, uint8_t motor) {
 	wheelData[motor].setpoint = speed;
 }
 
@@ -221,11 +219,15 @@ void pid_setSpeed(float speed, uint8_t motor) {
 // multiplied by 1000. Pass a pointer to the low byte of
 // len := the length of the message. E.g. the number of bytes in the array
 int pid_speed_msg(Message msg) {
-	//for(int i = 0; i < 4; i++) pid_setSpeed(speed, (wheelNum)i);
 	/*
 		Will be used as callback to set current desired wheel speeds
 	*/
-}
+	float* data = (float*) msg.data;
+	wheelData.setpoint[LEFT_FRONT_MOTOR] = (uint16_t) rads_to_ticks(data[0]);
+	wheelData.setpoint[RIGHT_FRONT_MOTOR] = (uint16_t) rads_to_ticks(data[1]);
+	wheelData.setpoint[RIGHT_REAR_MOTOR] = (uint16_t) rads_to_ticks(data[2]);
+	wheelData.setpoint[LEFT_REAR_MOTOR] = (uint16_t) rads_to_ticks(data[3]);
+	}
 
 static void pid_get_odometry(float* returnData) {
 	for(int i = 0; i < 4; i++) {
@@ -246,7 +248,7 @@ static inline float pid_get_speed_multiplier(void) {
 }
 
 // Because the multiplier is a floating point value, we'll multiply it by 1000 first, and then send it.
-// Or, if we're recieving it, we'll divide it by 1000.
+// Or, if we're receiving it, we'll divide it by 1000.
 /*
 void pid_get_speed_multiplier_handler(char* message, uint8_t len) {
 	char multiplier[2];
@@ -262,16 +264,11 @@ void pid_set_speed_multiplier_handler(char* message, uint8_t len) {
 */
 
 ISR(PID_TICK_OVF) {
-	pid_measureSpeed(LEFT_FRONT_MOTOR);
-	pid_measureSpeed(RIGHT_FRONT_MOTOR);
-	pid_measureSpeed(RIGHT_REAR_MOTOR);
-	pid_measureSpeed(LEFT_REAR_MOTOR);
-	
 	// Push errors to history
-	error_history_push(wheelData[LEFT_FRONT_MOTOR].setpoint - wheelData[LEFT_FRONT_MOTOR].AVG_speed, LEFT_FRONT_MOTOR);
-	error_history_push(wheelData[RIGHT_FRONT_MOTOR].setpoint - wheelData[RIGHT_FRONT_MOTOR].AVG_speed, RIGHT_FRONT_MOTOR);
-	error_history_push(wheelData[RIGHT_REAR_MOTOR].setpoint - wheelData[RIGHT_REAR_MOTOR].AVG_speed, RIGHT_REAR_MOTOR);
-	error_history_push(wheelData[LEFT_REAR_MOTOR].setpoint - wheelData[LEFT_REAR_MOTOR].AVG_speed, LEFT_REAR_MOTOR);
+	error_history_push(pid_measureSpeed(LEFT_FRONT_MOTOR), LEFT_FRONT_MOTOR);
+	error_history_push(pid_measureSpeed(RIGHT_FRONT_MOTOR), RIGHT_FRONT_MOTOR);
+	error_history_push(pid_measureSpeed(RIGHT_REAR_MOTOR), RIGHT_REAR_MOTOR);
+	error_history_push(pid_measureSpeed(LEFT_REAR_MOTOR), LEFT_REAR_MOTOR);
 }
 
 unsigned int grayToBinary(unsigned int num)
