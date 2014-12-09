@@ -22,6 +22,8 @@ Running 'main_start.sh' will pop up two new terminal windows.
 
 
 TO DO:
+
+
 	1. Automate entire process --> Cannot do as long as running 'main_start.sh' as root 
 								crashes 'ROS_send.py' 
 								or
