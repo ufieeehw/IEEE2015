@@ -5,7 +5,6 @@ www.dest-unreach.org/socat/
 or 
 sudo apt-get install socat
 
-------------------------------------- READ  ME -------------------------------------------------------
 
 To launch full simulation run the bash script titled 'main_start.sh' 
 - DO NOT RUN WITH SUDO --> For some reason when it is run as admin the ROS side won't work
@@ -21,13 +20,12 @@ Running 'main_start.sh' will pop up two new terminal windows.
 
 	Step 4. Watch the magic happen
 
--------------------------------------------------------------------------------------------------------	
 
 TO DO:
 	1. Automate entire process --> Cannot do as long as running 'main_start.sh' as root 
 								crashes 'ROS_send.py' 
 								or
-								Figure out a way to access tty ports when not running as root
+								Figure out a way to access tty ports when not 										running as root
 
 								One of those solutions can automate process
 
