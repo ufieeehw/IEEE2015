@@ -8,7 +8,7 @@
   
   <!-- load the controllers -->
   <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
-    output="screen" ns="/robot" args="joint1_position_controller joint2_position_controller joint3_position_controller joint_state_controller"/>
+    output="screen" ns="/robot" args="base_controller_gazebo shoulder_controller_gazebo elbow_controller_gazebo joint_state_controller_gazebo"/>
 
   <!-- convert joint states to TF transforms for rviz, etc -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"

@@ -4,11 +4,36 @@ IEEE2015
 This is the code for the University of Florida's 2015 IEEE Robot.
 You need Ubuntu 14.04, and ROS Indigo. For some installation instructions, see github.com/uf-mil/getting_started
 
+# Description
+
+Our robot has the following critical features:
+- Holonomic drive
+- SLAM-based navigation
+- Arm IK
+- Robust serial messaging interface for hardware control
+- Visual-servoing for object manipulation
+- AI for playing chess, as well as computer vision
+- Simulations for
+   - Gazebo: Full rigid-body simulation of the robot, including cameras and arm kinematics
+   - XMega Sim: Simulated microcontroller USART via Socat so we can test both ends of our serial protocol on the bench
+   - Arm Sim: 2D Fwd Kinematic arm simulation of the elbow and shoulder joints, also used for click-control
+- A Diagnostic suite for testing and experimenting with individual components of the robot
+- Hardware FDIR (Fault-detection, isolation, response)
+
+Not yet implemented:
+- AHRS (planar)
+- Continuous integration, unit tests
+- Software FDIR
+
+To see some of our other robots code, check out github.com/uf-mil
+
 ## Getting started
 
 All of this is written for Ubuntu 14.04 (Trusty Tahr) and ROS Indigo (ros.org/install) - get the desktop-full version.
 
 First, follow [this tutorial](https://help.github.com/articles/generating-ssh-keys/) for setting up git. Then follow the first three ROS tutorials, and make your catkin workspace.
+
+A good linux tutorial is [here](http://info.ee.surrey.ac.uk/Teaching/Unix/)
 
 Once you make your catkin workspace (the ROS tutorials will teach you how to do this), go to the src folder, and clone this repository
 

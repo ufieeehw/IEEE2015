@@ -6,9 +6,15 @@
 #define _IEEE_TYPES_H_
 
 /* Masks and Bit Definitons 
-The comments afterward are parsed by ROS (ieee2015_xmega_driver/src/parse_types)
+The comments afterward are parsed by ROS (ieee2015_xmega_driver/src/xmega_driver/parse_types.py)
+White space is not extremely important, but please obey the conventions of "parameter: value"
+
+DO NOT have inline comments on a line with a #define statement if they are not for ROS control.
+
+
 */
 //Message Data length is first two bits of type field
+//--> Parse types reads this to determine what message length types exist
 #define DATA_MASK             0xC0 // mask: data
 #define NO_DATA_TYPE          0x00 // msg_length: 0
 #define DATA_1B_TYPE          0x40 // msg_length: 1
@@ -23,39 +29,40 @@ The comments afterward are parsed by ROS (ieee2015_xmega_driver/src/parse_types)
 
 /* Message Type Definitions */
 //NO_DATA_TYPE messages [0x01-0x2F]
-#define KILL_TYPE             0x01 // out: 'kill'
-#define START_TYPE            0x02 // out: 'start'
-#define KEEP_ALIVE_TYPE       0x03 // out: 'keep_alive'
-#define IMU_NOTIFY_TYPE       0x04 // out: 'poll_imu'
+#define KILL_TYPE             0x01 // out: kill
+#define START_TYPE            0x02 // out: start
+#define KEEP_ALIVE_TYPE       0x03 // out: keep_alive; in: keep_alive
+#define IMU_NOTIFY_TYPE       0x04 // out: poll_imu
 
 
 //DATA_1B_TYPE messages [0x40-0x6F]
-#define DEBUG_TYPE            0x40 // bidirectional: 'debug'
+#define DEBUG_TYPE            0x40 // in: xmega_debug; out: ros_debug
 
 
 //DATA_2B_TYPE messages [0x80-0xAF]
+#define STEP_MOTOR_TYPE       0x80 // out: stepper_motor
 
 
 //DATA_NB_TYPE messages [0xC0-0xEF]
-
-#define IMU_DATA_TYPE         0xEF // in: 'imu_data' 
+#define MOTOR_SPEED_TYPE      0xC0 // out: motor_speed
+#define IMU_DATA_TYPE         0xEF // in: imu_data
 
 
 /*Error Type Definitions (should represent an entire subsystem) */
 //NO_DATA_TYPE errors [0x30-0x3F] (and also OK)
-#define OK                    0x00 // in: 'xmega_ok'
-#define MESSAGE_ERROR_TYPE    0x30 // in: 'message_error'
-#define BUFFER_ERROR_TYPE     0x31 // in: 'buffer_error'
+#define OK                    0x00 // in: xmega_ok
+#define MESSAGE_ERROR_TYPE    0x30 // in: message_error
+#define BUFFER_ERROR_TYPE     0x31 // in: buffer_error
 
 
 //DATA_1B_TYPE errors [0x70-0x7F]
 
 
 //DATA_2B_TYPE errors [0xB0-0xBF]
-#define STEP_MOTOR_TYPE       0xB0
+
 
 //DATA_NB_TYPE errors [0xF0-0xFF]
-#define VECTOR_ERROR_TYPE     0xF0 // in: 'vector_error'
+#define VECTOR_ERROR_TYPE     0xF0 // in: vector_error
 
 
 /* TODO: FILL IN TYPES */

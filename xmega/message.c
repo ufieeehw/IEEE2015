@@ -3,6 +3,7 @@
 #include <string.h>
 #include "message.h"
 #include "types.h"
+#include "meta.h"
 
 //initialize the global variables (no messages and null pointers)
 int message_count = 0;
@@ -19,16 +20,18 @@ Message* out_queue_end = 0;
 #define DATA_CACHE_1B   0
 #define DATA_CACHE_2B   1
 #define DATA_CACHE_4B   2
+#define DATA_CACHE_6B   3
 #define DATA_CACHE_12B  6
 
 /* create the data caches */
 uint8_t data_cache_1B[DATA_CACHE_SIZE];
 uint8_t data_cache_2B[DATA_CACHE_SIZE];
 uint8_t data_cache_4B[DATA_CACHE_SIZE];
+uint8_t data_cache_6B[DATA_CACHE_SIZE];
 uint8_t data_cache_12B[DATA_CACHE_SIZE];  //IMU uses this
 
 //setup the pointers to the data caches
-uint8_t* data_cache_toplvl[DATA_CACHE_NUM] = {data_cache_1B, data_cache_2B, data_cache_4B, 0, 0, 0, data_cache_12B, 0};
+uint8_t* data_cache_toplvl[DATA_CACHE_NUM] = {data_cache_1B, data_cache_2B, data_cache_4B, data_cache_6B, 0, 0, data_cache_12B, 0};
 
 //32-bit map for used/unused words (1st bit is 1 if word is free)
 uint32_t data_cache_map[DATA_CACHE_NUM];  //data cache avaliability tracker
@@ -51,6 +54,7 @@ void init_msg_queue(){
   data_cache_map[DATA_CACHE_1B] = 0x7FFFFFFF; //first bit is null
   data_cache_map[DATA_CACHE_2B] = 0xAAAAAAAA;
   data_cache_map[DATA_CACHE_4B] = 0x88888888;
+  data_cache_map[DATA_CACHE_4B] = 0x82082080;
   data_cache_map[DATA_CACHE_12B] = 0x80080000;
   msg_cache_map = 0xFFFFFFFF;
 }
@@ -82,6 +86,9 @@ int queue_pop(Message* m, int direction){
  * Returns 0 if successfull */
 int queue_push(Message m, int direction){
   if(MAX_MESSAGE <= message_count) return MESSAGE_ERROR_TYPE;  //no more space
+  
+  //don't push outgoing messages if we haven't started
+  if(!start_ok && direction) return MESSAGE_ERROR_TYPE;
   
   Message *new_msg = get_node();  //get the pointer
   new_msg->type = m.type;   //copy the data fields
@@ -135,6 +142,7 @@ Message get_msg(uint8_t type, uint8_t size){
     case 1: cache_num = DATA_CACHE_1B; break;
     case 2: cache_num = DATA_CACHE_2B; break;
     case 4: cache_num = DATA_CACHE_4B; break;
+    case 6: cache_num = DATA_CACHE_6B; break;
     case 12: cache_num = DATA_CACHE_12B; break;
   }
   
@@ -148,10 +156,9 @@ Message get_msg(uint8_t type, uint8_t size){
         return m; //we're done, return message
       }
     }  
-  } else {
-    m.data = (uint8_t*) malloc(m.size);  //allocate the storage
-    m.cache_tag = 0;  //no tag
   }
+  m.data = (uint8_t*) malloc(m.size);  //allocate the storage
+  m.cache_tag = 0;  //no tag
   
   return m; //return the message
 }

@@ -1,0 +1,116 @@
+#!/usr/bin/python
+## Console Commands
+import argparse
+import sys
+## Display
+import matplotlib.pyplot as plt
+import pygame
+import time
+## Math
+import numpy as np
+## Ros
+import rospy
+from tf import transformations as tf_trans
+## Ros Msgs
+from std_msgs.msg import Header, Float64
+from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
+from dynamixel_msgs.msg import JointState
+
+
+
+class Arm_Tester(object):
+    def __init__(self):
+        rospy.init_node('joint_angle_sequence_test')
+        self.elbow_angle_pub = rospy.Publisher('/elbow_controller/command', Float64, queue_size=1)
+        self.shoulder_angle_pub = rospy.Publisher('/shoulder_controller/command', Float64, queue_size=1)
+
+        self.elbow_state_pub = rospy.Publisher('/elbow_controller/state', JointState, queue_size=1)
+        self.shoulder_state_pub = rospy.Publisher('/shoulder_controller/state', JointState, queue_size=1)
+
+        time.sleep(0.2)
+
+    def test_angle_sequence(self):
+        '''test angle sequence
+        Test a sequence of angles to see if the appropriate output appears in the simulator
+        '''
+        self.tests = [ # (Shoulder angle, elbow angle)
+            (-0.721, -0.889), # Elbow perpendicular to shoulder, perpendicular to servo
+            (0.3, -0.9), # Shoulder vertical, elbow close to base
+            (0.3, -1.75), # Shoulder vertical, elbow perpendicular
+            (0.5, -1.75), # Shoulder to the right, elbow unknown
+        ]
+
+        while(not rospy.is_shutdown()):
+            for test in self.tests:
+                time.sleep(1)
+                shoulder_angle, elbow_angle = test
+                self.elbow_angle_pub.publish(elbow_angle)
+                self.shoulder_angle_pub.publish(shoulder_angle)
+
+    def test_joint_states(self):
+        '''test joint states
+
+        JointState msg contents:
+            std_msgs/Header header
+            string name         
+            int32[] motor_ids   
+            int32[] motor_temps 
+            float64 goal_pos    
+            float64 current_pos 
+            float64 error       
+            float64 velocity    
+            float64 load        
+            bool is_moving      
+        '''
+        while(not rospy.is_shutdown()):
+            for i in np.arange(-10, 10, 0.1):
+                if rospy.is_shutdown():
+                    break
+                time.sleep(0.01)
+                _goal_pos = 1
+                _current_pos = i
+                _error = _current_pos - _goal_pos
+                _velocity = np.sin(np.pi * i/10)
+                elbow_msg = JointState(
+                    header=Header(
+                        stamp=rospy.Time.now(),
+                        frame_id='/elbow',
+                    ),
+                    name='elbow joint',
+                    motor_ids=[2],
+                    goal_pos=_goal_pos,
+                    current_pos=_current_pos,
+                    error=_error,
+                    velocity=_velocity,
+                    load=0,
+                    is_moving=False,
+                )
+                self.elbow_state_pub.publish(elbow_msg)
+
+
+if __name__ == '__main__':
+    '''Some test options
+    TODO:
+        Implement a multithreaded method of doing this
+    '''
+    usage_msg = 'Use this program with an argument to use a specific test function'
+    desc_msg = 'Test various arm features, mostly targeting software and debugging.'
+
+    parser = argparse.ArgumentParser(usage=usage_msg, description=desc_msg)
+    parser.add_argument('--angle_sequence', dest='angle_sequence', action='store_true',
+                      help='Send a sequence of angles with a known expected result')
+    parser.add_argument('--joint_states', dest='joint_states', action='store_true',
+                      help='Send a repeating sequence of joint states')
+
+    options = parser.parse_args()
+    print options
+
+    tester = Arm_Tester()
+
+    if options.angle_sequence:
+        tester.test_angle_sequence()
+    if options.joint_states:
+        tester.test_joint_states()
+
+    # tester = Arm_Tester()
+    # tester.test_angle_sequence()

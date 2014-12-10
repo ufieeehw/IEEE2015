@@ -43,11 +43,11 @@ to start the simulation. You should see the robot (with some orange and blue col
 apt-get
 * To move the arm:
   Base:
-  ```rostopic pub -1 /robot/joint1_position_controller/command std_msgs/Float64 "data: 1.5"```
+  ```rostopic pub -1 /robot/base_controller/command std_msgs/Float64 "data: 1.5"```
   "Bicep":
-  ```rostopic pub -1 /robot/joint2_position_controller/command std_msgs/Float64 "data: 1.5"```
+  ```rostopic pub -1 /robot/shoulder_controller/command std_msgs/Float64 "data: 1.5"```
   "Forearm":
-  ```rostopic pub -1 /robot/joint3_position_controller/command std_msgs/Float64 "data: 1.5"```
+  ```rostopic pub -1 /robot/elbow_controller/command std_msgs/Float64 "data: 1.5"```
   The "data" is a radian value for the arm position
 
 * New feature! Move the arm without stupid commands!

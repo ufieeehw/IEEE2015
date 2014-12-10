@@ -1,19 +1,19 @@
 robot:
   # Publish all joint states -----------------------------------
-  joint_state_controller:
+  joint_state_controller_gazebo:
     type: joint_state_controller/JointStateController
     publish_rate: 50  
 
   # Position Controllers ---------------------------------------
-  joint1_position_controller:
+  base_controller_gazebo:
     type: effort_controllers/JointPositionController
     joint: ArmYRotCont
     pid: {p: 100.0, i: 0.01, d: 10.0}
-  joint2_position_controller:
+  shoulder_controller_gazebo:
     type: effort_controllers/JointPositionController
     joint: ArmRot1Rev
     pid: {p: 19000.0, i: 50, d: 100}
-  joint3_position_controller:
+  elbow_controller_gazebo:
     type: effort_controllers/JointPositionController
     joint: ArmRot2Rev
     pid: {p: 19000.0, i: 50, d: 100}

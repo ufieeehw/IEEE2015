@@ -1,0 +1,10 @@
+Wire colors for pololu gearmotors:
+
+Modified   | Stock  | Function
+----------------------------------
+Black      | Red    | Motor VCC
+White      | Black  | Motor GND
+Gray       | Green  | Encoder GND
+Purple     | Blue   | Encoder VCC
+Blue       | Yellow | Encoder A
+Green      | White  | Encoder B

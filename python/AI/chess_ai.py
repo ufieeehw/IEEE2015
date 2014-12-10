@@ -1,346 +1,397 @@
 import numpy as np
 import chess_ai_defs as ai
 import time
+import random
 from multiprocessing import Pool
-from operator import attrgetter
 from threading import Lock
 
-#globals/constants for use in the methods
-MAX_DEPTH = 7 #best I've got so far (target is ~8-10) (real AI use ~12-14)
-MAX_THREADS = 2 #number of threads to run, optimal value depends on system (~cores)
+# globals/constants for use in the methods
+MAX_DEPTH = 5 # best I've got so far (target is ~8-10) (real AI use ~12-14)
+MAX_THREADS = 2 # number of threads to run, optimal value depends on system (~cores)
 
-#consider moving multithreading to task queue
+def set_meta_vals(depth, threads):
+  '''Values for the ai program to use (depth, threads):
+      depth = Maximum search depth
+      threads = number of simultanious threads to run
+  '''
+  global MAX_DEPTH
+  MAX_DEPTH = depth
+  global MAX_THREADS
+  MAX_THREADS = threads
 
-#Function to run the move determination (wrapper for minmax)
-#Function expects a Forsyth-Edwards Notation (please start on white side, wikipedia is backwards)
-#  also expects the ai color (True=White, False=Black)
-#function will return a character move in long-algebreic-notation
+# consider moving multithreading to task queue
+# should teach it openings
+
+# Function to run the move determination (wrapper for minmax)
+# Function expects a Forsyth-Edwards Notation (please start on white side, wikipedia is backwards)
+#   also expects the ai color (True=White, False=Black)
+# function will return a character move in long-algebreic-notation
 def get_chess_move(fen_board, color):  
-  state = ai.Board_State(fen_board, color) #construct the board state, make it available globally
-  global global_state   #make top state avaliable to threads
-  global top_max        #make top max avaliable to threads
-  global lock           #make a lock avaliable to the threads
+  state = ai.Board_State(fen_board, color) # construct the board state, make it available globally
+  global global_state   # make top state avaliable to threads
+  global top_max        # make top max avaliable to threads
+  global lock           # make a lock avaliable to the threads
   global_state = state  
-  top_max = -900000     #need to assign, start at impossibly low value
+  top_max = -900000     # need to assign, start at impossibly low value
   lock = Lock()
   
-  #do some timing things
+  # do some timing things
   start = time.time()
   
-  #Start the search
-  pool = Pool(MAX_THREADS) #spawn specified number of worker threads
-  move_strings = get_possible_moves(state) #get all possible first moves
-  moves = pool.map(do_search_thread, move_strings) #run the threads
-  pool.close() #close threads after they finish
-  pool.join() #wait for threads to terminate before continuing
+  # Start the search
+  pool = Pool(MAX_THREADS) # spawn specified number of worker threads
+  move_strings = get_possible_moves(state) # get all possible first moves
+  random.shuffle(move_strings) # shuffle the move strings
+  moves = pool.map(do_search_thread, move_strings) # run the threads
+  pool.close() # close threads after they finish
+  pool.join() # wait for threads to terminate before continuing
   
-  #best_move = max(moves, key=attrgetter('value')) #get best move (found online)
+  # find the best move value
+  best_move_val = moves[0].value
+  for move in moves[1:]: # get best move
+    if(move.value > best_move_val): 
+      best_move_val = move.value
   
-  #debug (single thread instead of multi)
-  #best_move = alpha_beta_tree(state, MAX_DEPTH, None, None, True)
-
-  #See if we've checked them (give ai a free second move, see if we capture the king)
-  new_state = ai.Board_State() #create the new state
-  new_state.copy_board(state)
-  new_state.execute_move(best_move.tag,False) #execute our chosen move and take another turn
-  check_check = alpha_beta_tree(new_state, 1, None, None, True) #check tree
-  new_state.execute_move(check_check.tag) #execute the free move
-  if(new_state.ai_color and not new_state.bk): print 'Check'
-  elif(not new_state.ai_color and not new_state.wk): print 'Check'
+  good_moves = [] # list of the top moves
+  for move in moves:
+    if(move.value == best_move_val):
+      good_moves.append(move) # add the move
+      # print (move.tag, move.value)
+  
+  # print ('good moves', len(good_moves))
+  
+  # pick random move from top contender list
+  best_move = good_moves[random.randrange(len(good_moves))]
     
-  #See if we've checkmated them (iterate one round, see if they survive)
+  # debug (single thread instead of multi)
+  # best_move = alpha_beta_max(state, MAX_DEPTH, -900000, 900000)
+
+  check_or_mate = None
+
+  # See if we've checked them (give ai a free second move, see if we capture the king)
+  new_state = ai.Board_State() # create the new state
   new_state.copy_board(state)
-  new_state.execute_move(best_move.tag) #execute our chosen move
-  check_check = alpha_beta_tree(new_state, 2, None, None, False) #do thier turn
+  new_state.execute_move(best_move.tag,False) # execute our chosen move and take another turn
+  check_check = alpha_beta_max(new_state, 1, -900000, 900000) # check tree
+  new_state.execute_move(check_check.tag) # execute the free move
+  if((new_state.ai_color and not new_state.bk) or (not new_state.ai_color and not new_state.wk)):
+    check_or_mate = 'Check' # they're in check
+    
+  # See if we've checkmated them (iterate one round, see if they survive)
+  new_state.copy_board(state)
+  new_state.execute_move(best_move.tag) # execute our chosen move
+  check_check = alpha_beta_min(new_state, 2, -900000, 900000) # do thier turn
   new_state.execute_move(check_check.tag)
-  check_check = alpha_beta_tree(new_state, 1, None, None, True)  #do our turn
+  check_check = alpha_beta_max(new_state, 1, -900000, 900000) # do our turn
   new_state.execute_move(check_check.tag)
-  if(new_state.ai_color and not new_state.bk): print 'Checkmate'
-  elif(not new_state.ai_color and not new_state.wk): print 'Checkmate'
+  if((new_state.ai_color and not new_state.bk) or (not new_state.ai_color and not new_state.wk)): 
+    check_or_mate = 'Checkmate'
   
-  return (best_move.tag, time.time() - start)
+  return {'move': best_move.tag, 'check': check_or_mate, 'value':best_move.value, 'time':time.time()-start}
 
-#wrapper function for tree search, will spawn single search thread
-#function must run from top level, and always assumes the ai is moving
+# wrapper function for tree search, will spawn single search thread
+# function must run from top level, and always assumes the ai is moving
 def do_search_thread(move):
-  global global_state   #use global state
-  global top_max        #use global max
-  global lock           #use global lock
+  global global_state   # use global state
+  global top_max        # use global max
+  global lock           # use global lock
   
-  print move
+  # print move
   
-  new_state = ai.Board_State()  #create a new state
-  new_state.copy_board(global_state) #copy the main state
-  new_state.execute_move(move)  #execute the move
+  new_state = ai.Board_State()  # create a new state
+  new_state.copy_board(global_state) # copy the main state
+  new_state.execute_move(move)  # execute the move
   
-  lock.acquire() #get the lock
-  gmax = top_max #copy the global max
-  lock.release() #release the lock
+  lock.acquire() # get the lock
+  gmax = top_max # copy the global max
+  lock.release() # release the lock
   
-  best_move = alpha_beta_tree(new_state, MAX_DEPTH-1, None, gmax, False) #throw to tree search for next iteration
+  best_move = alpha_beta_min(new_state, MAX_DEPTH-1, gmax, 900000) # throw to tree search for next iteration
+  if(best_move.tag == ''): return ai.Move("",-900000) # catch bad results
 
-  lock.acquire() #get the lock
-  if(top_max < best_move.value): #check if we're better
-    top_max = best_move.value #store new best value
-  lock.release() #release the lock
+  lock.acquire() # get the lock
+  if(top_max < best_move.value): # check if we're better
+    top_max = best_move.value # store new best value
+  lock.release() # release the lock
   
   best_move.tag = move
   return best_move
 
-#recursive function to generate tree
-#argumengs are: board state, remaining depth,
-#  most recent min, most recent max, current operation (max/min)
-#function returns the optimal move
-def alpha_beta_tree(state, depth, last_min, last_max, is_max):
-  if(depth == 0): #end of recursive function
-    return ai.Move("", get_state_evaluation(state))  #return the value of this position
+# first of pair of recursive functions to generate tree (max half of it)
+# argumengs are: board state, remaining depth, most recent min, most recent max
+# function returns the optimal move
+def alpha_beta_max(state, depth, last_max, last_min):
+  if(depth == 0): # end of recursive function
+    return ai.Move("", get_state_evaluation(state))  # return the value of this position
     
-  move_strings = get_possible_moves(state) #get the strings corresponding to possible moves
-  new_state = ai.Board_State()
-  new_state.copy_board(state)
-  new_state.execute_move(move_strings[0])
-  if(is_max): best_move = alpha_beta_tree(new_state, depth-1, last_min, last_max, not is_max)
-  else: best_move = alpha_beta_tree(new_state, depth-1, last_min, last_max, not is_max)
-  best_move.tag = move_strings[0]
+  move_strings = get_possible_moves(state) # get the strings corresponding to possible moves
+  if(len(move_strings) == 0):
+    return ai.Move("end", get_state_evaluation(state)) # handle edge case
   
-  for move in move_strings[1:]: #search each other move
-    new_state = ai.Board_State()  #create a new object
-    new_state.copy_board(state)   #copy the board
-    new_state.execute_move(move)  #execute the move
-    if(is_max): contender = alpha_beta_tree(new_state, depth-1, last_min, best_move.value, False) #recurse!
-    else: contender = alpha_beta_tree(new_state, depth-1, best_move.value, last_max, True) #recurse!
-    if((is_max and contender.value >= best_move.value) or (not is_max and contender.value <= best_move.value)):
-      best_move = contender #contender is better
-      best_move.tag = move  #update the tag
-      #Do alpha beta - remove any value which cannot possiby replace an existing one
-      if(last_max != None and last_min != None):
-        if(best_move.value >= last_min or best_move.value <= last_max): return best_move 
-      elif(last_max != None and best_move.value <= last_max): return best_move
-      elif(last_min != None and best_move.value >= last_min): return best_move
+  new_state = ai.Board_State()    # create empty board object
   
-  return best_move
+  best_move = ai.Move("",last_max)  # preload move
+  for move in move_strings:         # search each move
+    new_state.copy_board(state)     # copy the board
+    new_state.execute_move(move)    # execute the move
+    contender = alpha_beta_min(new_state, depth-1, last_max, last_min).value # recurse!
+    if(contender >= last_min): return ai.Move("",last_min) # no moves
+    if(contender > last_max): # check result
+      last_max = contender
+      best_move = ai.Move(move, contender) # contender is better
 
-#function counts the peices remaining on the board, and multiplies by thier weight (Kauffman's 2012 values)
-#super simple first draft, will probably improve later
+  return best_move  # successfull move
+
+
+# second half of recursive pair
+def alpha_beta_min(state, depth, last_max, last_min):
+  if(depth == 0): # end of recursive function
+    return ai.Move("", get_state_evaluation(state))  # return the value of this position
+    
+  move_strings = get_possible_moves(state) # get the strings corresponding to possible moves
+  if(len(move_strings) == 0):
+    return ai.Move("end", get_state_evaluation(state)) # handle edge case
+  
+  new_state = ai.Board_State()    # create empty board object
+  
+  best_move = ai.Move("",last_min)  # preload move
+  for move in move_strings:         # search each move
+    new_state.copy_board(state)     # copy the board
+    new_state.execute_move(move)    # execute the move
+    contender = alpha_beta_max(new_state, depth-1, last_max, last_min).value # recurse!
+    if(contender <= last_max): return ai.Move("",last_max) # no moves
+    if(contender < last_min): # check result
+      last_min = contender
+      best_move = ai.Move(move, contender) # contender is better
+
+  return best_move  # successfull move
+
+
+
+# function counts the peices remaining on the board, and multiplies by thier weight (Kauffman's 2012 values)
+# super simple first draft, will probably improve later
 def get_state_evaluation(state):
-  score = 0 #position is initially neutral
-  score += bin(state.wp).count("1")*100 #count the 1's in the bitmap
-  score -= bin(state.bp).count("1")*100 #subtract black pawns (value 100)
-  score += bin(state.wr).count("1")*525 #white rooks (value 525)
-  score -= bin(state.br).count("1")*525 #black rooks (value 525)
-  score += bin(state.wn).count("1")*350 #white knights (350)
-  score -= bin(state.bn).count("1")*350 #black knights (350)
-  score += bin(state.wb).count("1")*350 #white bishop (350)
-  score -= bin(state.bb).count("1")*350 #black bishop (350)
-  if(state.wq): score += 1000 #white queen (1000)
-  if(state.bq): score -= 1000 #black queen (1000)
-  if(state.wk): score += 100000 #white king (100,000)  (take the king instead of checkmating)
-  if(state.bk): score -= 100000 #black king (100,000)
-  #incentivize trades by subtracting remaining opponent piece counts
-  if(state.turn == state.ai_color): score -= bin(state.get_black_pieces()).count('1') * 50
-  else: score += bin(state.get_white_pieces()).count('1') * 50
+  score = 0 # position is initially neutral
+  score += bin(state.wp).count("1")*100  # count the 1's in the bitmap
+  score -= bin(state.bp).count("1")*100  # subtract black pawns (value 100)
+  score += bin(state.wr).count("1")*525  # white rooks (value 525)
+  score -= bin(state.br).count("1")*525  # black rooks (value 525)
+  score += bin(state.wn).count("1")*350  # white knights (350)
+  score -= bin(state.bn).count("1")*350  # black knights (350)
+  score += bin(state.wb).count("1")*350  # white bishop (350)
+  score -= bin(state.bb).count("1")*350  # black bishop (350)
+  score += bin(state.wq).count("1")*1000 # white queen (1000)
+  score -= bin(state.bq).count("1")*1000 # black queen (1000)
+  if(state.wk != 0): score += 100000 # white king (100,000)  (take the king instead of checkmating)
+  if(state.bk != 0): score -= 100000 # black king (100,000)
   
-  if(not state.ai_color): score = -score #adjust to player color
-  return score #return the result
+  if(not state.ai_color):
+   score = -score # adjust to player color
+  
+  # incentivize trades by subtracting total piece count
+  score -= bin(state.get_all_pieces()).count('1') * 25
+  
+  return score # return the result
 
-#function returns a list of possible moves for a given state
+# function returns a list of possible moves for a given state
 def get_possible_moves(state):
-  gen_moves = []  #empty list of move strings
-  append_move = gen_moves.append #store function reference (optimization)
+  gen_moves = []  # empty list of move strings
+  append_move = gen_moves.append # store function reference (optimization)
   
-  #map to static lists so both sides can run the same function
-  if(state.turn == state.ai_color): #(ai color == white) !xor (turn == ai), white's turn
+  # map to static lists so both sides can run the same function
+  if(state.turn == state.ai_color): # (ai color == white) !xor (turn == ai), white's turn
     opponent_pieces = state.get_black_pieces()
     friendly_pieces = state.get_white_pieces()
     piece_list = [state.wp, state.wr, state.wn, state.wb, state.wq, state.wk]
-    pawn_dir = True   #pawns are moving forward
-  else: #black's turn
+    pawn_dir = True   # pawns are moving forward
+  else: # black's turn
     opponent_pieces = state.get_white_pieces()
     friendly_pieces = state.get_black_pieces()
     piece_list = [state.bp, state.br, state.bn, state.bb, state.bq, state.bk]
-    pawn_dir = False  #pawns move backwards
+    pawn_dir = False  # pawns move backwards
   
-  #generate possible moves. Try moves more likely to resort in favorable situations first to improve search time
-  #check if castles are avaliable
-  if(state.ai_color and (state.castle & 1)):       #kingside castle
-    if(not ((friendly_pieces + opponent_pieces) & 0x0000000000000030)): #spaces f1,g1 must be clear
+  # generate possible moves. Try moves more likely to resort in favorable situations first to improve search time
+  # check if castles are avaliable
+  if(state.ai_color and (state.castle & 1)):       # kingside castle
+    if(not ((friendly_pieces + opponent_pieces) & 0x0000000000000030)): # spaces f1,g1 must be clear
       append_move("O-O")
-  if(state.ai_color and (state.castle & 2)):       #queenside castle
-    if(not ((friendly_pieces + opponent_pieces) & 0x000000000000000F)): #spaces b1,c1,d1 must be clear
+  if(state.ai_color and (state.castle & 2)):       # queenside castle
+    if(not ((friendly_pieces + opponent_pieces) & 0x000000000000000F)): # spaces b1,c1,d1 must be clear
       append_move("O-O-O")
-  if(not state.ai_color and (state.castle & 4)):   #kingside castle
-    if(not ((friendly_pieces + opponent_pieces) & 0x3000000000000000)): #spaces f8,g8 must be clear
+  if(not state.ai_color and (state.castle & 4)):   # kingside castle
+    if(not ((friendly_pieces + opponent_pieces) & 0x3000000000000000)): # spaces f8,g8 must be clear
       append_move("O-O")
-  if(not state.ai_color and (state.castle & 8)):   #queenside castle
-    if(not ((friendly_pieces + opponent_pieces) & 0x0F00000000000000)): #spaces b8,c8,d8 must be clear
+  if(not state.ai_color and (state.castle & 8)):   # queenside castle
+    if(not ((friendly_pieces + opponent_pieces) & 0x0F00000000000000)): # spaces b8,c8,d8 must be clear
       append_move("O-O-O")
 
-  if(piece_list[0]): #check if there are pawns
+  if(piece_list[0]): # check if there are pawns
     rank_file = ai.get_rank_file(piece_list[0])
-    for piece in rank_file: #search for each piece found
+    for piece in rank_file: # search for each piece found
       pawn_square = ai.get_square(piece)
-      for r in (1, 2): #cycle through all avaliable angles of motion
+      for r in (1, 2): # cycle through all avaliable angles of motion
         if(not pawn_dir):
-          r = -1 * r  #invert pawn direction if we're black side
+          r = -r  # invert pawn direction if we're black side
         for f in (-1, 0, 1):
-          if(f != 0 and r == 2):
-            continue #can't move forward twice when changing rank
+          if(f != 0 and (r == 2 or r == -2)):
+            continue # can't move forward twice when changing rank
           elif(f == 0 and (r == 2 or r == -2) and ((pawn_dir and piece[0] != 2) or (not pawn_dir and piece[0] != 7))):
-            continue #pawn can only move two spaces from starting row
-          if(piece[0]+r>0 and piece[0]+r<=8 and piece[1]+f>0 and piece[1]+f<=8): #check board boundaries
+            continue # pawn can only move two spaces from starting row
+          if(piece[0]+r>0 and piece[0]+r<=8 and piece[1]+f>0 and piece[1]+f<=8): # check board boundaries
             new_square = pawn_square
-            #shift as appropriate
-            if(r > 0): new_square = new_square << (r<<3)     #leftshift by 8 bits per row
-            elif(r < 0): new_square = new_square >> ((-r)<<3)  #rightshift (r<<3 = r*8)
-            if(f > 0): new_square = new_square << f     #<< by f
-            elif(f < 0): new_square = new_square >> -f  #>> by -f
-            #check for piece conflicts
+            # shift as appropriate
+            if(r > 0): new_square = new_square << (r<<3)     # leftshift by 8 bits per row
+            elif(r < 0): new_square = new_square >> ((-r)<<3)  # rightshift (r<<3 = r*8)
+            if(f > 0): new_square = new_square + new_square     # << by f (must be 1)
+            elif(f < 0): new_square = new_square >> 1  # >> by -f (must be -1)
+            # check for piece conflicts
             if(not ((new_square & friendly_pieces) or (f == 0 and (new_square & (friendly_pieces + opponent_pieces))) or (f != 0 and not (new_square & opponent_pieces)))):
-              if(new_square & opponent_pieces + state.ep): capture = 'x' #piece captured
-              else: capture = '-' #no capture
-              #store the ouput string (old_location+capture+new_location)
+              if(new_square & opponent_pieces + state.ep): capture = 'x' # piece captured
+              else: capture = '-' # no capture
+              # store the ouput string (old_location+capture+new_location)
               move_string = "%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f-1),chr(ord('0')+piece[0]+r))
-              append_move(move_string) #add it to the list
+              append_move(move_string) # add it to the list
 
-  #get the knights's moves, search +-1/2 in rank, and map file to 1/2 as appropriate
-  if(piece_list[2]): #check if there is a knight
+  # get the knights's moves, search +-1/2 in rank, and map file to 1/2 as appropriate
+  if(piece_list[2]): # check if there is a knight
     rank_file = ai.get_rank_file(piece_list[2])
-    for piece in rank_file: #search for each piece found
+    for piece in rank_file: # search for each piece found
       knight_square = ai.get_square(piece)
-      for r in (-2, -1, 1, 2): #cycle through all avaliable angles of motion
+      for r in (-2, -1, 1, 2): # cycle through all avaliable angles of motion
         for f in (-1, 1):
-          if(r == -1 or r == 1):  #knight needs to 2-1 or 1-2, force this here
-            f = f * 2
-          if(piece[0]+(r)>0 and piece[0]+(r)<=8 and piece[1]+(f)>0 and piece[1]+(f) <=8): #check board boundaries
+          if(r == -1 or r == 1):  # knight needs to 2-1 or 1-2, force this here
+            f = f + f
+          if(piece[0]+(r)>0 and piece[0]+(r)<=8 and piece[1]+(f)>0 and piece[1]+(f) <=8): # check board boundaries
             new_square = knight_square
-            #shift as appropriate
-            if(r > 0): new_square = new_square << (r<<3)     #leftshift by 8 bits per row (r<<3 = r*8)
-            elif(r < 0): new_square = new_square >> ((-r)<<3)  #rightshift 
-            if(f > 0): new_square = new_square << f     #<< by f
-            elif(f < 0): new_square = new_square >> -f  #>> by -f
-            if(not (new_square & friendly_pieces)): #no piece conflict
-              if(new_square & opponent_pieces + state.ep): capture = 'x' #piece captured
-              else: capture = '-' #no capture
-              #store the ouput string (N+old_location+capture+new_location)
+            # shift as appropriate
+            if(r > 0): new_square = new_square << (r<<3)     # leftshift by 8 bits per row (r<<3 = r*8)
+            elif(r < 0): new_square = new_square >> ((-r)<<3)  # rightshift 
+            if(f > 0): new_square = new_square << f     # << by f
+            elif(f < 0): new_square = new_square >> -f  # >> by -f
+            if(not (new_square & friendly_pieces)): # no piece conflict
+              if(new_square & opponent_pieces + state.ep): capture = 'x' # piece captured
+              else: capture = '-' # no capture
+              # store the ouput string (N+old_location+capture+new_location)
               move_string = "N%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f-1),chr(ord('0')+piece[0]+r))
-              append_move(move_string) #add it to the list
-              if(new_square & opponent_pieces): #opponent piece
-                break #opposing peice on board
+              append_move(move_string) # add it to the list
+              if(new_square & opponent_pieces): # opponent piece
+                break # opposing peice on board
             else:
-              break #friendly piece blocking us
+              break # friendly piece blocking us
           else:
-            break #edge of board, nowhere else to go
+            break # edge of board, nowhere else to go
  
-  #get the rook's moves, search each direction till obstructed
-  if(piece_list[1]): #check if there is a rook
+  # get the rook's moves, search each direction till obstructed
+  if(piece_list[1]): # check if there is a rook
     rank_file = ai.get_rank_file(piece_list[1])
-    for piece in rank_file: #search for each piece found
+    for piece in rank_file: # search for each piece found
       rook_square = ai.get_square(piece)
-      for r in (-1, 0, 1): #cycle through all avaliable angles of motion
+      for r in (-1, 0, 1): # cycle through all avaliable angles of motion
         for f in (-1, 1):
-          if(r != 0): #if we're moving vertically, don't move horizontally
-            f = 0
-          for i in range (1,8): #can move up to 7 squares
-            if(piece[0]+(r*i)>0 and piece[0]+(r*i)<=8 and piece[1]+(f*i)>0 and piece[1]+(f*i) <=8): #check board boundaries
+          if(r != 0): # if we're moving vertically, don't move horizontally
+            if(f == -1): f = 0 # check vertical move
+            else: break # keep from checking a move multiple times
+          for i in range (1,8): # can move up to 7 squares
+            if(piece[0]+(r*i)>0 and piece[0]+(r*i)<=8 and piece[1]+(f*i)>0 and piece[1]+(f*i) <=8): # check board boundaries
               new_square = rook_square
-              #shift as appropriate
-              if(r > 0): new_square = new_square << (i<<3)     #leftshift by 8 bits per row
-              elif(r < 0): new_square = new_square >> (i<<3)  #rightshift (i<<3 = i*8)
-              if(f > 0): new_square = new_square << i     #<< by f
-              elif(f < 0): new_square = new_square >> i   #>> by -f
-              if(not (new_square & friendly_pieces)):   #no piece conflict
-                if(new_square & opponent_pieces + state.ep): capture = 'x' #piece captured
-                else: capture = '-' #no capture
-                #store the ouput string (N+old_location+capture+new_location)
-                move_string = "R%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f-1),chr(ord('0')+piece[0]+r))
-                append_move(move_string) #add it to the list
-                if(new_square & opponent_pieces): #opponent piece
-                  break #opposing peice on board
+              # shift as appropriate
+              if(r > 0): new_square = new_square << (i<<3)     # leftshift by 8 bits per row
+              elif(r < 0): new_square = new_square >> (i<<3)  # rightshift (i<<3 = i*8)
+              if(f > 0): new_square = new_square << i     # << by f
+              elif(f < 0): new_square = new_square >> i   # >> by -f
+              if(not (new_square & friendly_pieces)):   # no piece conflict
+                if(new_square & opponent_pieces + state.ep): capture = 'x' # piece captured
+                else: capture = '-' # no capture
+                # store the ouput string (N+old_location+capture+new_location)
+                move_string = "R%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f*i-1),chr(ord('0')+piece[0]+r*i))
+                append_move(move_string) # add it to the list
+                if(new_square & opponent_pieces): # opponent piece
+                  break # opposing peice on board
               else:
-                break #friendly piece blocking us
+                break # friendly piece blocking us
             else:
-              break #edge of board, nowhere else to go
+              break # edge of board, nowhere else to go
           if(f==0):
-            break #only need to check this condition once
+            break # only need to check this condition once
    
-  #get the bishop's moves, search each angle till obstructed
-  if(piece_list[3]): #check if there is a bishop
+  # get the bishop's moves, search each angle till obstructed
+  if(piece_list[3]): # check if there is a bishop
     rank_file = ai.get_rank_file(piece_list[3])
-    for piece in rank_file: #search for each piece found
+    for piece in rank_file: # search for each piece found
       bishop_square = ai.get_square(piece)
-      for r in (-1, 1): #cycle through all avaliable angles of motion
+      for r in (-1, 1): # cycle through all avaliable angles of motion
         for f in (-1, 1):
-          for i in range (1,8): #can move up to 7 squares
-            if(piece[0]+(r*i)>0 and piece[0]+(r*i)<=8 and piece[1]+(f*i)>0 and piece[1]+(f*i) <=8): #check board boundaries
+          for i in range (1,8): # can move up to 7 squares
+            if(piece[0]+(r*i)>0 and piece[0]+(r*i)<=8 and piece[1]+(f*i)>0 and piece[1]+(f*i) <=8): # check board boundaries
               new_square = bishop_square
-              #shift as appropriate
-              if(r > 0): new_square = new_square << (i<<3)    #leftshift by 8 bits per row
-              elif(r < 0): new_square = new_square >> (i<<3)  #rightshift (i<<3 = i*8)
-              if(f > 0): new_square = new_square << i     #<< by f
-              elif(f < 0): new_square = new_square >> i   #>> by -f
-              if(not (new_square & friendly_pieces)): #no piece conflict
-                if(new_square & opponent_pieces + state.ep): capture = 'x' #piece captured
-                else: capture = '-' #no capture
-                #store the ouput string (N+old_location+capture+new_location)
-                move_string = "B%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f-1),chr(ord('0')+piece[0]+r))
-                append_move(move_string) #add it to the list
-                if(new_square & opponent_pieces): #opponent piece
-                  break #opposing peice on board
+              # shift as appropriate
+              if(r > 0): new_square = new_square << (i<<3)    # leftshift by 8 bits per row
+              elif(r < 0): new_square = new_square >> (i<<3)  # rightshift (i<<3 = i*8)
+              if(f > 0): new_square = new_square << i     # << by f
+              elif(f < 0): new_square = new_square >> i   # >> by -f
+              if(not (new_square & friendly_pieces)): # no piece conflict
+                if(new_square & opponent_pieces + state.ep): capture = 'x' # piece captured
+                else: capture = '-' # no capture
+                # store the ouput string (N+old_location+capture+new_location)
+                move_string = "B%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f*i-1),chr(ord('0')+piece[0]+r*i))
+                append_move(move_string) # add it to the list
+                if(new_square & opponent_pieces): # opponent piece
+                  break # opposing peice on board
               else:
-                break #friendly piece blocking us
+                break # friendly piece blocking us
             else:
-              break #edge of board, nowhere else to go
+              break # edge of board, nowhere else to go
      
    
-  #get the queen's moves, search in each direction/angle till blocked
-  if(piece_list[4]): #check if queen still exists
+  # get the queen's moves, search in each direction/angle till blocked
+  if(piece_list[4]): # check if queen still exists
     rank_file = ai.get_rank_file(piece_list[4])
-    for piece in rank_file: #search for each piece found (can have multiple queens)
-      queen_square = ai.get_square(piece)  #get the queen's location
-      for r in (-1,0,1): #cycle through all avaliable angles of motion
+    for piece in rank_file: # search for each piece found (can have multiple queens)
+      queen_square = ai.get_square(piece)  # get the queen's location
+      for r in (-1,0,1): # cycle through all avaliable angles of motion
         for f in (-1,0,1):
-          for i in range (1,8): #queen can move up to 7 squares
-            if(piece[0]+(r*i)>0 and piece[0]+(r*i)<=8 and piece[1]+(f*i)>0 and piece[1]+(f*i) <=8): #check board boundaries
+          for i in range (1,8): # queen can move up to 7 squares
+            if(piece[0]+(r*i)>0 and piece[0]+(r*i)<=8 and piece[1]+(f*i)>0 and piece[1]+(f*i) <=8): # check board boundaries
               new_square = queen_square
-              #shift as appropriate
-              if(r > 0): new_square = new_square << (i<<3)    #leftshift by 8 bits per row (8*i = i<<3)
-              elif(r < 0): new_square = new_square >> (i<<3)  #rightshift by 8*i
-              if(f > 0): new_square = new_square << i     #<< by f
-              elif(f < 0): new_square = new_square >> i   #>> by -f
-              if(not (new_square & friendly_pieces)): #no piece conflict
-                if(new_square & opponent_pieces + state.ep): capture = 'x' #piece captured
-                else: capture = '-' #no capture
-                #store the ouput string (N+old_location+capture+new_location)
-                move_string = "Q%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f-1),chr(ord('0')+piece[0]+r))
-                append_move(move_string) #add it to the list
-                if(new_square & opponent_pieces): #opponent piece
-                  break #opposing piece
+              # shift as appropriate
+              if(r > 0): new_square = new_square << (i<<3)    # leftshift by 8 bits per row (8*i = i<<3)
+              elif(r < 0): new_square = new_square >> (i<<3)  # rightshift by 8*i
+              if(f > 0): new_square = new_square << i     # << by f
+              elif(f < 0): new_square = new_square >> i   # >> by -f
+              if(not (new_square & friendly_pieces)): # no piece conflict
+                if(new_square & opponent_pieces + state.ep): capture = 'x' # piece captured
+                else: capture = '-' # no capture
+                # store the ouput string (N+old_location+capture+new_location)
+                move_string = "Q%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f*i-1),chr(ord('0')+piece[0]+r*i))
+                append_move(move_string) # add it to the list
+                if(new_square & opponent_pieces): # opponent piece
+                  break # opposing piece
               else:
-                break #friendly piece blocking us
+                break # friendly piece blocking us
             else:
-              break #edge of board, nowhere else to go
+              break # edge of board, nowhere else to go
               
-  #add the king's moves (ignore checks, state eval will catch them eventually)
-  if(piece_list[5]): #check if king is still in play (suprisingly possible)
-    king_square = piece_list[5] #get the king's square
-    rank_file = ai.get_rank_file(king_square) #get the coordinates of the location
-    piece = rank_file[0] #only one king ever
-    for r in (-1,0,1): #king can move 1 space in any direction (+1,0,-1)
+  # add the king's moves (ignore checks, state eval will catch them eventually)
+  if(piece_list[5]): # check if king is still in play (suprisingly possible)
+    king_square = piece_list[5] # get the king's square
+    rank_file = ai.get_rank_file(king_square) # get the coordinates of the location
+    piece = rank_file[0] # only one king ever
+    for r in (-1,0,1): # king can move 1 space in any direction (+1,0,-1)
       for f in (-1,0,1):
-        if(piece[0]+r>0 and piece[0]+r<=8 and piece[1]+f>0 and piece[1]+f <=8): #check board boundaries
-          new_square = king_square  #storage for new location
-          #shift as appropriate
-          if(r > 0): new_square = new_square << 8    #leftshift by 8 bits per row
-          elif(r < 0): new_square = new_square >> 8  #rightshift 
-          if(f > 0): new_square = new_square << 1    #<< by f
-          elif(f < 0): new_square = new_square >> 1  #>> by -f
-          if(not (new_square & friendly_pieces)): #no piece conflict
-            if(new_square & opponent_pieces + state.ep): capture = 'x' #piece captured
-            else: capture = '-' #no capture
-            #store the ouput string (N+old_location+capture+new_location)
+        if(piece[0]+r>0 and piece[0]+r<=8 and piece[1]+f>0 and piece[1]+f <=8): # check board boundaries
+          new_square = king_square  # storage for new location
+          # shift as appropriate
+          if(r > 0): new_square = new_square << 8    # leftshift by 8 bits per row
+          elif(r < 0): new_square = new_square >> 8  # rightshift 
+          if(f > 0): new_square = new_square+new_square   # << by 1
+          elif(f < 0): new_square = new_square >> 1 # >> by 1
+          if(not (new_square & friendly_pieces)): # no piece conflict
+            if(new_square & opponent_pieces + state.ep): capture = 'x' # piece captured
+            else: capture = '-' # no capture
+            # store the ouput string (N+old_location+capture+new_location)
             move_string = "K%s%s%s%s%s" % (chr(ord('a')+piece[1]-1),chr(ord('0')+piece[0]),capture,chr(ord('a')+piece[1]+f-1),chr(ord('0')+piece[0]+r))
-            append_move(move_string) #add it to the list
+            append_move(move_string) # add it to the list
             
   return gen_moves
   
-#Boo
+# Boo

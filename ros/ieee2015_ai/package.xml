@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package>
+  <name>ieee2015_ai</name>
+  <version>0.0.1</version>
+  <description>The ieee2015_AI package</description>
+  <maintainer email="squash111@ufl.edu">Josh Sanders</maintainer>
+  <maintainer email="christinemoore321@gmail.com">Christine Moore</maintainer>
+  <license>TODO</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <export>
+    <!-- You can specify that this package is a metapackage here: -->
+    <!-- <metapackage/> -->
+    <!-- Other tools can request additional information be placed here -->
+  </export>
+</package>

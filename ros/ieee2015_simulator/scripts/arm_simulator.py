@@ -8,11 +8,11 @@ import time
 import rospy
 from tf import transformations as tf_trans
 ## Ros Msgs
-from std_msgs.msg import Header, Float32
+from std_msgs.msg import Header, Float64
 from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
 from dynamixel_msgs.msg import JointState
 
-SCREEN_DIM = (500,500)
+SCREEN_DIM = (750, 750)
 ORIGIN = np.array([SCREEN_DIM[0]/2.0, SCREEN_DIM[1]/2.0])
 
 
@@ -26,14 +26,13 @@ def print_in(f):
     return(print_on_entry)
 
 
-def round_point((x,y)):
+def round_point((x, y)):
     '''Round and change point to centered coordinate system'''
-    return map(int, (x + ORIGIN[0], -y + ORIGIN[1]))
+    return map(int, ((1000 * x) + ORIGIN[0], -(1000 * y) + ORIGIN[1]))
 
-
-def unround_point((x,y)):
+def unround_point((x, y)):
     '''Change center-origin coordinates to pygame coordinates'''
-    return map(int, (x - ORIGIN[0], -y + ORIGIN[1]))
+    return ((x - ORIGIN[0])/1000.0, (-y + ORIGIN[1])/1000.0)
 
 
 def norm_angle_diff(ang_1, ang_2):
@@ -42,142 +41,92 @@ def norm_angle_diff(ang_1, ang_2):
     return (ang_1 - ang_2 + np.pi) % (2 * np.pi) - np.pi
 
 
-class Line(object):
-    '''->Make a *joint* class that supports multiple children, parents, and local reference frames
-        Can use the samething to back-out the end pose from angles, etc'''
-    def __init__(self, point1, point2, color=(200, 200, 200)):
-        self.point1 = np.array(point1, np.float32)
-        self.point2 = np.array(point2, np.float32)
-        self.color = color
-    
-    def update(self, point1, point2):
-        '''Change line endpoints'''
-        self.point1 = np.array(point1, np.float32)
-        self.point2 = np.array(point2, np.float32)
-    
-    def draw(self, display):
-        '''Draw method'''
-        pygame.draw.line(display, self.color, round_point(self.point1), round_point(self.point2), 4)
-    
-    @property
-    def end(self):
-        '''Farthest point from origin'''
-        return np.array(max(self.points, key=lambda v: np.linalg.norm(np.array(v) - (0,0))))
-    @property
-    def start(self):
-        '''Closest point to origin'''
-        return np.array(min(self.points, key=lambda v: np.linalg.norm(np.array(v) - (0,0))))
-    
-    @property
-    def points(self):
-        return [self.point1, self.point2]
-    
-    @property
-    def norm(self):
-        return np.linalg.norm(np.array(self.point2) - np.array(self.point1))
-
-    def __getitem__(self, key):
-        '''[Point 1, Point 2]'''
-        return self.points[key]
-
-    @staticmethod
-    def dotproduct(v1, v2):
-        return sum((a*b) for a, b in zip(v1, v2))
-    
-    @staticmethod
-    def length(v):
-        return np.sqrt(dotproduct(v, v))
-    
-    @staticmethod
-    def angle(line1, line2):
-        '''angle between two line objects'''
-        return np.arccos(dotproduct(v1, v2) / (length(v1) * length(v2)))
-
-class Arm_Remapper(object):
-    def __init__(self):
-        rospy.init_node('SCARA_angle_remapper')
-
-        self.elbow_sub = rospy.Subscriber('/elbow_controller/state', JointState, self.got_elbow_state)
-        self.shoulder_sub = rospy.Subscriber('/shoulder_controller/state', JointState, self.got_shoulder_state)
-
-        # self.elbow_pub = rospy.Subscriber('/arm_elbow_angle', Float32)
-        # self.shoulder_pub = rospy.Subscriber('/arm_shoulder_angle', Float32)
-
-
 class SCARA(object):
     def __init__(self):
+        '''This intends to simulate the physical servo angles without fake offsets'''
         rospy.init_node('SCARA_simulator')
-        self.base = np.array([0.0, 0.0])
-        shoulder_length, elbow_length = 148, 160
-        self.shoulder = Line(self.base, (shoulder_length, 0), color=(100, 100, 100))
-        self.elbow = Line(self.shoulder.end, self.shoulder.end + (elbow_length, 0), color=(200, 200, 100))
 
-        # self.elbow_sub = rospy.Subscriber('arm_elbow_angle', Float32, self.got_elbow_angle)
-        # self.shoulder_sub = rospy.Subscriber('arm_shoulder_angle', Float32, self.got_shoulder_angle)
+        # Position initalization
+        self.base = np.array([0.0, 0.0], np.float32)
+        self.shoulder_length, self.elbow_length = 0.148, 0.160
+        self.elbow_joint = np.array([self.shoulder_length, 0.0], np.float32)
+        self.wrist_joint = self.elbow_joint + np.array([self.elbow_length, 0.0], np.float32)
 
-        self.elbow_sub = rospy.Subscriber('/arm_', JointState, self.got_elbow_angle)
-        self.shoulder_sub = rospy.Subscriber('arm_shoulder_angle', JointState, self.got_shoulder_angle)
+        # ROS elements
+        self.elbow_sub = rospy.Subscriber('/elbow_controller/command', Float64, self.got_elbow_angle)
+        self.shoulder_sub = rospy.Subscriber('/shoulder_controller/command', Float64, self.got_shoulder_angle)
+        self.error_sub = rospy.Subscriber('/arm_des_pose', PointStamped, self.got_des_pose)
 
-        self.error_sub = rospy.Subscriber('arm_des_pose', Float32, PointStamped, self.got_des_pose)
-
-        self.shoulder_angle, self.elbow_angle = 0.0 , 1.505
+        # Message defaults
+        self.shoulder_angle, self.elbow_angle = 0.3 , -1.75
         self.position = None
 
     def got_des_pose(self, msg):
         '''Recieved desired arm pose'''
         self.position = (msg.point.x, msg.point.y)
+        print "Targeting position: ({}, {})".format(*self.position)
 
     def got_elbow_angle(self, msg):
         '''Recieved current elbow angle'''
-        # self.elbow_angle = msg.data
-        self.elbow_angle = msg.current_pos
+        self.elbow_angle = msg.data
 
     def got_shoulder_angle(self, msg):
         '''Recieved current base angle'''
-        # self.shoulder_angle = msg.data
-        self.shoulder_angle = msg.current_pos
+        self.shoulder_angle = msg.data
 
-    def update(self, center=(0, 0)):
+    def update(self, center=np.array([0, 0], np.float32)):
         '''Update each arm joint position according to the angles and lengths'''
         # TODO:
         # Make this non-instantaneous
 
-        # Update elbow (end_1)
-        self.base = center
+        shoulder_angle_offset =  (-3 * np.pi/2) - 0.3
+        elbow_angle_offset = 1.75
+        
+        _shoulder_angle = self.shoulder_angle + shoulder_angle_offset
+        _elbow_angle = -(self.elbow_angle + elbow_angle_offset)
 
-        shoulder_local_pos = self.shoulder.norm * np.array([np.cos(self.shoulder_angle), np.sin(self.shoulder_angle)])
-        self.new_end_1 = shoulder_local_pos + self.base
+        self.base = center
+        # Update endpoint of link from shoulder to elbow
+        shoulder_local_pos = self.shoulder_length * np.array([
+            np.cos(_shoulder_angle), 
+            np.sin(_shoulder_angle)
+        ])
+
+        self.elbow_joint = shoulder_local_pos + self.base
 
         # Update endpoint as sum of base angle and elbow angle
-        total_elbow_angle = self.shoulder_angle + self.elbow_angle
+        # total_elbow_angle = _shoulder_angle - _elbow_angle
+        total_elbow_angle = _elbow_angle
 
         # Superimpose positions
-        elbow_local_pos = self.elbow.norm * np.array([np.cos(total_elbow_angle), np.sin(total_elbow_angle)])
-        self.new_end_2 = self.new_end_1 + elbow_local_pos
-
-        self.shoulder.update(self.base, self.new_end_1)
-        self.elbow.update(self.shoulder.end, self.new_end_2)
+        elbow_local_pos = self.elbow_length * np.array([np.cos(total_elbow_angle), np.sin(total_elbow_angle)])
+        self.wrist_joint = self.elbow_joint + elbow_local_pos
+        # print "Angles: [{}, {}]".format(self.shoulder_angle, self.elbow_angle)
+        # print "Angles: [{}, {}]".format(_shoulder_angle, _elbow_angle)
 
     def draw(self, display, new_base=(0, 0)):
-        '''Draw method yo'''
-        self.update(new_base)
-        self.shoulder.draw(display)
-        self.elbow.draw(display)
+        '''Draw the whole arm'''
+        # Update positions given current angles
+        self.update()
+        # Draw the links
+        pygame.draw.line(display, (255, 0, 255), round_point(self.base), round_point(self.elbow_joint), 4)
+        pygame.draw.line(display, (255, 0, 0), round_point(self.elbow_joint), round_point(self.wrist_joint), 4)
+        # Draw the desired position circle
+        pygame.draw.circle(display, (255, 255, 50), round_point(self.base), int((self.shoulder_length + self.elbow_length) * 1000), 1)
+
         if self.position is not None:
             pygame.draw.circle(display, (250, 30, 30), round_point(self.position), 5, 1)
 
 
 def main():
     '''In principle, we can support an arbitrary number of arms in simulation'''
-    arm1 = SCARA()
-    arms = [arm1]
+    arms = [SCARA()]
 
     display = pygame.display.set_mode(SCREEN_DIM)
-    des_pose_pub = rospy.Publisher('arm_des_pose', PointStamped)
+    des_pose_pub = rospy.Publisher('/arm_des_pose', PointStamped, queue_size=1)
 
     def publish_des_pos(pos):
-        '''Publish Pose
-        '''
+        '''Publish desired position of the arm end-effector based on click position'''
         des_pose_pub.publish(
             PointStamped(
                 header = Header(
