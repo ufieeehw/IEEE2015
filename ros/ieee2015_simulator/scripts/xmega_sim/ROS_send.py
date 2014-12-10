@@ -1,8 +1,9 @@
 #/usr/bin/env python   
 
-import rospy
 import os
 import argparse
+import rospy
+import time
 
 #import all messages used to pass data through xMega Driver
 
@@ -11,8 +12,22 @@ from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion
 from sensor_msgs.msg import Imu
 from ieee2015_xmega_driver.msg import XMega_Message
 
+# -------------------------- Function Definitions -----------------------------------------------
 
-rospy.init_node('xmega_codes', anonymous=True)
+
+# -------------------------- Subscriber Definitons ----------------------------------
+
+
+def imu_poll():
+	sub = rospy.Subscriber('robot/imu', String)
+	r = rospy.Rate(5) 
+
+	# Need to convert to readable format
+	rospy.loginfo(sub)
+
+
+# -------------------------- Publisher Definitons ------------------------------------
+
 
 def debug_poll():
 
@@ -27,20 +42,8 @@ def debug_poll():
 		r.sleep()
 		count+=1
 
-def imu_poll():
 
-	pub = rospy.Publisher('robot/imu', String, queue_size=1)
-	r = rospy.Rate(5) 
-
-	count = 0
-	while not rospy.is_shutdown() and count == 0:
-		string = "imu"
-		rospy.loginfo(string)
-		pub.publish(string)
-		r.sleep()
-		count+=1
-
-'''def step_motor_send():
+def step_motor_send():
 
 	pub = rospy.Publisher('robot/desired_velocity', String, queue_size=1)
 	r = rospy.Rate(5) 
@@ -52,9 +55,28 @@ def imu_poll():
 		pub.publish(string)
 		r.sleep()
 		count+=1
-		'''
 
-while True:
-	debug_poll()
-	imu_poll()
-	#step_motor_send()
+
+# ------------------------------- End of Function Definitions -----------------------------------------
+
+print "ROS side simulation"
+print
+print
+print "Enter [y/yes] when you would like to broadcast from ROS to the Xmega"
+
+
+
+yesno = raw_input()
+
+if yesno == 'y' or yesno == 'yes': 
+	rospy.init_node('xmega_codes', anonymous=True)
+
+
+
+# ------------------------------------ Begin Main Loop ------------------------------------------------
+
+	
+	while not rospy.is_shutdown():
+		debug_poll()
+		imu_poll()
+		step_motor_send()
