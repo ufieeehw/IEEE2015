@@ -27,9 +27,11 @@ class VisualCortex:
     # Dimensions of camera images after perspec transform (bird's eye dims)
     bird_x = None;
     bird_y = None;
+    # Features and descriptors of full map
+    _map_kp = None;
+    _map_descriptors = None;
 
     # Some useful private variables
-    _map_features = None;
     _view_features = None;
     _transformed_view = None;
     _perspective_matrix = None;
@@ -73,9 +75,17 @@ class VisualCortex:
         self._calculate_perspec_corners()
         # Transform the initial image to bird's eye
         imgx = self.transform_image(img)
+        kp1, des1 = self.feature_detect(imgx)
+        # Initialize kp and des dictionary
+        self._map_kp = [kp1[0]]
+        self._map_descriptors = [des1[0]]
         # And paste it on to the full_map using a basic translation matrix
         affine_matrix = self._initialize_affine_matrix()
-        self.stitch(imgx, affine_matrix)
+        kp, des = self.filter_new_kps(None, kp1, des1, affine_matrix)
+        self.stitch(imgx, kp, des, affine_matrix)
+        # Remove the first element that just set the datatype earlier
+        self._map_kp.pop(0)
+        self._map_descriptors.pop(0)
 
 
     ####################################
@@ -95,23 +105,22 @@ class VisualCortex:
         kp1, des1, bird_corners = self._apply_roi(kp1, des1)
         #self._draw_features(imgx, kp1, bird_corners, "points")
 
-        # TODO: Use a database rather than re-ORBing on the full map
-        # TODO: put a mask around the "known map" for the same reason we do it to imgx above...
-        # Extract features from the full_map
-        kp2, des2 = self.feature_detect(self.full_map)
         #self._draw_features(self.full_map, kp2, None, "points")
         # Match features between imgx and full_map
         # TODO: Do we need to input kp1 and kp2?
-        M, matches, q, t = self.feature_match(kp1, kp2, des1, des2)
+        M, matches, q, t = self.feature_match(kp1, des1)
         #self._draw_features(imgx, q, None, "array")
         #self._draw_features(self.full_map, t, None, "array")
         #self._draw_matches(imgx, self.full_map, kp1, kp2, matches)
+
+        # filter to get surviving kps and descriptors that append to dictionary
+        kp, des = self.filter_new_kps(matches, kp1, des1, M)
 
         # Use this affine matrix to update robot position
         # TODO: Make position/rotation a property
         self.localize(M)
         # Use this affine matrix to update full_map
-        self.stitch(imgx, M)
+        self.stitch(imgx, kp, des, M)
         return;
 
     """Takes an image from the camera's video feed and transforms it into a 
@@ -142,11 +151,12 @@ class VisualCortex:
     matrices, return the array of match objects after masking
     and the resulting homography matrix from BruteForce matching
     """
-    def feature_match(self, kp1, kp2, des1, des2):
+    def feature_match(self, kp1, des1):
         # Create BFMatcher object
         bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
         # Match descriptors and get the matches array
-        matches = bf.match(des1,des2)
+        matches = bf.match(des1, np.array(self._map_descriptors))
+
         # Sort them in the order of their distance.
         # TODO: change the lambda to a def, as specified by PEP8
         matches = sorted(matches, key = lambda x: x.distance)
@@ -164,9 +174,9 @@ class VisualCortex:
         if len(good_matches)>0:
             # TODO: 'splain the following 4 lines of code
             query_pts = np.float32(
-                [ kp1[m.queryIdx].pt for m in good_matches ]).reshape(-1,1,2)
+                [ kp1[m.queryIdx].pt for m in good_matches ]).reshape(-1, 1, 2)
             train_pts = np.float32(
-                [ kp2[m.trainIdx].pt for m in good_matches ]).reshape(-1,1,2)
+                [ self._map_kp[m.trainIdx].pt for m in good_matches ]).reshape(-1, 1, 2)
             # Run regression on the matches to filter outliers
             M, mask, successrate, q, t = self.estimateAffine(query_pts, train_pts, 5.0)
 
@@ -323,7 +333,7 @@ class VisualCortex:
         # Gives rotation in radians East of North
         self.rotation = np.arctan(delta_y/delta_x)
 
-    def stitch(self, imgx, matrix):
+    def stitch(self, imgx, kp, des, matrix):
         """ Update the full_map with the latest image, using the
         most up-to-date _affine_matrix
         """
@@ -346,16 +356,47 @@ class VisualCortex:
         self.full_map = fullimgx/2 + self.full_map/2;
         # Clean up the image
         self.full_map = self.clean_image(self.full_map)
+
+        # Zip them back into points and append to dictionary (31.0 is size, required but irrelevent property)
+        for i in range(0, len(kp)):
+            self._map_kp.append(cv2.KeyPoint(kp[i][0], kp[i][1], 31.0))
+        for i in range(0, len(des)):
+            self._map_descriptors.append(des[i])
         #superimposed = cv2.resize(superimposed,(0,0), fx=.25, fy=.25)
         return None
+
+    def filter_new_kps(self, matches, kp, des, matrix):
+        """ Given some new keypoint and descriptor arrays and the
+        matches list, append the relevent ones to our 
+        world map's dictionary of kps and descriptors
+        """
+        relevent_kp = [];
+        new_des = [];
+        if (matches == None):
+            # Convert kp to array
+            for i in range(0, len(kp)):
+                relevent_kp.append([kp[i].pt[0], kp[i].pt[1], 1])
+            # Append descriptors to library
+            for i in range(0, len(des)):
+                new_des.append(des[i])
+        else:
+            # Convert kp to array
+            for m in matches:
+                relevent_kp.append([kp[m.queryIdx].pt[0], kp[m.queryIdx].pt[1], 1])
+            # Append descriptors to library
+            for m in matches:
+                new_des.append(des[m.queryIdx])
+
+        # Apply affine to the kp's
+        new_kp = np.dot(relevent_kp, matrix.T)
+
+        return new_kp, new_des;
 
 
     def clean_image(self, img):
         """ Clean up a transformed or stitched image by threshholding it and then
         blurring it to remove pixelation and salt/pepper
-    """
-        while(1):
-        cv2.destroyAllWindows()
+        """
         thresh = 50
         dump, img = cv2.threshold(img, thresh, 255, cv2.THRESH_BINARY)
         kernel = 10
@@ -601,7 +642,6 @@ img_location = 'test_images/cap1.jpg'
 img = cv2.cvtColor(cv2.imread(img_location), cv2.COLOR_BGR2GRAY)
 # Create a new VC object
 VC = VisualCortex(view_coordinates,map_coordinates,img);
-VC.display_map()
 
 img_location = 'test_images/cap2.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
@@ -613,3 +653,7 @@ img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 VC.SLAM(img)
 VC.display_map()
 
+img_location = 'test_images/cap4.jpg'
+img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
+VC.SLAM(img)
+VC.display_map()
