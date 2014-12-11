@@ -19,11 +19,13 @@ from ieee2015_xmega_driver.msg import XMega_Message
 
 
 def imu_poll():
-	sub = rospy.Subscriber('robot/imu', String)
+
+	sub = rospy.Subscriber('robot/imu', Imu)
 	r = rospy.Rate(5) 
 
 	# Need to convert to readable format
-	rospy.loginfo(sub)
+
+	rospy.loginfo("polled imu")
 
 
 # -------------------------- Publisher Definitons ------------------------------------
@@ -46,11 +48,11 @@ def debug_poll():
 def step_motor_send():
 
 	pub = rospy.Publisher('robot/desired_velocity', String, queue_size=1)
-	r = rospy.Rate(5) 
+	r = rospy.Rate(1) 
 
 	count = 0
 	while not rospy.is_shutdown() and count == 0:
-		string = "stepper motor"
+		string = "0x80"
 		rospy.loginfo(string)
 		pub.publish(string)
 		r.sleep()
@@ -59,24 +61,14 @@ def step_motor_send():
 
 # ------------------------------- End of Function Definitions -----------------------------------------
 
+print "<------------------------------------------------------------------->"
 print "ROS side simulation"
-print
-print
-print "Enter [y/yes] when you would like to broadcast from ROS to the Xmega"
-
-
-
-yesno = raw_input()
-
-if yesno == 'y' or yesno == 'yes': 
-	rospy.init_node('xmega_codes', anonymous=True)
-
-
-
+print 
 # ------------------------------------ Begin Main Loop ------------------------------------------------
 
-	
-	while not rospy.is_shutdown():
-		debug_poll()
-		imu_poll()
-		step_motor_send()
+rospy.init_node('xmega_codes', anonymous=True)
+while not rospy.is_shutdown():
+
+	debug_poll()
+	imu_poll()
+	step_motor_send()
