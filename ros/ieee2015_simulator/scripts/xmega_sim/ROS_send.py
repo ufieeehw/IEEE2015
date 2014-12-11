@@ -4,6 +4,7 @@ import os
 import argparse
 import rospy
 import time
+import codecs
 
 #import all messages used to pass data through xMega Driver
 
@@ -14,6 +15,11 @@ from ieee2015_xmega_driver.msg import XMega_Message
 
 # -------------------------- Function Definitions -----------------------------------------------
 
+def to_ascii(raw):
+	string = str(raw)
+	asc = string.encode(encoding='UTF-8',errors='strict')
+	return asc
+
 
 # -------------------------- Subscriber Definitons ----------------------------------
 
@@ -23,9 +29,13 @@ def imu_poll():
 	sub = rospy.Subscriber('robot/imu', Imu)
 	r = rospy.Rate(5) 
 
-	# Need to convert to readable format
-
-	rospy.loginfo("polled imu")
+	while not rospy.is_shutdown():
+		msg = [0xEF]
+		for item in msg:
+			converted = to_ascii(item)
+			pub.publish(converted)
+			rospy.loginfo("imu polled %s", item)
+		r.sleep()
 
 
 # -------------------------- Publisher Definitons ------------------------------------
@@ -33,30 +43,37 @@ def imu_poll():
 
 def debug_poll():
 
-	pub = rospy.Publisher('robot/debug', String, queue_size=1)
+	pub = rospy.Publisher('robot/debug', String, queue_size=10)
 	r = rospy.Rate(5) 
 
+	msg = [0x40,0x00]
 	count = 0
-	while not rospy.is_shutdown() and count == 0:
-		string = "debug"
-		rospy.loginfo(string)
-		pub.publish(string)
+
+	while not rospy.is_shutdown() and count != len(msg):
+
+		for item in msg:
+			converted = to_ascii(item)
+			pub.publish(converted)
+			rospy.loginfo("Debug polled %s", item)
+			count = count + 1
 		r.sleep()
-		count+=1
 
 
 def step_motor_send():
 
 	pub = rospy.Publisher('robot/desired_velocity', String, queue_size=1)
-	r = rospy.Rate(1) 
+	r = rospy.Rate(5) 
 
+	msg = [0x80,0x00,0x01]
 	count = 0
-	while not rospy.is_shutdown() and count == 0:
-		string = "0x80"
-		rospy.loginfo(string)
-		pub.publish(string)
+
+	while not rospy.is_shutdown() and count != len(msg):
+		for item in msg:
+			converted = to_ascii(item)
+			pub.publish(converted)
+			rospy.loginfo("Stepper Motor sent %s", item)
+			count = count + 1
 		r.sleep()
-		count+=1
 
 
 # ------------------------------- End of Function Definitions -----------------------------------------
@@ -64,11 +81,22 @@ def step_motor_send():
 print "<------------------------------------------------------------------->"
 print "ROS side simulation"
 print 
-# ------------------------------------ Begin Main Loop ------------------------------------------------
+
+print "st --> stepper motor send"
+print "db --> debug send"
 
 rospy.init_node('xmega_codes', anonymous=True)
+
+# ------------------------------------ Begin Main Loop ------------------------------------------------
+
 while not rospy.is_shutdown():
 
-	debug_poll()
-	imu_poll()
-	step_motor_send()
+	send_type = raw_input("Command: ", )
+	if send_type == "st":
+		step_motor_send()
+	if send_type == "db":
+		debug_poll()
+
+	
+
+

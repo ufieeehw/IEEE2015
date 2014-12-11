@@ -183,46 +183,6 @@ while master_shutdown:
 	initial_value = read_from_ros()
 
 
-	# recieived keep alive byte and listening to next byte
-	if (initial_value == '0x3'):
-		second_value = read_from_ros()
-		to_decimal = int(second_value, 16)
-
-		# recieived call to debug type
-		if(to_decimal >= 64 and to_decimal <= 111 ):
-			to_send = debug_type_call(second_value)
-			write_to_ros(to_send)
-			data_returned = True
-
-			'''
-
-			Am going to work this in to somehow get real debug types
-
-			From xMega OS
-
-			 //send outgoing message
-  			Message out = get_msg(DEBUG_TYPE, 1);
- 			out.data[0] = *m.data;
-  			return queue_push(out, OUT_QUEUE);
-
-			'''
-
-		# recieved call to stepper motor
-		if(to_decimal >= 128 and to_decimal <= 175 ):
-			to_send = step_motor_call(second_value)
-			print "Call to Stepmotor with value", second_value
-			data_returned = False
-
-	# recieved call to poll the IMU for data
-	elif (initial_value == '0x4'):
-		# Need to discuss return values for IMU polling in simulation
-		print "Polled the IMU and returned value"
-		write_to_ros("0xEF")
-
-
-	if(data_returned == False):
-		print "No Data Returned"
-
 
 
 
