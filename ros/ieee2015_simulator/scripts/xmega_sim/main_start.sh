@@ -12,4 +12,4 @@ echo
 
 gnome-terminal --title="XMEGA SIMULATOR" -e 'bash -c "sudo python xmega_communication_sim.py"' &
 gnome-terminal --title="ROS SIMULATOR" -e 'bash -c "python ROS_send.py"' &
-gnome-terminal --title="XMEGA DRIVER" -e 'bash -c "roslaunch ieee2015_xmega_driver xmega_driver.launch"' 
+roslaunch ieee2015_xmega_driver xmega_driver.launch
