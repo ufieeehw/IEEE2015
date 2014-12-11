@@ -9,6 +9,7 @@ For proper use must disable password requirement when running with sudo
 for file 'xmega_communication_sim.py'
 
 HOW TO:
+
 	1. sudo visudo -f /etc/sudoers.d/90-cloudimg-ubuntu
 	
 	2. youruserame ALL=(ALL) NOPASSWD: local/path/to/file/python xmega_communication_sim.py
