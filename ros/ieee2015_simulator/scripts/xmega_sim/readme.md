@@ -5,32 +5,30 @@ www.dest-unreach.org/socat/
 or 
 sudo apt-get install socat
 
+For proper use must disable password requirement when running with sudo 
+for file 'xmega_communication_sim.py'
 
-To launch full simulation run the bash script titled 'main_start.sh' 
-- DO NOT RUN WITH SUDO --> For some reason when it is run as admin the ROS side won't work
+HOW TO:
+	sudo visudo -f /etc/sudoers.d/90-cloudimg-ubuntu
+	youruserame ALL=(ALL) NOPASSWD: local/path/to/file/python xmega_communication_sim.py
+	or,
+	youruserame ALL=(ALL) NOPASSWD: ALL --> Not safe but works as last resort
 
-Running 'main_start.sh' will pop up two new terminal windows. 
+To launch full simulation run the bash script titled 'main_start.sh'
 
-	Step 1. XMEGA SIMULATOR Window --> Enter root password to launch Xmega Sim
+Running 'main_start.sh' will pop up three new terminal windows. 
 
-	Step 2. ROS SIMULATOR window --> Turn on or leave off
+	1. XMEGA SIMULATOR 
 
-	Step 3. Once XMEGA SIMULATOR is on, return to orignal terminal window to auto launch 
-			the xmega_driver launch file
+	2. ROS SIMULATOR
 
-	Step 4. Watch the magic happen
-
+	3. xmega_driver Launch File
+	
+All these subprocesses can be stopped with ctrl-C and restarted from the same terminal window
+Works as a way to pause and start once originally open
 
 TO DO:
 
+	1. Parse Types in 'ROS_send.py' to send all possible codes through xmega_driver
 
-	1. Automate entire process --> Cannot do as long as running 'main_start.sh' as root 
-								crashes 'ROS_send.py' 
-								or
-								Figure out a way to access tty ports when not 										running as root
-
-								One of those solutions can automate process
-
-	2. Parse Types in 'ROS_send.py' to send all possible codes through xmega_driver
-
-	3. Impliment as Unit Test --> requires fulll automation
+	2. Impliment as Unit Test
