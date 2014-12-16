@@ -9,6 +9,12 @@ import sys
 import serial
 import time
 import os
+import codecs
+
+default_path_to_types = os.path.join('..', '..', '..', '..', 'xmega', 'types.h')
+default_path_to_parse= os.path.join('..', '..', '..', '..', 'ros', 'ieee2015_xmega_driver', 'src', 'xmega_driver')
+sys.path.insert(0, default_path_to_parse)
+from parse_types import parse_types_file
 
 print 
 print "XMEGA SIMULATION"
@@ -18,12 +24,30 @@ master_shutdown = True
 read_ser = 0
 read_ser_n = 0
 
+types_array = []
 
 subprocess.call(["chmod", "u+x", "./com_ports_on.sh"])
 subprocess.Popen('./com_ports_on.sh')
 
 
 # <--------------------------------Function Definitions--------------------------------->
+
+def types_parse():
+
+	global types_array
+	parsed_types = parse_types_file(default_path_to_types)				
+
+	# size two dimensional array to be list length amount of rows with two collumns
+	# index 0 is type name
+	# index 1 is hex value
+
+	types_array = [[0 for x in range(2)] for x in range(len(parsed_types))] 	
+
+	for x in range(0, len(parsed_types)):			# as long as the dictionary has values									
+		to_dict = parsed_types[x]					# convert list line to dictionary
+		hexed = hex_determine(to_dict['hex_name'])
+		types_array[x][0] = to_dict['type_name']	# add types to array
+		types_array[x][1] = hexed					# add correlating ascii character to array
 
 # Main initialization function 
 
@@ -85,43 +109,24 @@ def init():
 # function to convert character into hex value
 
 def hex_determine(message):
-	convert = hex(ord((message)))
-	return convert
+
+	if type(message) is str:
+		convert = hex(ord((message)))
+		return convert
+	if type(message) is int:
+		convert = hex(message)
+		return convert
 
 # <--------------------------------------------------------------------------------------->
 
 # function to output type and value of byte recieved
 
 def type_determine_out(hex_value):
+	global types_array
 
-	allowed_values = ['0x01', '0x2', '0x3', '0x04', '0x40']
-	trap = False
-
-	if hex_value == '0x1':
-		print "Kill Byte -", hex_value
-		print "xMega simulation terminated"
-		master_shutdown = False
-		trap = True
-	if hex_value == '0x2':
-		print "Startup Byte -", hex_value
-		trap = True
-	if hex_value == '0x3':
-		print "Keep Alive Byte -", hex_value
-		trap = True
-	if hex_value == '0x4':
-		print "Poll IMU Byte -", hex_value
-		trap = True
-	if hex_value == '0x40':
-		print "Polled Debug Type -", hex_value
-		for x in range(0,5):
-			read_from_ros()
-		trap = True
-
-	'''if trap == False:
-		for x in range(0, len(allowed_values)):
-			if hex_value != allowed_values[x]:
-
-				print "Unknown Value - ", hex_value'''
+	for x in range(0,len(types_array)):
+		if hex_value == types_array[x][1]:
+			print  "Recieved: " + types_array[x][0] + " --- " + types_array[x][1]
 
 # <--------------------------------------------------------------------------------------->
 
@@ -176,9 +181,12 @@ def read_from_ros():
 	hex_value = type_determine_out(to_hex)		# what is the byte telling us to do?
 	return to_hex								# return value to main loop
 
+
 # <----------------------------- End of Functions Section -------------------------------->
 
 init()
+
+types_parse()
 
 
 # <-------------------------------------MAIN LOOP----------------------------------------->
