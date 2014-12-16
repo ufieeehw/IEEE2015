@@ -54,7 +54,7 @@ static pololu_t pololu_LR = {
 	.motor2 = 1,
 };
 
-//dedine the history queues for PID
+//define the history queues for PID
 static Error_History* leftfront_history;
 static Error_History* rightfront_history;
 static Error_History* leftrear_history;
@@ -325,8 +325,9 @@ void update_pid(void){
 
 ISR(PORTE_INT0_vect){
 	// pins 0 and 2
+	uint8_t input = wheelPort1->IN;
 	static int8_t old_value = 0;
-	int8_t new_value = gray_to_binary(((wheelPort1->IN & 4) >> 1) | (wheelPort1->IN & 1));
+	int8_t new_value = gray_to_binary(((input & 4) >> 1) | (input & 1));
 	int8_t difference = new_value - old_value;
 	if(difference > 2) difference -= 4;
 	if(difference < -2) difference += 4;
@@ -336,8 +337,9 @@ ISR(PORTE_INT0_vect){
 
 ISR(PORTE_INT1_vect){
 	// pins 1 and 3
+	uint8_t input = wheelPort1->IN;
 	static int8_t old_value = 0;
-	int8_t new_value = gray_to_binary(((wheelPort1->IN & 8) >> 2) | ((wheelPort1->IN & 2) >> 1));
+	int8_t new_value = gray_to_binary(((input & 8) >> 2) | ((input & 2) >> 1));
 	int8_t difference = new_value - old_value;
 	if(difference > 2) difference -= 4;
 	if(difference < -2) difference += 4;
@@ -347,8 +349,9 @@ ISR(PORTE_INT1_vect){
 
 ISR(PORTB_INT0_vect){
 	// pins 0 and 2
+	uint8_t input = wheelPort2->IN;
 	static int8_t old_value = 0;
-	int8_t new_value = gray_to_binary(((wheelPort2->IN & 4) >> 1) | (wheelPort2->IN & 1));
+	int8_t new_value = gray_to_binary(((input & 4) >> 1) | (input & 1));
 	int8_t difference = new_value - old_value;
 	if(difference > 2) difference -= 4;
 	if(difference < -2) difference += 4;
@@ -358,8 +361,9 @@ ISR(PORTB_INT0_vect){
 
 ISR(PORTB_INT1_vect){
 	// pins 1 and 3
+	uint8_t input = wheelPort2->IN;
 	static int8_t old_value = 0;
-	int8_t new_value = gray_to_binary(((wheelPort2->IN & 8) >> 2) | ((wheelPort2->IN & 2) >> 1));
+	int8_t new_value = gray_to_binary(((input & 8) >> 2) | ((input & 2) >> 1));
 	int8_t difference = new_value - old_value;
 	if(difference > 2) difference -= 4;
 	if(difference < -2) difference += 4;

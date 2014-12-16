@@ -32,9 +32,9 @@ void pololuInit(pololu_t *pololu){
 	int8_t shift = 0;
 	if (pololu->motor2) //Shift right 4 if setting up motor2
 		shift = 4;
-	pololu->PORT->DIRSET = 0x0F << shift; //Set motor pins as outputs
-	pololu->PORT->OUTCLR = 0x0E << shift; //Set MxINA, MxINB, and MxPWM low
-	pololu->PORT->OUTSET = 0x01 << shift; //Set MxEN as high output
+	pololu->PORT->DIRSET = 0x0E << shift; //Set MxINA, MxINB, and MxPWM as outputs
+	pololu->PORT->DIRCLR = 0x01 << shift; //Set MxEN as input
+	pololu->PORT->OUTCLR = 0x0F << shift; //Set MxINA, MxINB, and MxPWM low
 	pololu->TC2->CTRLA |= TC_CLKSEL_DIV8_gc;
 	pololu->TC2->CTRLE |= TC_BYTEM_SPLITMODE_gc;
 	
