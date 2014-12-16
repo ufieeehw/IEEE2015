@@ -94,7 +94,7 @@ def hex_determine(message):
 
 def type_determine_out(hex_value):
 
-	allowed_values = ['0x01', '0x2', '0x3', '0x04']
+	allowed_values = ['0x01', '0x2', '0x3', '0x04', '0x40']
 	trap = False
 
 	if hex_value == '0x1':
@@ -111,11 +111,17 @@ def type_determine_out(hex_value):
 	if hex_value == '0x4':
 		print "Poll IMU Byte -", hex_value
 		trap = True
+	if hex_value == '0x40':
+		print "Polled Debug Type -", hex_value
+		for x in range(0,5):
+			read_from_ros()
+		trap = True
 
-	if trap == False:
+	'''if trap == False:
 		for x in range(0, len(allowed_values)):
 			if hex_value != allowed_values[x]:
-				print "Unknown Value - ", hex_value
+
+				print "Unknown Value - ", hex_value'''
 
 # <--------------------------------------------------------------------------------------->
 
@@ -181,6 +187,8 @@ while master_shutdown:
 
 	data_returned = False
 	initial_value = read_from_ros()
+
+
 
 
 
