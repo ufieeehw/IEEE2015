@@ -5,6 +5,7 @@ import rospy
 import time
 import codecs
 import sys
+import readline
 
 #import all messages used to pass data through xMega Driver
 
@@ -21,10 +22,34 @@ sys.path.insert(0, default_path_to_parse)
 from parse_types import parse_types_file
 
 global types_array # array to hold parsed types data structure
+global just_types
 global found_bool  # boolean to use in main loop for command compliance check
 
 
 # <<-------------------------------------- Function Definitions ------------------------------------------------>>
+
+class MyCompleter(object):  # Custom completer
+
+    def __init__(self, options):
+        self.options = sorted(options)
+
+    def complete(self, text, state):
+        if state == 0:  # on first trigger, build possible matches
+            if text:  # cache matches (entries that start with entered text)
+                self.matches = [s for s in self.options 
+                                    if s and s.startswith(text)]
+            else:  # no text entered, all matches possible
+                self.matches = self.options[:]
+
+        # return match indexed by state
+        try: 
+            return self.matches[state]
+        except IndexError:
+            return None
+
+
+# ---------------------------------------------------------------------------------------------
+
 
 def to_ascii(raw):
 
@@ -39,17 +64,20 @@ def to_ascii(raw):
 def types_parse():
 
 	global types_array
+	global just_types
 	parsed_types = parse_types_file(default_path_to_types)				
 
 	# size two dimensional array to be list length amount of rows with two collumns
 	# index 0 is type name
 	# index 1 is hex value
 
-	types_array = [[0 for x in range(2)] for x in range(len(parsed_types))] 	
+	types_array = [[0 for x in range(2)] for x in range(len(parsed_types))] 
+	just_types = [0 for x in range(len(parsed_types))]
 
 	for x in range(0, len(parsed_types)):			# as long as the dictionary has values									
 		to_dict = parsed_types[x]					# convert list line to dictionary
 		types_array[x][0] = to_dict['type_name']	# add types to array
+		just_types[x] = to_dict['type_name']	# add types to array
 		types_array[x][1] = to_dict['hex_name']		# add correlating ascii character to array
 
 # ---------------------------------------------------------------------------------------------
@@ -59,12 +87,13 @@ def possible_types():
 	global types_array
 
 	print "<--- These are the possible types to send --->"
-	print
+	print "<--- Press TAB to auto complete --->"
+	print 
 
 	# iterate through array to print possible type values to send
 
 	for x in range(0, len(types_array)):
-		print types_array[x][0]
+			print types_array[x][0] + " .",
 
 # <----------------------------------- Subscriber Definitons ---------------------------------------------->
 
@@ -83,19 +112,22 @@ def imu_poll():
 
 # <----------------------------------- Publisher Definitons ---------------------------------------------->
 
-def debug_poll(index):
+def debug_poll(hex_value):
+
 	global types_array
 
-	pub = rospy.Publisher('robot/debug', String, queue_size=1)
+	pub = rospy.Publisher('robot/debug', String, queue_size=10)
 	r = rospy.Rate(5) 
 
-	msg = [types_array[index][1], 0]
+	msg = [types_array[hex_value][1], 0]
 	count = 0
 
 	while not rospy.is_shutdown() and count != len(msg):
 
 		for item in msg:
-			pub.publish(item)
+
+			converted = to_ascii(item)
+			pub.publish(converted)
 			rospy.loginfo("Debug polled %s", item)
 			count = count + 1
 		r.sleep()
@@ -128,6 +160,9 @@ possible_types()
 
 rospy.init_node('xmega_codes', anonymous=True)
 
+completer = MyCompleter(just_types)
+readline.set_completer(completer.complete)
+readline.parse_and_bind('tab: complete')
 
 # ----------------- Begin Main Loop ---------------------
 
@@ -136,14 +171,14 @@ while not rospy.is_shutdown():
 	print 
 	global types_array
 	global found_bool
-
 	found_bool = False	# reset value on every loop 
-	
-	send_type = raw_input("Command: ", )
 
 	# loop through types array until a matching type is found
 	# if command matches type in array, coresponding function is called
 	# if no type with the same name is found, error is printed
+
+	print
+	send_type = raw_input("Command: ", )
 
 	for x in range(0, len(types_array)):
 		if types_array[x][0] == send_type:
@@ -154,9 +189,7 @@ while not rospy.is_shutdown():
 				step_motor_send()
 
 	if found_bool == False:
-		print
-		print "TYPE NOT FOUND"
-		print 
+		print "****TYPE NOT FOUND*****"
 		possible_types()
 		
 
