@@ -32,23 +32,6 @@ subprocess.Popen('./com_ports_on.sh')
 
 # <--------------------------------Function Definitions--------------------------------->
 
-def types_parse():
-
-	global types_array
-	parsed_types = parse_types_file(default_path_to_types)				
-
-	# size two dimensional array to be list length amount of rows with two collumns
-	# index 0 is type name
-	# index 1 is hex value
-
-	types_array = [[0 for x in range(2)] for x in range(len(parsed_types))] 	
-
-	for x in range(0, len(parsed_types)):			# as long as the dictionary has values									
-		to_dict = parsed_types[x]					# convert list line to dictionary
-		hexed = hex_determine(to_dict['hex_name'])
-		types_array[x][0] = to_dict['type_name']	# add types to array
-		types_array[x][1] = hexed					# add correlating ascii character to array
-
 # Main initialization function 
 
 def init():
@@ -57,7 +40,6 @@ def init():
 	global read_ser_n
 	count = 0;
 	name = False
-
 
 	# run loop to allow time for OS to recognize xmega_tty and ttyS30
 	# If loop runs 200 times it is assumed there is an error with setup
@@ -69,7 +51,6 @@ def init():
 		name = os.path.exists('/dev/ttyS30')
 		count+=1
 
-
 	if name == True:
 		print "-----------------------------------------------"
 		print "Socat COM simulation succesful"
@@ -80,7 +61,7 @@ def init():
 		print
 		print "Could not create tty ports"
 		print
-		print "Please run progam as sudo to continue"
+		print "Please run progam as root to continue"
 		print
 		sys.exit(0)
 
@@ -103,6 +84,26 @@ def init():
 	read_ser = serial.Serial(convert_one)
 	read_ser_n = serial.Serial(convert_two)
 
+# <--------------------------------------------------------------------------------------->
+
+# parses types and converts to hex for interpretation as the xMega
+
+def types_parse():
+
+	global types_array
+	parsed_types = parse_types_file(default_path_to_types)				
+
+	# size two dimensional array to be list length amount of rows with two collumns
+	# index 0 is type name
+	# index 1 is hex value
+
+	types_array = [[0 for x in range(2)] for x in range(len(parsed_types))] 	
+
+	for x in range(0, len(parsed_types)):			# as long as the dictionary has values									
+		to_dict = parsed_types[x]					# convert list line to dictionary
+		hexed = hex_determine(to_dict['hex_name'])
+		types_array[x][0] = to_dict['type_name']	# add types to array
+		types_array[x][1] = hexed					# add correlating ascii character to array
 
 # <--------------------------------------------------------------------------------------->
 
@@ -122,11 +123,17 @@ def hex_determine(message):
 # function to output type and value of byte recieved
 
 def type_determine_out(hex_value):
+	
 	global types_array
+	type_bool = False
 
 	for x in range(0,len(types_array)):
 		if hex_value == types_array[x][1]:
-			print  "Recieved: " + types_array[x][0] + " --- " + types_array[x][1]
+			print  "Incoming: " + types_array[x][0] + " --- " + types_array[x][1]
+			type_bool = True
+
+	if(type_bool == False):
+		print  "Incoming: UNKNOWN VALUE --- " + hex_value
 
 # <--------------------------------------------------------------------------------------->
 
@@ -185,9 +192,7 @@ def read_from_ros():
 # <----------------------------- End of Functions Section -------------------------------->
 
 init()
-
 types_parse()
-
 
 # <-------------------------------------MAIN LOOP----------------------------------------->
 
@@ -195,13 +200,6 @@ while master_shutdown:
 
 	data_returned = False
 	initial_value = read_from_ros()
-
-
-
-
-
-
-
 
 
 
