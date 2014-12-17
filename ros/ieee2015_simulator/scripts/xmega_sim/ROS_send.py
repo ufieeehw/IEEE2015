@@ -10,7 +10,7 @@ import readline
 #import all messages used to pass data through xMega Driver
 
 from std_msgs.msg import Header, Float64, String
-from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion, Vector3, TwistStamped
+from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion, Vector3, TwistStamped, Twist
 from sensor_msgs.msg import Imu
 from ieee2015_xmega_driver.msg import XMega_Message
 
@@ -24,7 +24,6 @@ from parse_types import parse_types_file
 global types_array # array to hold parsed types data structure
 global just_types
 global found_bool  # boolean to use in main loop for command compliance check
-
 
 # <<-------------------------------------- Function Definitions ------------------------------------------------>>
 
@@ -47,9 +46,7 @@ class MyCompleter(object):  # Custom completer
         except IndexError:
             return None
 
-
 # ---------------------------------------------------------------------------------------------
-
 
 def to_ascii(raw):
 
@@ -86,15 +83,31 @@ def possible_types():
 
 	global types_array
 
+	# iterate through array to print possible type values to send
+	x = 0
+	for i in range(0, len(types_array)/4):
+		for y in range(0, 4):
+			print types_array[x][0] + " |",
+			x = x+1
+		print  ""
+
+	print 
 	print "<--- These are the possible types to send --->"
 	print "<--- Press TAB to auto complete --->"
+	print "<--- Enter 'help' for formatting help--->"
+
+# ---------------------------------------------------------------------------------------------
+
+def help():
+	print
+	print "<------------------------ FORMATTING HELP -------------------------"
+	print
+	print "<--- TYPE parameter-1 parameter-2 parameter-3 ... parameter-N --->"
+	print
+	print "<--- DEBUG_TYPE parameter"
+	print "<--- STEP_MOTOR_TYPE parameter-1 ... parameter-6"
 	print 
-
-	# iterate through array to print possible type values to send
-
-	for x in range(0, len(types_array)):
-			print types_array[x][0] + " .",
-
+	print "<------------------------------------------------------------------"
 # <----------------------------------- Subscriber Definitons ---------------------------------------------->
 
 def imu_poll():
@@ -119,11 +132,10 @@ def debug_poll(hex_value):
 	pub = rospy.Publisher('robot/debug', String, queue_size=10)
 	r = rospy.Rate(5) 
 
-	msg = [types_array[hex_value][1], 0]
+	msg = [hex_value]
 	count = 0
 
 	while not rospy.is_shutdown() and count != len(msg):
-
 		for item in msg:
 
 			converted = to_ascii(item)
@@ -134,18 +146,31 @@ def debug_poll(hex_value):
 
 # ---------------------------------------------------------------------------------------------
 
-def step_motor_send():
+def step_motor_send(a,b,c,d,e,f):
 
-	pub = rospy.Publisher('robot/desired_velocity', TwistStamped, queue_size=1)
+	global types_array
+
+	pub = rospy.Publisher('robot/desired_velocity', TwistStamped, queue_size=10)
 	r = rospy.Rate(5) 
 
-	msg = [0, 0]
+	main = TwistStamped()
+	stepper = Twist()
+	stepper.linear.x = a
+	stepper.linear.y = b
+	stepper.linear.z = c
+	stepper.angular.x = d
+	stepper.angular.y = e
+	stepper.angular.z = f
 
-	while not rospy.is_shutdown():
-		pub.publish(msg)
-		rospy.loginfo("Stepper Motor sent %s", item)
-		r.sleep()
-
+	main.twist = stepper
+	now = rospy.get_rostime()
+	main.header.stamp.secs = now.secs
+	main.header.stamp.nsecs = now.nsecs
+	main.header.frame_id = "robot/desired_velocity"
+	
+	pub.publish(main)
+	rospy.loginfo("Stepper Motor sent %s", main)
+	r.sleep()
 
 # <<----------------------------------- End of Function Definitions ------------------------------------------>>
 
@@ -177,23 +202,49 @@ while not rospy.is_shutdown():
 	# if command matches type in array, coresponding function is called
 	# if no type with the same name is found, error is printed
 
-	print
 	send_type = raw_input("Command: ", )
 
-	for x in range(0, len(types_array)):
-		if types_array[x][0] == send_type:
-			found_bool = True
-			if send_type == "DEBUG_TYPE":
-				debug_poll(x)
-			if send_type == "STEP_MOTOR_TYPE":
-				step_motor_send()
+	if len(send_type.split()) >= 2:
 
-	if found_bool == False:
-		print "****TYPE NOT FOUND*****"
-		possible_types()
-		
+		split_array = send_type.split()
 
+		for x in range(0, len(types_array)):
 
-	
+			if types_array[x][0] == split_array[0]:
+				found_bool = True
 
+				if split_array[0] == "DEBUG_TYPE":
+					if len(split_array) != 2:
+						print
+						print "Improper debug type length"
+						help()
+					else:
+						debug_poll(split_array[1])
 
+				if split_array[0] == "STEP_MOTOR_TYPE":
+					if len(split_array) != 7:
+						print
+						print "Improper step motor length"
+						help()
+					else:
+						step_motor_send(
+						split_array[1],
+						split_array[2],
+						split_array[3],
+						split_array[4],
+						split_array[5],
+						split_array[6]
+						)
+
+		if found_bool == False:
+			print "****TYPE NOT FOUND*****"
+			possible_types()
+
+	else:
+		if send_type == "help":
+			help()
+		else:
+			print
+			print "Only entered message type"
+			print "Must include parameters"
+			print "Please refer to formatting for sending messages"
