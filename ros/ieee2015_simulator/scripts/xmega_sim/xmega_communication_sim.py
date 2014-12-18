@@ -79,7 +79,6 @@ def init():
 	print 'Waiting for signal from xmega driver at ' , convert_one
 	print 'Waiting for signal from xmega driver at ' , convert_two
 	print 
-	print 'Can now start ROS Launch from main terminal'
 
 	read_ser = serial.Serial(convert_one)
 	read_ser_n = serial.Serial(convert_two)
@@ -130,7 +129,8 @@ def type_determine_out(hex_value):
 	for x in range(0,len(types_array)):
 		if hex_value == types_array[x][1]:
 			print  "Incoming: " + types_array[x][0] + " --- " + types_array[x][1]
-			type_bool = True
+			if types_array[x][0] == "IMU_NOTIFY_TYPE":
+				type_bool = True
 
 	if(type_bool == False):
 		print  "Incoming: UNKNOWN VALUE --- " + hex_value
@@ -146,8 +146,9 @@ def step_motor_call(hex_value):
 
 # Want to fill with all possible debug returns 
 
-def debug_type_call(hex_value):
-	return '0x00'
+def imu_type_call():
+	for x in range(0,7):
+		write_to_ros('0xEF')
 
 # <--------------------------------------------------------------------------------------->
 
@@ -166,8 +167,8 @@ def startup_loop(to_hex):
 
 # write values to ROS depending on recieved values - In hex or as char???
 
-def write_to_ros(hexx):
-	read_ser_n.write(hexx)
+def write_to_ros(hexed):
+	read_ser.write(hexed)
 
 # <--------------------------------------------------------------------------------------->
 
