@@ -105,23 +105,25 @@ def help():
 	print "<--- TYPE parameter-1 parameter-2 parameter-3 ... parameter-N --->"
 	print
 	print "<--- DEBUG_TYPE parameter"
+<<<<<<< HEAD
 	print "<--- STEP_MOTOR_TYPE parameter-1 ... parameter-6"
+=======
+	print "<--- MOTOR_SPEED_TYPE parameter-1 ... parameter-6"
+	print "<--- IMU_DATA_TYPE <-- Returns value of IMU data being publsihed from Xmega"
+>>>>>>> xmega - ROS code testing program for sim
 	print 
 	print "<------------------------------------------------------------------"
 # <----------------------------------- Subscriber Definitons ---------------------------------------------->
 
 def imu_poll():
 
-	sub = rospy.Subscriber('robot/imu', Imu)
+	sub = rospy.Subscriber('robot/imu', Imu,)
 	r = rospy.Rate(5) 
 
 	while not rospy.is_shutdown():
-		msg = [0xEF]
-		for item in msg:
-			converted = to_ascii(item)
-			pub.publish(converted)
-			rospy.loginfo("imu polled %s", item)
-		r.sleep()
+		rospy.loginfo("IMU recived %s", sub)
+		break
+	r.sleep()
 
 # <----------------------------------- Publisher Definitons ---------------------------------------------->
 
@@ -146,7 +148,11 @@ def debug_poll(hex_value):
 
 # ---------------------------------------------------------------------------------------------
 
+<<<<<<< HEAD
 def step_motor_send(a,b,c,d,e,f):
+=======
+def motor_speed_send(a,b,c,d,e,f):
+>>>>>>> xmega - ROS code testing program for sim
 
 	global types_array
 
@@ -221,13 +227,22 @@ while not rospy.is_shutdown():
 					else:
 						debug_poll(split_array[1])
 
+<<<<<<< HEAD
 				if split_array[0] == "STEP_MOTOR_TYPE":
+=======
+				if split_array[0] == "MOTOR_SPEED_TYPE":
+>>>>>>> xmega - ROS code testing program for sim
 					if len(split_array) != 7:
 						print
 						print "Improper step motor length"
 						help()
 					else:
+<<<<<<< HEAD
 						step_motor_send(
+=======
+						motor_speed_send
+					(
+>>>>>>> xmega - ROS code testing program for sim
 						split_array[1],
 						split_array[2],
 						split_array[3],
@@ -241,8 +256,16 @@ while not rospy.is_shutdown():
 			possible_types()
 
 	else:
+<<<<<<< HEAD
 		if send_type == "help":
 			help()
+=======
+
+		if send_type == "help":
+			help()
+		if send_type == "IMU_DATA_TYPE":
+			imu_poll()
+>>>>>>> xmega - ROS code testing program for sim
 		else:
 			print
 			print "Only entered message type"
