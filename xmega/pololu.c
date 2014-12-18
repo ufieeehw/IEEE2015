@@ -32,9 +32,9 @@ void pololuInit(pololu_t *pololu){
 	int8_t shift = 0;
 	if (pololu->motor2) //Shift right 4 if setting up motor2
 		shift = 4;
-	pololu->PORT->DIRSET = 0x0E << shift; //Set MxINA, MxINB, and MxPWM as outputs
-	pololu->PORT->DIRCLR = 0x01 << shift; //Set MxEN as input
+	pololu->PORT->DIRSET = 0x0F << shift; //Set MxINA, MxINB, MxPWM, and MxEN as outputs
 	pololu->PORT->OUTCLR = 0x0E << shift; //Set MxINA, MxINB, and MxPWM low
+	pololu->PORT->OUTSET = 0x01; //Set MxEN high.
 	pololu->TC2->CTRLA |= TC_CLKSEL_DIV8_gc;
 	pololu->TC2->CTRLE |= TC_BYTEM_SPLITMODE_gc;
 	
@@ -52,14 +52,13 @@ void pololuInit(pololu_t *pololu){
 
 //1024 max value preserved for compatibility.
 void pololu_set_effort(pololu_t *pololu, float new_effort){
-	volatile int16_t intEffort = (int16_t)new_effort;
-	if((intEffort >= 1024)){
-		new_effort = 1024;
-	}
+	
+	volatile int16_t checkThis = (int16_t)new_effort;
+	
 	if(pololu->motor2)
-		pololu->TC2->HCMPD = (PERIOD * (new_effort/1024)); //Same as setting CCx when using TC0/1
+		pololu->TC2->HCMPD = (PERIOD * (new_effort/1024.0)); //Same as setting CCx when using TC0/1
 	else
-		pololu->TC2->LCMPD = (PERIOD * (new_effort/1024));
+		pololu->TC2->LCMPD = (PERIOD * (new_effort/1024.0));
 }
 
 void pololu_set_velocity(pololu_t *pololu, int16_t velocity){
@@ -77,7 +76,7 @@ void pololu_set_velocity(pololu_t *pololu, int16_t velocity){
 		pololu->PORT->OUTCLR = 0x04 << shift; //Set INB to 0
 	}
 	
-	float speed = fabs(velocity);
+	volatile float speed = fabs(velocity);
 	if(speed >= 1024) speed = 1024;
 	pololu_set_effort(pololu, speed);
 	}
