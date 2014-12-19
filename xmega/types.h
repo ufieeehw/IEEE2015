@@ -11,6 +11,11 @@ White space is not extremely important, but please obey the conventions of "para
 
 DO NOT have inline comments on a line with a #define statement if they are not for ROS control.
 
+Byte stride: Number of bytes that contain a single meaningful element. For a 16bit float, byte stride is 2
+msg_type: An english word describing the type, should fit into float16, int32 or something like that
+expected length: The length of the message that the xmega is expecting for an n-byte message
+unit: metric units for the message
+
 
 */
 //Message Data length is first two bits of type field
@@ -40,12 +45,12 @@ DO NOT have inline comments on a line with a #define statement if they are not f
 
 
 //DATA_2B_TYPE messages [0x80-0xAF]
-#define STEP_MOTOR_TYPE       0x80 // out: stepper_motor; expected_length: 2
+#define STEP_MOTOR_TYPE       0x80 // out: stepper_motor; expected_length: 2; byte_stride: 2; type: integer; unit: steps
 
 
 //DATA_NB_TYPE messages [0xC0-0xEF]
-#define MOTOR_SPEED_TYPE      0xC0 // out: motor_speed; expected_length: 6
-#define IMU_DATA_TYPE         0xEF // in: imu_data
+#define MOTOR_SPEED_TYPE      0xC0 // out: motor_speed; expected_length: 6; byte_stride: 2; type: integer; unit: rad/s
+#define IMU_DATA_TYPE         0xEF // in: imu_data; type: non-simple
 
 
 /*Error Type Definitions (should represent an entire subsystem) */
