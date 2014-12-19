@@ -21,4 +21,5 @@ todo
 
 # Just in case...
 *.iso
-
+.DS_Store
+*.DS_Store
