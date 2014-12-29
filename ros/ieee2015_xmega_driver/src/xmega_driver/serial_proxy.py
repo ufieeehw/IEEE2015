@@ -119,11 +119,12 @@ class Serial_Proxy(object):
         }
         self.byte_type_defs = {}  # This will be populated by self.bind_types
         self.message_queue = deque()
+        self.error_queue = deque()
 
     def err_log(self, *args):
         '''Print the inputs as a list if class verbosity is True'''
         if self.verbose:
-            print ['Xmega LOG:'], string.join(map(str, args))
+            self.error_queue.append(string.join(map(str, args)))
 
     def run_serial_loop(self):
         read_loop = threading.Thread(target=self._read_loop)
@@ -132,6 +133,11 @@ class Serial_Proxy(object):
         write_loop.daemon = True
         write_loop.start()
         read_loop.start()
+
+        if self.verbose:
+            error_loop = threading.Thread(target=self._error_loop)
+            error_loop.daemon = True
+            error_loop.start()
 
     def add_message(self, _type, data=None):
         '''add_message(_type, data=None)
@@ -214,6 +220,11 @@ class Serial_Proxy(object):
         # None should mean "no valid message length found"
         # else:
             # return None
+
+    def _error_loop(self):
+        while True:
+            if len(self.error_queue) > 0:
+                print ['Xmega LOG:'], self.error_queue.popleft()
 
     def _write_loop(self):
         # Initialize time
@@ -301,21 +312,23 @@ class Serial_Proxy(object):
         '''
         if _type in self.outgoing_msg_types.keys():
             write_data = self.outgoing_msg_types[_type]
-            self.err_log("Writing as", write_data)
+            self.err_log("Writing as", write_data, '(type', _type, ')')
             self.serial.write(chr(write_data))
 
             # N-Byte Message
             if self._msg_len(_type) == NByte_Message_Token:
+                self.err_log("Writing as N Byte message of length ", len(data))
                 self.serial.write(chr(len(data)))  # Write the length byte
 
             # Send the data one character at a time
             if data is not None:
                 self.err_log("Data,", data)
                 for character in data:
-                    self.err_log("writing character ", character)
+                    self.err_log("writing character ", ord(character))
                     self.serial.write(character)
             else:
                 pass
                 # self.err_log("No other data to write")
+            self.err_log("Finished sending message of type", _type)
         else:
             self.err_log("Write type not recognized")
