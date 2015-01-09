@@ -18,6 +18,7 @@ class VisualCortex:
     # Dimensions of full course
     full_map_x = 2000
     full_map_y = 2000
+    full_map_mask = None;
     # Robot's position and rotation
     position = None;
     rotation = None;
@@ -27,6 +28,8 @@ class VisualCortex:
     # Dimensions of camera images after perspec transform (bird's eye dims)
     bird_x = None;
     bird_y = None;
+    bird_mask = None;
+    trapezoid = None;
     # Features and descriptors of full map
     _map_kp = None;
     _map_descriptors = None;
@@ -57,6 +60,7 @@ class VisualCortex:
     """
     def __init__(self, view_coordinates, map_coordinates, img):
         self.full_map= np.ones((self.full_map_x, self.full_map_y), np.uint8);
+        self.full_map_mask = np.zeros((self.full_map_x, self.full_map_y), np.uint8)
         # TODO: This is not actually the starting position... This is the center of
         #    where we place the first image on the black map.  We can then extract
         #    the actual starting position by running "self.localize" on the affine
@@ -73,19 +77,14 @@ class VisualCortex:
         # Now that we have a matrix, get the bird's eye image dimensions
         self._get_bird_dims()
         self._calculate_perspec_corners()
+        self._get_bird_mask()
         # Transform the initial image to bird's eye
         imgx = self.transform_image(img)
-        kp1, des1 = self.feature_detect(imgx)
-        # Initialize kp and des dictionary
-        self._map_kp = [kp1[0]]
-        self._map_descriptors = [des1[0]]
+
         # And paste it on to the full_map using a basic translation matrix
         affine_matrix = self._initialize_affine_matrix()
-        kp, des = self.filter_new_kps(None, kp1, des1, affine_matrix)
-        self.stitch(imgx, kp, des, affine_matrix)
-        # Remove the first element that just set the datatype earlier
-        self._map_kp.pop(0)
-        self._map_descriptors.pop(0)
+        self.stitch(imgx, affine_matrix)
+
 
 
     ####################################
@@ -100,27 +99,24 @@ class VisualCortex:
         imgx = self.transform_image(image)
 
         # Extract features from this image
-        kp1, des1 = self.feature_detect(imgx)
-        #self._draw_features(imgx, kp1, None, "points")
-        kp1, des1, bird_corners = self._apply_roi(kp1, des1)
-        #self._draw_features(imgx, kp1, bird_corners, "points")
+        kp1, des1 = self.feature_detect(imgx, "new")
 
-        #self._draw_features(self.full_map, kp2, None, "points")
+        #self._draw_features(self.full_map, self._map_kp, None, "points")
+        self._draw_features(imgx, kp1, None, "points")
+        self._draw_features(self.full_map, self._map_kp, None, "points")
         # Match features between imgx and full_map
-        # TODO: Do we need to input kp1 and kp2?
         M, matches, q, t = self.feature_match(kp1, des1)
-        #self._draw_features(imgx, q, None, "array")
-        #self._draw_features(self.full_map, t, None, "array")
-        #self._draw_matches(imgx, self.full_map, kp1, kp2, matches)
-
-        # filter to get surviving kps and descriptors that append to dictionary
-        kp, des = self.filter_new_kps(matches, kp1, des1, M)
+        #self._draw_features(imgx, kp1, None, "array")
+        #self._draw_features(self.full_map, self._map_kp, None, "array")
+        self._draw_matches(imgx, self.full_map, kp1, self._map_kp, matches)
 
         # Use this affine matrix to update robot position
         # TODO: Make position/rotation a property
         self.localize(M)
         # Use this affine matrix to update full_map
-        self.stitch(imgx, kp, des, M)
+        self.stitch(imgx, M)
+
+
         return;
 
     """Takes an image from the camera's video feed and transforms it into a 
@@ -140,12 +136,16 @@ class VisualCortex:
     which can be either the bird's eye image or full_map, and returns the 
     keypoints array and respective descriptors matrix
     """    
-    def feature_detect(self, image):
+    def feature_detect(self, image, typ):
         # Initialize detector
-        orb = cv2.ORB()
+        orb = cv2.ORB(WTA_K=3, scaleFactor=4, nlevels=5)
         # Find the keypoints and descriptors with SIFT
-        kp, des = orb.detectAndCompute(image,None)
-        return kp, des;
+        if typ == "new":
+            kp, des = orb.detectAndCompute(image, self.bird_mask)
+            return kp, des;
+        else:
+            self._map_kp, self._map_descriptors = orb.detectAndCompute(self.full_map, self.full_map_mask)
+            return
 
     """Given a set of two keypoint arrays and their respective descriptor 
     matrices, return the array of match objects after masking
@@ -153,9 +153,9 @@ class VisualCortex:
     """
     def feature_match(self, kp1, des1):
         # Create BFMatcher object
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING2, crossCheck=False)
         # Match descriptors and get the matches array
-        matches = bf.match(des1, np.array(self._map_descriptors))
+        matches = bf.match(des1, self._map_descriptors)
 
         # Sort them in the order of their distance.
         # TODO: change the lambda to a def, as specified by PEP8
@@ -333,7 +333,7 @@ class VisualCortex:
         # Gives rotation in radians East of North
         self.rotation = np.arctan(delta_y/delta_x)
 
-    def stitch(self, imgx, kp, des, matrix):
+    def stitch(self, imgx, matrix):
         """ Update the full_map with the latest image, using the
         most up-to-date _affine_matrix
         """
@@ -356,42 +356,13 @@ class VisualCortex:
         self.full_map = fullimgx/2 + self.full_map/2;
         # Clean up the image
         self.full_map = self.clean_image(self.full_map)
+        # Update the roi
+        self._update_full_mask(matrix)
+        # Update kp des dictionary
+        self.feature_detect(None, "full map")
 
-        # Zip them back into points and append to dictionary (31.0 is size, required but irrelevent property)
-        for i in range(0, len(kp)):
-            self._map_kp.append(cv2.KeyPoint(kp[i][0], kp[i][1], 31.0))
-        for i in range(0, len(des)):
-            self._map_descriptors.append(des[i])
         #superimposed = cv2.resize(superimposed,(0,0), fx=.25, fy=.25)
         return None
-
-    def filter_new_kps(self, matches, kp, des, matrix):
-        """ Given some new keypoint and descriptor arrays and the
-        matches list, append the relevent ones to our 
-        world map's dictionary of kps and descriptors
-        """
-        relevent_kp = [];
-        new_des = [];
-        if (matches == None):
-            # Convert kp to array
-            for i in range(0, len(kp)):
-                relevent_kp.append([kp[i].pt[0], kp[i].pt[1], 1])
-            # Append descriptors to library
-            for i in range(0, len(des)):
-                new_des.append(des[i])
-        else:
-            # Convert kp to array
-            for m in matches:
-                relevent_kp.append([kp[m.queryIdx].pt[0], kp[m.queryIdx].pt[1], 1])
-            # Append descriptors to library
-            for m in matches:
-                new_des.append(des[m.queryIdx])
-
-        # Apply affine to the kp's
-        new_kp = np.dot(relevent_kp, matrix.T)
-
-        return new_kp, new_des;
-
 
     def clean_image(self, img):
         """ Clean up a transformed or stitched image by threshholding it and then
@@ -399,7 +370,7 @@ class VisualCortex:
         """
         thresh = 50
         dump, img = cv2.threshold(img, thresh, 255, cv2.THRESH_BINARY)
-        kernel = 10
+        kernel = 9
         img = cv2.blur(img, (kernel, kernel))
         return img
 
@@ -518,6 +489,7 @@ class VisualCortex:
                         ])
         # Extract the new corner location by dividing by homogeneous coord
         self.bird_y = corner[1] / corner[2]
+        self.bird_mask = np.zeros((self.bird_y, self.bird_x), np.uint8)
         return
 
         #created this method in response to the todo comment
@@ -531,11 +503,23 @@ class VisualCortex:
                                 ]
         return                         
 
+    def _update_full_mask(self, matrix):
+        '''Update the binary mask that goes over the full map for feature detection'''
+        new_trapezoid = np.dot(matrix, np.array(self.trapezoid))
+        mask_corners =  np.array([ [new_trapezoid[0][0], new_trapezoid[1][0]],
+                                   [new_trapezoid[0][1], new_trapezoid[1][1]],
+                                   [new_trapezoid[0][2], new_trapezoid[1][2]],
+                                   [new_trapezoid[0][3], new_trapezoid[1][3]]], np.int32)
+        cv2.fillPoly(self.full_map_mask, [mask_corners], 1)
+        return
+
+
+
 
     # Applies a range-of-interest mask over the kp and des because
     # we don't want the corners of the transformed trapezoid to show 
     # up as features
-    def _apply_roi(self,kp,des):
+    def _get_bird_mask(self):
         bird_homo_corners = np.dot(self._perspective_matrix, self._perspec_corners)
         # Initialize the output corners
         bird_corners = [[1, 1, 1, 1],
@@ -544,41 +528,22 @@ class VisualCortex:
         for col in range(0,4):
             for row in range(0,2):
                 bird_corners[row][col] = bird_homo_corners[row][col] / bird_homo_corners[2][col]
-        c = 15
+        c = 10
         cushion = [[c, -c, -c, c],
                    [c, c, -c, -c]
                   ]
         bird_corners = np.add(bird_corners, cushion)
+        self.trapezoid = bird_corners
+        self.trapezoid = np.vstack([self.trapezoid, [1,1, 1, 1]])
 
-        # TODO: Figure out a better way to check if points are inside polygon
-        # TODO: Make the following chunk more readable
-        # Check each kp to see if it is in the polygon defined by bird_corners
-        # by checking if its x-position falls between the diagonal lines
-        # and its y-position is between the horizontal lines
-        mask = []
-        for i in range(0,len(kp)):
-            keep = 0
-            if ((kp[i].pt[1] > bird_corners[1][0]) and (kp[i].pt[1] < bird_corners[1][2])):
-                # Calculate left bound at the given y-position
-                delta = ((bird_corners[1][3] - kp[i].pt[1])/(bird_corners[1][3] - bird_corners[1][0])) * (bird_corners[0][3] - bird_corners[0][0])
-                left_x = bird_corners[0][3] - delta
-                if (kp[i].pt[0] > left_x):
-                    # Calculate right bound at the given y-position
-                    delta = ((bird_corners[1][2] - kp[i].pt[1])/(bird_corners[1][2] - bird_corners[1][1])) * (bird_corners[0][1] - bird_corners[0][2])
-                    right_x = bird_corners[0][2] + delta
-                    if (kp[i].pt[0] < right_x):
-                        keep = 1;
-            mask.append(keep);
+        mask_corners = np.array([ [bird_corners[0][0], bird_corners[1][0]],
+                                  [bird_corners[0][1], bird_corners[1][1]],
+                                  [bird_corners[0][2], bird_corners[1][2]],
+                                  [bird_corners[0][3], bird_corners[1][3]]], np.int32)
 
-        # Filter out the points outside the mask
-        kp_with_mask = zip(kp,mask)
-        des_with_mask = zip(des,mask)
-        kp1 = [item[0] for item in kp_with_mask if item[1] == 1]
-        des1 = [item[0] for item in des_with_mask if item[1] == 1]
-        # Convert des1 to 2d array to make opencv happy
-        des1 = np.array(des1)
+        cv2.fillPoly(self.bird_mask, [mask_corners], 1)
 
-        return kp1, des1, bird_corners
+        return
 
     # Useful tool for drawing matches between two images
     def _draw_matches(self, img1, img2, kp1, kp2, matches):
