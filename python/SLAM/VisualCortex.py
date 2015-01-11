@@ -138,8 +138,8 @@ class VisualCortex:
     """    
     def feature_detect(self, image, typ):
         # Initialize detector
-        orb = cv2.ORB(WTA_K=3, scaleFactor=4, nlevels=5)
-        # Find the keypoints and descriptors with SIFT
+        orb = cv2.ORB()
+        # Find the keypoints and descriptors with ORB
         if typ == "new":
             kp, des = orb.detectAndCompute(image, self.bird_mask)
             return kp, des;
@@ -153,7 +153,7 @@ class VisualCortex:
     """
     def feature_match(self, kp1, des1):
         # Create BFMatcher object
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING2, crossCheck=False)
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
         # Match descriptors and get the matches array
         matches = bf.match(des1, self._map_descriptors)
 
@@ -370,7 +370,7 @@ class VisualCortex:
         """
         thresh = 50
         dump, img = cv2.threshold(img, thresh, 255, cv2.THRESH_BINARY)
-        kernel = 9
+        kernel = 10
         img = cv2.blur(img, (kernel, kernel))
         return img
 
@@ -510,7 +510,8 @@ class VisualCortex:
                                    [new_trapezoid[0][1], new_trapezoid[1][1]],
                                    [new_trapezoid[0][2], new_trapezoid[1][2]],
                                    [new_trapezoid[0][3], new_trapezoid[1][3]]], np.int32)
-        cv2.fillPoly(self.full_map_mask, [mask_corners], 1)
+        # If you fill with 1 instead of 255, it doesn't detect features properly
+        cv2.fillPoly(self.full_map_mask, [mask_corners], 255)
         return
 
 
@@ -541,8 +542,8 @@ class VisualCortex:
                                   [bird_corners[0][2], bird_corners[1][2]],
                                   [bird_corners[0][3], bird_corners[1][3]]], np.int32)
 
-        cv2.fillPoly(self.bird_mask, [mask_corners], 1)
-
+        # Fill with 255 instead of 1, or else it doesn't detect all of the features properly
+        cv2.fillPoly(self.bird_mask, [mask_corners], 255)
         return
 
     # Useful tool for drawing matches between two images
