@@ -1,7 +1,8 @@
 <launch>
     <node name="xmega_driver" pkg="ieee2015_xmega_driver" type="xmega_driver"
         args="
-        --types_path=$(find ieee2015_xmega_driver)/../../xmega/types.h
+        --types_path=$(find ieee2015_xmega_driver)/../../xmega/types.h 
+        --port='/dev/xmega_tty' 
         "
         output="screen" ns="/robot" />
 </launch>

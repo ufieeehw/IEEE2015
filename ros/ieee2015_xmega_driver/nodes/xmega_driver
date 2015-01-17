@@ -10,20 +10,21 @@ import threading
 # Ros
 import rospy
 import tf.transformations as tf_trans
+import numpy as np
 
 # Ros packages
 import roslib; roslib.load_manifest('ieee2015_xmega_driver')
 import xmega_driver
 
 # Ros Msgs
-from std_msgs.msg import Header, Float64, String
+from std_msgs.msg import Header, Float64, String, Int16
 from geometry_msgs.msg import Point, PointStamped, PoseStamped, Pose, Quaternion, Vector3, TwistStamped
 from sensor_msgs.msg import Imu
 from ieee2015_xmega_driver.msg import XMega_Message
 
 
 class Xmega_Driver(object):
-    def __init__(self, types_path):
+    def __init__(self, types_path, comm_port='/dev/xmega_tty'):
         '''Xmega driver -- handles the serial interface with the Xmega128A1U for the IEEE 2015 robot.
         XMega Sensor Manifest:
             - IMU (9DOF) - 12 bytes (only using 6 DOF) [An IMU is an intertial measurement unit]
@@ -57,13 +58,15 @@ class Xmega_Driver(object):
             - Set up a YAML file that configures the message type to hex code magic.
         '''
 
+        self.comm_port = comm_port
+
         # ROS Setup
         rospy.init_node('XMega_Connector')
         self.serial_proxy = xmega_driver.Serial_Proxy(
-            port='/dev/xmega_tty', 
+            port=self.comm_port,
             # port='/dev/ttyUSB0',
             baud_rate=256000, 
-            verbose=False,
+            verbose=2,
         )
 
         # Add ROS elements
@@ -73,15 +76,17 @@ class Xmega_Driver(object):
         # Potentially add binding for ros-sending functions as well.
         self.debug_subscriber = rospy.Subscriber('debug', String, self.got_ros_debug)
         self.vel_sub = rospy.Subscriber('desired_velocity', TwistStamped, self.got_desired_vel)
+        self.test_vel_sub = rospy.Subscriber('test_vel', Int16, self.send_test_motor_vel)
 
         # Bind types.h info for the serial proxy
         self.serial_proxy.bind_types(types_path)
 
         # Bind callbacks for messages FROM the Xmega
-        self.serial_proxy.bind_callback('vector_error', self.got_xmega_error)
+        self.serial_proxy.bind_callback('vector_error', self.got_xmega_v_error)
         self.serial_proxy.bind_callback('message_error', self.got_xmega_error)
         self.serial_proxy.bind_callback('buffer_error', self.got_xmega_error)
         self.serial_proxy.bind_callback('imu_data', self.got_imu_reading)
+        self.serial_proxy.bind_callback('keep_alive', self.got_keep_alive)
 
         # Start message
         self.send_start_msg()
@@ -103,19 +108,26 @@ class Xmega_Driver(object):
                 cur_time = time.time()
                 if (cur_time - old_time) > 0.2:
                     old_time = cur_time
-                    self.serial_proxy.add_message('poll_imu')
+                    # self.serial_proxy.add_message('poll_imu')
 
         imu_poll = threading.Thread(target=imu_loop)
         imu_poll.daemon = True
         imu_poll.start()
-        
 
+    def send_test_motor_vel(self, msg):
+        byte_vel = np.array([msg.data, msg.data, msg.data, msg.data], np.int16).tostring()
+        print 'sending motor vel'
+        self.serial_proxy.add_message('motor_speed', byte_vel)
 
     def got_ros_debug(self, msg):
         '''This is an example of how you might send a message to the XMega'''
         string = msg.data
         for char in string:
             self.serial_proxy.add_message('ros_debug', char)
+
+    def got_keep_alive(self, msg):
+        # print 'Got a keep alive'
+        pass
 
     def got_desired_vel(self, msg):
         INCH = 25.4e-3
@@ -146,7 +158,10 @@ class Xmega_Driver(object):
 
 
     def got_xmega_error(self, msg_data):
-        print "Got error,", msg_data
+        print "\nGot error,", msg_data
+
+    def got_xmega_v_error(self, msg_data):
+        print "\nGot vector error,", msg_data
 
     def got_test(self, msg_data):
         print "Recieved test!"
@@ -269,9 +284,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(usage=usage_msg, description=desc_msg)
     parser.add_argument('--types_path', dest='types_path',
                       help='Designate the absolute location of the types.h file')
+    parser.add_argument('--port', dest='port', 
+                      help='Designate the port in /dev/ where we will look for the xmega')
 
     args = parser.parse_args(rospy.myargv()[1:])
     types_path = args.types_path
-    print 'types path:', types_path
-    driver = Xmega_Driver(types_path)
+    port = args.port
+    print 'Reading types at path:', types_path
+    print 'Searching at port:', port
+    driver = Xmega_Driver(types_path, port)
     rospy.spin()
