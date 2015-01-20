@@ -1,9 +1,20 @@
 INSTRUCTIONS FOR LAUNCHING AND OPERATING XMEGA SIMULATOR
- 
-Must install socat to operate
-www.dest-unreach.org/socat/
-or 
-sudo apt-get install socat
+
+There are a few programs and libraries that must be installed first
+
+Socat:
+
+	1. www.dest-unreach.org/socat/ or 
+	2. sudo apt-get install socat
+
+PyUnit:
+
+	1. http://sourceforge.net/projects/pyunit/?source=typ_redirect 
+	2. Navigate to unzipped tar folder and run 'python setup.py install'
+
+PySerial:
+	
+	1. https://pypi.python.org/pypi/pyserial
 
 For proper use must disable password requirement when running with sudo 
 for file 'xmega_communication_sim.py'
@@ -31,6 +42,6 @@ Works as a way to pause and start once originally open
 
 TO DO:
 
-	1. Parse Types in 'ROS_send.py' to send all possible codes through xmega_driver
+	1. Impliment as Unit Test 
 
-	2. Impliment as Unit Test
+	2. Add functions to ROS_send as neew ROS topcs are added to xmega_driver
