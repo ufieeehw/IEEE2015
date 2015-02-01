@@ -10,6 +10,9 @@ When testing your changes,
 - Try doing a catkin_make -C ~/catkin_ws and check for errors
 - Then do rosrun ieee2015_mission_control chess_mission_control
 '''
+print('hi ther');
+#All you have to do is clone the ieee repository into the src directory in your catkin workspace
+#it explains in the readme
 import rospy
 import cv2
 # Packages
@@ -25,6 +28,8 @@ GRABBING_HEIGHT = 4
 tf_bot_to_board = None  # Fill this in!
 global w_or_b_turn  # could be whatever we choose initally
 
+
+print('hey');
 # /Temporary
 # Precomments...
 # Go to start position "home"
@@ -50,6 +55,7 @@ global w_or_b_turn  # could be whatever we choose initally
 
 
 class Mission_Control(object):
+    print('hey again');
     def __init__(self):
 
         def execute(self):
@@ -72,7 +78,6 @@ class Mission_Control(object):
             #also needs to be a field
             #ideally we never want this in here but for testing, yeah
             board_state = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r',
-                            'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p',
                             'e', 'e', 'e', 'e', 'e', 'e', 'e', 'e',
                             'e', 'e', 'e', 'e', 'e', 'e', 'e', 'e',
                             'e', 'e', 'e', 'e', 'e', 'e', 'e', 'e',
@@ -81,7 +86,7 @@ class Mission_Control(object):
                             'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
 
             'move arm to home position'
-            imgnew = cv2.imread('firstmove1.jpg')
+            imgnew = cv2.imread('lib/chessanglesmall.jpg')
             imgnew = cv2.resize(imgnew, (480, 640))
             #this needs to be automated but for sake of testing we are just reading in images
 
@@ -92,6 +97,7 @@ class Mission_Control(object):
             board_state = chess_vision.findDifferencesArrays(old_occupancy_grid, new_occupancy_grid, board_state)
             print board_state  # testing
 
+            chess_vision.printBoardAndPieces(board_state);
             #after the board state is updated, we no longer need the old_occupancy_grid
             #the occupancy grid needs to be replaced with the new one so the cycle can be repeated
             old_occupancy_grid = new_occupancy_grid
@@ -124,3 +130,9 @@ class Mission_Control(object):
             print "Running ros node!"
             #coordinates can be used to find center of each chess piece if the square contains it
             #will be modified with how the architecture is set up
+
+
+
+MC = Mission_Control()
+print('we made an object');
+MC.execute()
