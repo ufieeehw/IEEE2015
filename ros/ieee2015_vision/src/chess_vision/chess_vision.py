@@ -1,9 +1,9 @@
-import Rotate
-import baseLine
-import findCoordinates
-import Squares
-import edgechesshc
-import FindPiece
+from . import Rotate
+from . import baseLine
+from . import findCoordinates
+from . import Squares
+from . import edgechesshc
+from . import FindPiece
 import cv2
 
 ##############This is handling Chess's vision################
