@@ -40,7 +40,7 @@ def thread_lock(function_to_lock):
 
 
 class Serial_Proxy(object):
-    def __init__(self, port, baud_rate, types_path=default_path_to_types, verbose=True):
+    def __init__(self, port, baud_rate, types_path=default_path_to_types, verbose=2):
         '''Superclass for XMega communication
         Purpose: Communicate with an XMega via serial link
         Arguments:
@@ -77,6 +77,10 @@ class Serial_Proxy(object):
             Proposal: Each item defines its own message length independent of the defined type. OR: The type field fully encodes 
                 length (0-255 bytes)
                 -- Would this improve things?
+
+        Verbosity:
+             - 1: Print errors
+             - 2: Print info
 
         TODO:
             -(DONE) Adding a simple internal message queue could resolve some thread-lock message loss issues. Need to test more extensively 
@@ -122,8 +126,13 @@ class Serial_Proxy(object):
         self.error_queue = deque()
 
     def err_log(self, *args):
-        '''Print the inputs as a list if class verbosity is True'''
-        if self.verbose:
+        '''Print the inputs as a list if class verbosity is > 0'''
+        if self.verbose > 0:
+            self.error_queue.append(string.join(map(str, args)))
+
+    def info_log(self, *args):
+        '''Print theinputs as a list if class verbosity is > 1'''
+        if self.verbose > 1:
             self.error_queue.append(string.join(map(str, args)))
 
     def run_serial_loop(self):
@@ -263,11 +272,11 @@ class Serial_Proxy(object):
         while True:
             # Handle the first byte, determining type
             unprocessed_type = self.serial.read(type_length)
-            self.err_log("Simple outgoing type ", unprocessed_type)
+            self.info_log("Simple outgoing type ", unprocessed_type)
             msg_type = ord(unprocessed_type)
             msg_byte_type = msg_type & length_mask
             b_error = (msg_type & error_mask) == error_mask
-            self.err_log('Recieving message of type', msg_type)
+            self.info_log('Recieving message of type', msg_type)
             if b_error:
                 # Unhandled
                 self.err_log('By convention, this message is read as an error type message')
@@ -278,26 +287,29 @@ class Serial_Proxy(object):
 
                 # Poll message (zero length)
                 if msg_defined_length == 0:
-                    self.err_log("Reading as poll message")
+                    self.info_log("Reading as poll message")
                     msg_data = None
 
                 # Defined byte length messages (1 or 2 as of writing)
                 elif msg_defined_length > 0:
-                    self.err_log("Reading as defined length message")
+                    self.info_log("Reading as defined length message")
                     msg_data = self.serial.read(msg_defined_length)
 
                 # N-Byte Message
                 elif msg_defined_length is NByte_Message_Token:
                     msg_length = ord(self.serial.read(length_length))  # Read the length byte and convert it to a number
-                    self.err_log("Comprehending N-Byte message as being of length", msg_length)
+                    self.info_log("Comprehending N-Byte message as being of length", msg_length)
                     msg_data = self.serial.read(msg_length)
-                    self.err_log("N-Byte Message content:", msg_data)
+                    self.info_log("N-Byte Message content:", msg_data)
                     
                 if msg_type in self.callback_dict.keys():
                     callback_function = self.callback_dict[msg_type]
                     callback_function(msg_data)
                 else:
                     self.err_log("No callback function for ", msg_type)
+
+                if b_error:
+                    self.err_log(self.byte_type_defs[msg_byte_type], msg_data)
 
             # Failure
             else:
@@ -312,23 +324,23 @@ class Serial_Proxy(object):
         '''
         if _type in self.outgoing_msg_types.keys():
             write_data = self.outgoing_msg_types[_type]
-            self.err_log("Writing as", write_data, '(type', _type, ')')
+            self.info_log("Writing as", write_data, '(type', _type, ')')
             self.serial.write(chr(write_data))
 
             # N-Byte Message
             if self._msg_len(_type) == NByte_Message_Token:
-                self.err_log("Writing as N Byte message of length ", len(data))
+                self.info_log("Writing as N Byte message of length ", len(data))
                 self.serial.write(chr(len(data)))  # Write the length byte
 
             # Send the data one character at a time
             if data is not None:
-                self.err_log("Data,", data)
+                self.info_log("Data,", data)
                 for character in data:
-                    self.err_log("writing character ", ord(character))
+                    self.info_log("writing character ", ord(character))
                     self.serial.write(character)
             else:
                 pass
-                # self.err_log("No other data to write")
-            self.err_log("Finished sending message of type", _type)
+                # self.info_log("No other data to write")
+            self.info_log("Finished sending message of type", _type)
         else:
-            self.err_log("Write type not recognized")
+            self.err_log("Write type not recognized:, ", _type)
