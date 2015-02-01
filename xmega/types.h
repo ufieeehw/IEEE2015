@@ -49,7 +49,7 @@ unit: metric units for the message
 
 
 //DATA_NB_TYPE messages [0xC0-0xEF]
-#define MOTOR_SPEED_TYPE      0xC0 // out: motor_speed; expected_length: 6; byte_stride: 2; type: integer; unit: rad/s
+#define MOTOR_SPEED_TYPE      0xC0 // out: motor_speed; expected_length: 8; byte_stride: 2; type: integer; unit: rad/s
 #define IMU_DATA_TYPE         0xEF // in: imu_data; type: non-simple
 
 
