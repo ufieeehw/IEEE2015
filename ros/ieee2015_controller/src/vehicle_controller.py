@@ -43,10 +43,10 @@ class Controller(object):
     Function:
         - Determine the ideal velocity for the current position, solve for wheel rotation speeds
             via linear least squares, using the linear relations presented in [1]
-        V_y = (V_0 + V_1 + V_2 + V_3) / 4
-        V_x = (V_0 - V_1 + V_2 - V_3) / 4
-        V_theta  = (V_0 + V_1 - V_2 - V_3)/4
-        V_error = (V_0 - V_1 - V_2 + V_3)/4
+         V_y = (V_0 + V_1 + V_2 + V_3) / 4
+         V_x = (V_0 - V_1 + V_2 - V_3) / 4
+         V_theta  = (V_0 + V_1 - V_2 - V_3) / 4
+         V_error = (V_0 - V_1 - V_2 + V_3) / 4
 
     Notes:
         Special glory to Lord Forrest Voight, creator of the universe
@@ -75,9 +75,9 @@ class Controller(object):
 
         # Create the 4x4 mecanum transformation matrix
         mecanum_matrix = np.matrix([
-            [+1, +1, +1, +1],
-            [+1, -1, +1, -1],
-            [+1, +1, -1, -1],
+            [+1, +1, +1, +1],  # Unitless! Shooting for rad/s
+            [+1, -1, +1, -1],  # Unitless! Shooting for rad/s
+            [+1, +1, -1, -1],  # Unitless! Shooting for rad/s
             [+1, -1, -1, +1],  # This is the error row (May not be necessary)
         ], dtype=np.float32) / 4.0  # All of the rows are divided by 4
 
@@ -124,13 +124,14 @@ class Controller(object):
             Distribute:
                 (A.T * Ax*) - (A.T * <b>) = <0>
                 A.T * Ax* = A.T * <b>
-                x* = (A.T * A).I ( A.T * <b>)
+                x* = (A.T * A).I ( A.T * <b>)  
+                # For those keeping track at home, (A.T * A).I * A.T is the Moore-Penrose Left Psuedo-inverse of A
             Q.E.D.
 
         Notes:
             This approach is a slight departure from Forrest and Khaled's method from last year
 
-            **** WHY DID WE NOT JUST USE LEAST SQUARES? **** 
+            **** WHY DID WE NOT JUST USE NUMPY LEAST SQUARES? **** 
               We precomputed the left-inverse instead of using the numpy least-squares function because
                numpy's least squares must compute the cholesky decomposition each time it is called, and 
                then solve. This way, we still have to do an expensive inversion, but only once.
