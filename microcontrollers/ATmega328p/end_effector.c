@@ -15,7 +15,7 @@ void UART_init(void)
 	DDRD |= (1<<1);
 	DDRD &= (0<<0);
  
-	// Set baud rate; lower byte and top nibble
+	// Set baud rate - lower byte and top nibble
 	UBRR0H = ((SCALER) & 0xF00);
 	UBRR0L = (uint8_t) ((SCALER) & 0xFF);
  
