@@ -604,6 +604,7 @@ view_coordinates = np.float32([[922,220],[688,27],[276,27],[7,218]])
 map_coordinates = np.float32([[650,650],[650,350],[350,350],[350,650]])
 
 # Set filename and read it into an opencv object
+
 img_location = 'test_images/cap1.jpg'
 img = cv2.cvtColor(cv2.imread(img_location), cv2.COLOR_BGR2GRAY)
 # Create a new VC object
@@ -614,12 +615,14 @@ img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 VC.SLAM(img)
 VC.display_map()
 
+
 img_location = 'test_images/cap3.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 VC.SLAM(img)
 VC.display_map()
-
-img_location = 'test_images/cap4.jpg'
+'''
+img_location = 'SLAMPics/c6.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 VC.SLAM(img)
 VC.display_map()
+'''
