@@ -5,7 +5,14 @@ import cv2
 import random
 import math
 
-# TODO: Make nonchanging variables properties.  Make changing variables
+#Areas of concern:
+# too many detected point
+# images after transformation are bad
+#indistinguishable transform
+#much more distortion
+    #how do we combat that
+    #camera angle at fault
+    
 # non-properties
 class VisualCortex:
 
