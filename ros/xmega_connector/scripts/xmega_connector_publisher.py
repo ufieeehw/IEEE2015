@@ -219,18 +219,6 @@ while not rospy.is_shutdown():
 
 	A = []
 	b = []
-	# def get_vel_at_point(vel, angvel, body_point):
-	# 	assert len(vel) == 2
-	# 	return numpy.array([vel[0], vel[1], 0]) + numpy.cross(numpy.array([0, 0, angvel]), body_point)
-	# for i, (wheel_pos, wheel_dir) in enumerate(wheels):
-	# 	A.append([
-	# 		get_vel_at_point([1, 0], 0, wheel_pos).dot(transformations.unit_vector(wheel_dir)) / wheel_radius * math.sqrt(2),
-	# 		get_vel_at_point([0, 1], 0, wheel_pos).dot(transformations.unit_vector(wheel_dir)) / wheel_radius * math.sqrt(2),
-	# 		get_vel_at_point([0, 0], 1, wheel_pos).dot(transformations.unit_vector(wheel_dir)) / wheel_radius * math.sqrt(2),
-	# 	])
-		
-	# 	b.append(getattr(odom, "wheel%i" % (i+1,))/dt)
-	# x, residuals, rank, s = numpy.linalg.lstsq(A, b)
 
 	# vel = x[0:2]
 	# angvel = x[2]
