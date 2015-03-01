@@ -47,8 +47,6 @@ class Controller(object):
         Special glory to Lord Forrest Voight, creator of the universe
         Greater thanks to the incredible, brilliant and good-looking Khaled Hassan, for his unyielding mentorship
         and love for Burrito Bros
-
-
     '''
     def __init__(self):
         '''Initialize Controller Object'''

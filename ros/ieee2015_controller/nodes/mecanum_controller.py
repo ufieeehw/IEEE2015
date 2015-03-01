@@ -11,7 +11,7 @@ import rospy
 from std_msgs.msg import Header
 from geometry_msgs.msg import Pose, PoseStamped, Twist, TwistStamped, Vector3
 from ieee2015_msgs.msg import Mecanum
-from xmega_connector.srv import * #Echo, EchoRequest, EchoResponse
+from xmega_connector.srv import * #Echo, EchoRequest, EchoResponse, SetWheelSpeeds
 
 class Controller(object):
     def __init__(self):
