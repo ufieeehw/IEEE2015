@@ -1,0 +1,24 @@
+#!/usr/bin/python
+
+from __future__ import division
+
+import rospy
+from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion
+from std_msgs.msg import Header
+
+rospy.init_node('fake_odom')
+
+odom_pub = rospy.Publisher('odom', PoseStamped)
+
+while True:
+	rospy.sleep(rospy.Duration(0.05))
+	odom_pub.publish(PoseStamped(
+		header=Header(
+			stamp=rospy.Time.now(),
+			frame_id='/last_odom',
+		),
+		pose=Pose(
+			position=Point(0, 0, 0),
+			orientation=Quaternion(0, 0, 0, 1),
+		),
+	))
