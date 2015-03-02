@@ -3,7 +3,15 @@
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find ieee2015_gazebo_sim)/media/ieee.world"/>
   </include>
-  
+
+
+  <node name="vehicle_controller" pkg="ieee2015_controller" type="vehicle_controller.py"
+        output="screen" ns="/robot" />  
+  <node name="arm_controller" pkg="ieee2015_controller" type="arm_controller.py"
+        output="screen" ns="/robot" />
+  <node name="gazebo_transform" pkg="ieee2015_robot" type="transform.py"
+        output="screen" ns="/robot" />
+
   <node name="ros_control" pkg="rospy_tutorials" type="talker" />
 
   <node

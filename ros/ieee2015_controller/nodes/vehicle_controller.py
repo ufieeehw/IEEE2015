@@ -53,8 +53,7 @@ class Controller(object):
         rospy.init_node('vehicle_controller')
 
         # Twist pub
-        twist_topic = 'twist'
-        self.twist_pub = rospy.Publisher(twist_topic, Twist, queue_size=1) 
+        self.twist_pub = rospy.Publisher('twist', Twist, queue_size=1) 
         
         # Initializations to avoid weird desynchronizations
         self.des_position = None
