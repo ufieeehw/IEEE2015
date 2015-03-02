@@ -14,7 +14,7 @@ from xmega_connector.srv import * #Echo, EchoRequest, EchoResponse
 from geometry_msgs.msg import TwistStamped, Twist, Vector3, PoseStamped, Pose, Point, Quaternion
 from tf import transformations
 
-rospy.init_node('xmega_connector', log_level=rospy.DEBUG)
+rospy.init_node('xmega_connector') #, log_level=rospy.DEBUG)
 
 class XMEGAConnector(object):
 
@@ -101,13 +101,10 @@ def echo_service(echo_request):
 
 
 def set_wheel_speed_service(ws_req):
-	print( '-1')
 	xmega_lock.acquire(True)
-	print( '0')
 	packet = XMEGAPacket()
 	packet.msg_type = 0x04
 
-	print( '1')
 	wheel1 = int(ws_req.wheel1 * 1000.0)
 	wheel2 = int(ws_req.wheel2 * 1000.0)
 	wheel3 = int(ws_req.wheel3 * 1000.0)
@@ -116,12 +113,9 @@ def set_wheel_speed_service(ws_req):
 	packet.msg_body = struct.pack('<llll', wheel1, wheel2, wheel3, wheel4)
 	packet.msg_length = len(packet.msg_body) + 1
 
-	print( 'Sending wheels speed')
 	connector_object.send_packet(packet)
-	print( 'Packet sent')
 
 	xmega_lock.release()
-	print( 'lock released')
 	return SetWheelSpeedsResponse()
 
 
