@@ -23,10 +23,10 @@ class SCARA_Controller(object):
         self.shoulder_length, self.elbow_length = lengths
         self.base = np.array([0.0, 0.0], np.float32)
 
-        self.pose_sub = rospy.Subscriber('/arm_des_pose', PointStamped, self.got_des_pose, queue_size=1)
+        self.pose_sub = rospy.Subscriber('arm_des_pose', PointStamped, self.got_des_pose, queue_size=1)
 
-        self.elbow_pub = rospy.Publisher('/elbow_controller/command', Float64, queue_size=1)
-        self.shoulder_pub = rospy.Publisher('/shoulder_controller/command', Float64, queue_size=1)
+        self.elbow_pub = rospy.Publisher('elbow_controller/command', Float64, queue_size=1)
+        self.shoulder_pub = rospy.Publisher('shoulder_controller/command', Float64, queue_size=1)
         self.des_position = None
 
     def got_des_pose(self, msg):

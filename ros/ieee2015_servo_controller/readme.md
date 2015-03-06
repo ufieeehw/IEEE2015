@@ -39,16 +39,15 @@ It should look like this...
 
 To run it, do
 
-	roslaunch ieee2015_servo_controller controller_manager.launch
-
-	roslaunch ieee2015_servo_controller initalize_servos.launch
+	roslaunch ieee2015_servo_controller start_arm_servos.launch
 
 
 Then try
 
 ```rostopic pub /shoulder_controller/command std_msgs/Float64 "data: 1.6" ```
+```rostopic pub /elbow_controller/command std_msgs/Float64 "data: 1.0" ```
 
-To move the physical 
+To move the physical shoulder or elbow to an absolute angle of 1.6 radians
 
 # Naming
 
@@ -78,4 +77,4 @@ Dynamixel - The company that makes our servos
 
 FTDI - A company that makes serial-USB converts that we make a lot of use of
 
-udev - Linux rules you can set up so that a device doesn't automatically default to being at a port. A device will often automatically go to /dev/ttyUSB0, which is tough to work with if you have multiple devices and you serial interface requires a specific port to be chosen. This enables us to automatically put something it recognizes as a dynamixel at a port we make up, for example, /dev/dynamixel_tty
+udev - Linux rules you can set up so that a device doesn't automatically default to being at a port. A device will often automatically go to /dev/ttyUSB0, which is tough to work with if you have multiple devices and your serial interface requires a specific port to be chosen. This enables us to automatically put something it recognizes as a dynamixel at a port we make up, for example, /dev/dynamixel_tty

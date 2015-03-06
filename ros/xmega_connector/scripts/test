@@ -1,0 +1,46 @@
+#!/usr/bin/python
+
+from __future__ import division
+
+import math
+
+import numpy
+from tf import transformations
+
+tick_per_rev = 1856
+
+width = 0.245
+length = 0.160
+
+wheel_diameter = 54e-3 # 54 mm
+wheel_radius = wheel_diameter / 2
+wheel_circumference = wheel_radius * 2*math.pi
+
+wheels = [
+	((+length/2, -width/2, 0), (+1, +1, 0)), # front right
+	((+length/2, +width/2, 0), (+1, -1, 0)), # front left
+	((-length/2, -width/2, 0), (+1, -1, 0)), # rear right
+	((-length/2, +width/2, 0), (+1, +1, 0)), # rear left
+]
+A = []
+b = []
+def get_vel_at_point(vel, angvel, body_point):
+	assert len(vel) == 2
+	return numpy.array([vel[0], vel[1], 0]) + numpy.cross(numpy.array([0, 0, angvel]), body_point)
+for i, (wheel_pos, wheel_dir) in enumerate(wheels):
+	A.append([
+		get_vel_at_point([1, 0], 0, wheel_pos).dot(transformations.unit_vector(wheel_dir)) / wheel_radius * math.sqrt(2),
+		get_vel_at_point([0, 1], 0, wheel_pos).dot(transformations.unit_vector(wheel_dir)) / wheel_radius * math.sqrt(2),
+		get_vel_at_point([0, 0], 1, wheel_pos).dot(transformations.unit_vector(wheel_dir)) / wheel_radius * math.sqrt(2),
+	])
+	
+	wheel_angvel = 1.
+	#wheel_angvel = getattr(odom, "wheel%i" % (i+1,))/ticks_per_rev*2*pi/dt
+	b.append(wheel_angvel)
+x, residuals, rank, s = numpy.linalg.lstsq(A, b)
+
+vel = x[0:2]
+angvel = x[2]
+
+print vel
+print angvel

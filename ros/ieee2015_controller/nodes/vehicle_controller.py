@@ -41,30 +41,19 @@ class Controller(object):
     See Jacob Panikulam or Aaron Marquez for questions
 
     Function:
-        - Determine the ideal velocity for the current position, solve for wheel rotation speeds
-            via linear least squares, using the linear relations presented in [1]
-         V_y = (V_0 + V_1 + V_2 + V_3) / 4
-         V_x = (V_0 - V_1 + V_2 - V_3) / 4
-         V_theta  = (V_0 + V_1 - V_2 - V_3) / 4
-         V_error = (V_0 - V_1 - V_2 + V_3) / 4
+        - Determine the ideal velocity for the current position
 
     Notes:
         Special glory to Lord Forrest Voight, creator of the universe
         Greater thanks to the incredible, brilliant and good-looking Khaled Hassan, for his unyielding mentorship
         and love for Burrito Bros
-
-
-    Bibliography:
-        [1] http://www2.informatik.uni-freiburg.de/~grisetti/teaching/ls-slam/lectures/pdf/ls-slam-03-hardware.pdf
     '''
     def __init__(self):
         '''Initialize Controller Object'''
         rospy.init_node('vehicle_controller')
 
         # Twist pub
-        twist_topic = 'desired_velocity'
-        self.twist_pub = rospy.Publisher(twist_topic, Twist, queue_size=1) 
-        self.mecanum_pub = rospy.Publisher('mecanum_speeds', Mecanum, queue_size=1)
+        self.twist_pub = rospy.Publisher('twist', Twist, queue_size=1) 
         
         # Initializations to avoid weird desynchronizations
         self.des_position = None
@@ -72,17 +61,6 @@ class Controller(object):
         # Don't want to have an a-priori position
         self.position = None
         self.yaw = None
-
-        # Create the 4x4 mecanum transformation matrix
-        mecanum_matrix = np.matrix([
-            [+1, +1, +1, +1],  # Unitless! Shooting for rad/s
-            [+1, -1, +1, -1],  # Unitless! Shooting for rad/s
-            [+1, +1, -1, -1],  # Unitless! Shooting for rad/s
-            [+1, -1, -1, +1],  # This is the error row (May not be necessary)
-        ], dtype=np.float32) / 4.0  # All of the rows are divided by 4
-
-        # Compute the left-inverse once
-        self.left_inverse = (mecanum_matrix.T * mecanum_matrix).I * mecanum_matrix.T
 
         # Current pose sub
         self.pose_sub = rospy.Subscriber('pose', PoseStamped, self.got_pose)
@@ -97,56 +75,6 @@ class Controller(object):
             )
         )
 
-    def send_mecanum(self, (xvel, yvel), angvel):
-        '''Convert a desired linear and angular velocity vector into a wheel speed solution
-        Function:
-            (If you don't understand this, I suggest the Khan Academy Linear Algebra series
-                very short and sweet)
-            Precompute the left-inverse of the mecanum characteristic matrix
-            Multiply that by the desired velocity
-        ****This is equivalent to the least-squares solution****
-        Proof:
-            Motivation:
-                We would like to find a vector x* such that |b - x*| is minimized
-                 (In this case, b is the 'vector' of desired [xvel, yvel, angvel])
-                The vector that minimizes |b - x*| is the projection of b onto the column
-                space (Call this subspace V) of A.
-
-            So...
-                Ax* = b_proj
-                (Ax* - b) is orthogonal to V therefore,
-                (Ax* - b) is a member of the null-space of A.T (Also called the left null-space)
-
-            Then by definition of null-space,
-                A.T(x* - b) = <0>
-                Where <0> is the zero vector
-
-            Distribute:
-                (A.T * Ax*) - (A.T * <b>) = <0>
-                A.T * Ax* = A.T * <b>
-                x* = (A.T * A).I ( A.T * <b>)  
-                # For those keeping track at home, (A.T * A).I * A.T is the Moore-Penrose Left Psuedo-inverse of A
-            Q.E.D.
-
-        Notes:
-            This approach is a slight departure from Forrest and Khaled's method from last year
-
-            **** WHY DID WE NOT JUST USE NUMPY LEAST SQUARES? **** 
-              We precomputed the left-inverse instead of using the numpy least-squares function because
-               numpy's least squares must compute the cholesky decomposition each time it is called, and 
-               then solve. This way, we still have to do an expensive inversion, but only once.
-               In my opinion (Jacob) this is better suited to the real-time application at hand.
-               And moreover, one that we understand
-        '''
-        v_target = np.matrix([xvel, yvel, angvel, 0.0], np.float32).T
-        mecanum_speeds = self.left_inverse * v_target 
-        wheel_speeds = Mecanum(
-            vel_0=mecanum_speeds[0],
-            vel_1=mecanum_speeds[1],
-            vel_2=mecanum_speeds[2],
-            vel_3=mecanum_speeds[3],
-        )
-        self.mecanum_pub.publish(wheel_speeds)
 
     def norm_angle_diff(self, ang_1, ang_2):
         '''norm_angle_diff(ang_1, ang_2)
@@ -229,10 +157,7 @@ class Controller(object):
             # Send the raw x, y, w desired velocity vector
             # Alone, this line does nothing
             self.send_twist((x_vel, y_vel), desired_angvel) 
-
-            # Compute the actual wheel speeds (This is what makes the robot physically move)
-            self.send_mecanum((x_vel, y_vel), desired_angvel)  
-    
+            
     def got_desired_pose(self, msg):
         '''Recieved desired pose message
         Figure out how to do this in a separate thread

@@ -481,7 +481,7 @@
 
   <gazebo>
       <plugin name="object_controller" filename="libgazebo_ros_planar_move.so">
-        <commandTopic>desired_velocity</commandTopic>
+        <commandTopic>twist</commandTopic>
         <odometryTopic>odom</odometryTopic>
         <odometryFrame>odom</odometryFrame>
         <odometryRate>20.0</odometryRate>

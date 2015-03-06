@@ -13,7 +13,7 @@ if platform.system() == 'Linux':
     setup(**setup_args)
 else:
     ## This runs if we're on windows
-    from distutils.core import setup
+    from setuptools import setup
     setup(name='xmega_driver',
         version='1.0',
         description='Python xmega driver',
