@@ -16,7 +16,7 @@ last_tilt_position = 0.0
 tf_broad = tf.TransformBroadcaster()
 
 def handle_camera_pose(msg):
-    translation = (msg.pose.position.x, msg.pose.position.y, 0)
+    translation = (msg.pose.position.x, msg.pose.position.y, 0)#assuming camera is in the slot closest to edge
     rotation = tf.transformations.quaternion_from_euler(msg.pose.orientation.x,msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w)
     time = rospy.Time.now()
 
@@ -41,8 +41,8 @@ def read_shoulder_servo(msg):
     tf_broad.sendTransform(translation, rotation, time, "/shoulder_servo", "/spinner_servo")
 
 def read_elbow_servo(msg):
-    global last_shoulder_servo_position
-    last_shoulder_servo_position = msg.current_pos
+    global last_elbow_servo_position
+    last_elbow_servo_position = msg.current_pos
     translation = ( 0.148, 0, 0) #assume the servo is located at the elbow for simplicity  
     rotation = tf.transformations.quaternion_from_euler(0, 0, last_elbow_servo_position) #may include a constant shift to follow axis reference conventions, will have a published angle from elbow servo
     time = rospy.Time.now() 
@@ -58,8 +58,8 @@ def read_wrist_joint(msg): #end-effector always parallel to the floor, angle rea
     tf_broad.sendTransform(translation, rotation, time, "/wrist_joint", "/elbow_servo")
 
 def read_end_servo(msg):
-    global last_shoulder_end_position
-    last_shoulder_end_position = msg.current_pos
+    global last_end_servo_position
+    last_end_servo_position = msg.current_pos
     translation = (0.03442, 0, 0) #constant offset 
     rotation = tf.transformations.quaternion_from_euler(1.570796, 0, last_end_servo_position) #published by end servo
     time = rospy.Time.now() 
