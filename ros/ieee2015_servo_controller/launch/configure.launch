@@ -5,6 +5,9 @@
     <node name="dynamixel_configuration_node" pkg="dynamixel_driver" type="set_servo_config.py"
           args=
             "--port /dev/serial/by-id/usb-FTDI_USB__-__Serial_Cable_FTTKRX37-if03-port0
+            <!-- usb-FTDI_FT232R_USB_UART_A9UTHBZB-if00-port0 -->
+            <!-- usb-FTDI_USB__-__Serial_Cable_FTTKRX37-if03-port0 -->
+
               --ccw-angle-limit=0 
               --cw-angle-limit=1023 
               1 
