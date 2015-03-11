@@ -1,0 +1,13 @@
+base_controller:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: base_joint
+    joint_speed: 3
+    motor:
+        id: 10
+        init: 512
+        min: 0
+        max: 1023
+
