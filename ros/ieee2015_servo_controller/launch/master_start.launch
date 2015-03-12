@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find ieee2015_servo_controller)/launch/start_base_servos.launch"/>
+  <include file="$(find ieee2015_servo_controller)/launch/start_arm_servos.launch"/>
+</launch>
