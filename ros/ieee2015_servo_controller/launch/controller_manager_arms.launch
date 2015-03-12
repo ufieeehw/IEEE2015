@@ -1,0 +1,23 @@
+<!-- -*- mode: XML -*- -->
+
+<launch>
+    <node name="dynamixel_manager" pkg="dynamixel_controllers" type="controller_manager.py" required="true" output="screen">
+        <rosparam>
+            namespace: dxl_manager
+            serial_ports:
+                arm_control_port:
+                    port_name: "/dev/serial/by-id/usb-FTDI_USB__-__Serial_Cable_FTTKRX9B-if03-port0"
+                    baud_rate: 1000000
+                    min_motor_id: 1
+                    max_motor_id: 25
+                    update_rate: 20
+                    <!-- Alternatives -->
+                    <!-- port_name: "/dev/dynamixel_tty" -->
+                    <!-- port_name: USB2dynamixel - usb-FTDI_FT232R_USB_UART_A9UTHBZB-if00-port0 -->
+                    <!-- port_name: Syscone - usb-FTDI_USB__-__Serial_Cable_FTTKRX37-if03-port0 -->
+                    <!-- baud_rate: 1000000 -->
+                    <!-- port_name: "/dev/ttyUSB3" -->
+        </rosparam>
+    </node>
+</launch>
+
