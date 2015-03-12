@@ -25,85 +25,99 @@ def getStandardState(img):
     from those two colors we find ranges for all four colors.
     this method also find the button initially needed to push.
     '''
-
+    #changing color range
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-
+    
+    #creating binary image
     lowerRange = np.array([64, 115, 39])
     upperRange = np.array([118, 255, 255])
-
     filteredIMG = cv2.inRange(hsv, lowerRange, upperRange)
 
+    #morphological stuff, std
     kernel = np.ones((3, 3), np.uint8)
     #kernel for eroding
     kernel2 = np.ones((12,12), np.uint8)
     #kernel for dilating
     kernel3 = np.ones((10, 10), np.uint8)
-    
     eroded = cv2.erode(filteredIMG, kernel2)
     dilated = cv2.dilate(eroded, kernel3)
     closing = cv2.morphologyEx(dilated, cv2.MORPH_CLOSE, kernel, iterations=10)
 
+    #to be used later
     cont_img = closing.copy()
+
+    ############################################Start of Contour Manipulation######################
+    #get minimum contour
     contours, hierarchy = cv2.findContours(cont_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #get all the contour points
     contoursAll, hierarchyAll = cv2.findContours(cont_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
-
+    #filtering contours to find the green and blue button
     bestCtn = []
-    buttonParts = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        print area
-        if area > 10000:
+        if area > 8000:
             bestCtn.append(cnt)
-        elif (area > 200 and area < 4500):
-            buttonParts.append(cnt)
 
+    #testing        
     closing = cv2.resize(closing, (0,0), fx=0.5, fy=0.5) 
     cv2.imshow('filter', closing)
     cv2.waitKey(0);
 
-    
-    cv2.drawContours(img, [buttonParts[1]], 0, (0,255,0), 3)
-    
-    leftButton = bestCtn[0]
-    rightButton = bestCtn[1]
+    #distinguishing the buttons from the contours
+    greenButton = bestCtn[0]
+    blueButton = bestCtn[1]
 
-   
+    #step in order to get all the pixel values of the button
     grayIMG = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     mask = np.zeros(grayIMG.shape,np.uint8)
-
-    #I believe the contours are stored from left to right for the buttons
-    #get all the pixel values of which to get the min and max values
-    cv2.drawContours(mask,[leftButton],0,255,-1)
+    cv2.drawContours(mask,[greenButton],0,255,-1)
     pixelpointsL = np.transpose(np.nonzero(mask))
-    cv2.drawContours(mask,[rightButton],0,255,-1)
+    cv2.drawContours(mask,[blueButton],0,255,-1)
     pixelpointsR = np.transpose(np.nonzero(mask))
     print pixelpointsL
     print pixelpointsR
 
-    #mask = cv2.resize(mask, (0,0), fx=0.5, fy=0.5) 
-    #cv2.imshow('mask', mask)
-    #cv2.waitKey(0)
-
+ 
     #gets min and max values in all cardinal directions for both buttons
-    leftmostL = tuple(leftButton[leftButton[:,:,0].argmin()][0])
-    rightmostL = tuple(leftButton[leftButton[:,:,0].argmax()][0])
-    topmostL = tuple(leftButton[leftButton[:,:,1].argmin()][0])
-    bottommostL = tuple(leftButton[leftButton[:,:,1].argmax()][0])
+    leftmostL = tuple(greenButton[greenButton[:,:,0].argmin()][0])
+    rightmostL = tuple(greenButton[greenButton[:,:,0].argmax()][0])
+    topmostL = tuple(greenButton[greenButton[:,:,1].argmin()][0])
+    bottommostL = tuple(greenButton[greenButton[:,:,1].argmax()][0])
 
-    leftmostR = tuple(rightButton[rightButton[:,:,0].argmin()][0])
-    rightmostR = tuple(rightButton[rightButton[:,:,0].argmax()][0])
-    topmostR = tuple(rightButton[rightButton[:,:,1].argmin()][0])
-    bottommostR = tuple(rightButton[rightButton[:,:,1].argmax()][0])
+    leftmostR = tuple(blueButton[blueButton[:,:,0].argmin()][0])
+    rightmostR = tuple(blueButton[blueButton[:,:,0].argmax()][0])
+    topmostR = tuple(blueButton[blueButton[:,:,1].argmin()][0])
+    bottommostR = tuple(blueButton[blueButton[:,:,1].argmax()][0])
 
-    cv2.drawContours(img, [leftButton], 0, (0,255,0), 3)
-    #cv2.imshow('contour', img)
-    #cv2.waitKey(0)
-    ellipse = cv2.fitEllipse(leftButton)
+    #testing
+    cv2.drawContours(img, [greenButton], 0, (0,255,0), 3)
+    
+    #fit an ellipse to both blue and green button
+    #ideally the one with the bigger area is going to be the
+    #one that was segmented the best so we want to use that area
+    ellipseG = cv2.fitEllipse(greenButton)
+    ellipseB = cv2.fitEllipse(blueButton)
+    #ellipseAverage = ellipseG
+    print ellipseG
+
+    areaG = cv2.contourArea(ellipseG)
+    areaB = cv2.contourArea(ellipseB)
+
+    ellipseBest = []
+
+    if(areaG > areaB):
+        ellipseBest = areaG
+    elif areaB > areaG:
+        ellipseBest = areaB
+
+    #testing  
     cv2.ellipse(img,ellipse,(0,255,0),2)
     img = cv2.resize(img, (0,0), fx=0.5, fy=0.5) 
     cv2.imshow('ellipse', img)
     cv2.waitKey(0)
+
+    print ellipseBest
 
 
 def SSMoves(img):
