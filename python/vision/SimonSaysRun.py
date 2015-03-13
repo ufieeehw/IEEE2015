@@ -78,7 +78,28 @@ def getStandardState(img):
     print pixelpointsL
     print pixelpointsR
 
- 
+    #get x and y values for each button
+    xPointsL = []
+    yPointsL = []
+    for points in pixelpointsL:
+        xPointsL.append(points[0])
+        yPointsL.append(points[1])
+
+    xPointsR = []
+    yPointsR = []
+    for points in pixelpointsR:
+        xPointsR.append(points[0])
+        yPointsR.append(points[1])
+
+
+    meanXPointsL = np.mean(xPointsL)
+    meanYPointsL = np.mean(yPointsL)
+    meanXPointsR = np.mean(xPointsR)
+    meanYPointsR = np.mean(yPointsR)
+    
+    return meanXPointsR, meanYPointsR, meanXPointsL, meanYPointsL
+    #print meanxPointsL
+    '''
     #gets min and max values in all cardinal directions for both buttons
     leftmostL = tuple(greenButton[greenButton[:,:,0].argmin()][0])
     rightmostL = tuple(greenButton[greenButton[:,:,0].argmax()][0])
@@ -98,8 +119,30 @@ def getStandardState(img):
     #one that was segmented the best so we want to use that area
     ellipseG = cv2.fitEllipse(greenButton)
     ellipseB = cv2.fitEllipse(blueButton)
+
+    xG,yG,wG,hG = cv2.boundingRect(greenButton)
+    
+    print xG
+    print yG
+    print wG
+    print hG
+    xB,yB,wB,hB = cv2.boundingRect(blueButton)
+
     #ellipseAverage = ellipseG
-    print ellipseG
+    ellipseB = list(ellipseB)
+    ellipseG = list(ellipseG)
+
+    #gets major and minor axis
+    g = ellipseG[1]
+    b = ellipseB[1]
+
+    
+    ellipseGX = []
+    ellipseGX = list(ellipseGX)
+    print(type(ellipseGX))
+    for rows in ellipseG:
+        ellipseGX.append(int(rows[0]))
+    print ellipseGX
 
     areaG = cv2.contourArea(ellipseG)
     areaB = cv2.contourArea(ellipseB)
@@ -118,6 +161,7 @@ def getStandardState(img):
     cv2.waitKey(0)
 
     print ellipseBest
+    '''
 
 
 def SSMoves(img):
