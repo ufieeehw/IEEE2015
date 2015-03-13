@@ -2,9 +2,7 @@ import cv2
 import numpy as np
 
 def getSSMoves():
-    de
-
-
+    
 lower_blue_off = np.array([100, 60, 45])
 upper_blue_off = np.array([110, 255, 255])
     
