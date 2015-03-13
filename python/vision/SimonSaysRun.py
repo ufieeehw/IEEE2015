@@ -25,13 +25,11 @@ def getStandardState(img):
     from those two colors we find ranges for all four colors.
     this method also find the button initially needed to push.
     '''
-    #changing color range
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     
     #creating binary image
     lowerRange = np.array([64, 115, 39])
     upperRange = np.array([118, 255, 255])
-    filteredIMG = cv2.inRange(hsv, lowerRange, upperRange)
+    filteredIMG = cv2.inRange(img, lowerRange, upperRange)
 
     #morphological stuff, std
     kernel = np.ones((3, 3), np.uint8)
@@ -75,8 +73,7 @@ def getStandardState(img):
     pixelpointsL = np.transpose(np.nonzero(mask))
     cv2.drawContours(mask,[blueButton],0,255,-1)
     pixelpointsR = np.transpose(np.nonzero(mask))
-    print pixelpointsL
-    print pixelpointsR
+
 
     #get x and y values for each button
     xPointsL = []
@@ -97,7 +94,17 @@ def getStandardState(img):
     meanXPointsR = np.mean(xPointsR)
     meanYPointsR = np.mean(yPointsR)
     
-    return meanXPointsR, meanYPointsR, meanXPointsL, meanYPointsL
+    minXPointL = min(xPointsL)
+    maxXPointL = max(xPointsL)
+    minYPointL = min(yPointsL)
+    maxYPointL = max(yPointsL)
+
+    minXPointR = min(xPointsR)
+    maxXPointR = max(xPointsR)
+    minYPointR = min(yPointsR)
+    maxYPointR = max(yPointsR)
+
+    return meanXPointsR, meanYPointsR, meanXPointsL, meanYPointsL, minXPointL, maxXPointL, minYPointL, maxYPointL, minXPointR, maxXPointR, minYPointR, maxYPointR
     #print meanxPointsL
     '''
     #gets min and max values in all cardinal directions for both buttons
@@ -163,105 +170,108 @@ def getStandardState(img):
     print ellipseBest
     '''
 
-
-def SSMoves(img):
-    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+def getLitUpButton(img):
+    
     #below ranges should work for all of the lights on ranges
     lower_on = np.array([0, 0, 245])
     upper_on = np.array([255, 255, 255])
 
+    brightButton = cv2.inRange(img, lower_on, upper_on)
 
-    lower_all = np.array([0, 140, 60])
-    upper_all = np.array([255, 255, 225])
-    
-    #below ranges are the ranges for the colors just plain
-    lower_yellow = np.array([32, 125, 122])
-    upper_yellow = np.array([60, 255, 151])
+    brightButton = cv2.resize(brightButton, (0,0), fx=0.5, fy=0.5) 
+    cv2.imshow('lit up button', brightButton)
+    cv2.waitKey(0)
 
-    lower_blue = np.array([90, 44, 85])
-    upper_blue= np.array([120, 255, 255])
-
-    lower_green = np.array([60, 29, 95])
-    upper_green = np.array([85, 255, 255])
-
-    lower_red = np.array([0, 185, 58])
-    upper_red = np.array([20, 255, 255])
-
-    
-    filter_imgR = cv2.inRange(hsv_img, lower_red, upper_red) #filter all weak colors
-   #cv2.imshow('red', filter_imgR)
-    #cv2.waitKey(0);
-    filter_imgY = cv2.inRange(hsv_img, lower_yellow, upper_yellow) #filter all weak colors
-    #cv2.imshow('yellow', filter_imgY)
-    #cv2.waitKey(0);
-    filter_imgG = cv2.inRange(hsv_img, lower_green, upper_green) #filter all weak colors
-    #cv2.imshow('green', filter_imgG)
-    #cv2.waitKey(0);
-    filter_imgB = cv2.inRange(hsv_img, lower_blue, upper_blue)
-    #cv2.imshow('blue', filter_imgB)
-    #cv2.waitKey(0);
-    '''
-    allcolors = cv2.inRange(hsv_img, lower_all, upper_all)
-    smallall = cv2.resize(allcolors, (0,0), fx=0.5, fy=0.5) 
-    cv2.imshow('all', smallall)
-    cv2.waitKey(0);
-
-    bright_spot = cv2.inRange(hsv_img, lower_on, upper_on)
-    smallbright = cv2.resize(allcolors, (0,0), fx=0.5, fy=0.5) 
-    cv2.imshow('bright', smallbright)
-    cv2.waitKey(0);
-'''
-    filter_img = cv2.bitwise_or(filter_imgR, filter_imgY)
-    filter_img = cv2.bitwise_or(filter_img, filter_imgG)
-    filter_img = cv2.bitwise_or(filter_img, filter_imgB)
-
-    filter_img = cv2.resize(filter_img, (0,0), fx=0.5, fy=0.5) 
-
-    #kernel for closing
     kernel = np.ones((3, 3), np.uint8)
     #kernel for eroding
-    kernel2 = np.ones((8,8), np.uint8)
+    kernel2 = np.ones((12,12), np.uint8)
     #kernel for dilating
-    kernel3 = np.ones((6, 6), np.uint8)
-    
-    closing = cv2.erode(filter_img, kernel)
-    closing = cv2.dilate(closing, kernel3)
-    closing = cv2.morphologyEx(closing, cv2.MORPH_CLOSE, kernel, iterations=10)
+    kernel3 = np.ones((10, 10), np.uint8)
+    eroded = cv2.erode(brightButton, kernel2)
+    dilated = cv2.dilate(eroded, kernel3)
+    closing = cv2.morphologyEx(dilated, cv2.MORPH_CLOSE, kernel, iterations=10)
 
-    cont_img = closing.copy()
-    contours, hierarchy = cv2.findContours(cont_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #to be used later
+    #cont_img = closing.copy()
 
+    ############################################Start of Contour Manipulation######################
+    #get minimum contour
+    contours, hierarchy = cv2.findContours(closing, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    #filtering contours to find the green and blue button
     bestCtn = []
-    buttonParts = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area > 10000:
+        if area > 8000:
             bestCtn.append(cnt)
-        elif (area > 300 and area < 5000):
-            buttonParts.append(cnt)
 
+    #bestCtn should ideally be length of one at this point
 
-            ##Find a way to tell program that button parts will only ever be in the middle of the big blobs
-
-    print len(bestCtn)
-    a = bestCtn[1]
-    print cv2.contourArea(a)
-    for i in contours:
-        print cv2.contourArea(i)
-
-    print len(buttonParts)
-
-    #storage = cv.CreateMemStorage(0)
-    #contour = cv.FindContours(filter_img, storage, cv.CV_RETR_CCOMP, cv.CV_CHAIN_APPROX_SIMPLE)
+    #step in order to get all the pixel values of the button
+    grayIMG = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    mask = np.zeros(grayIMG.shape,np.uint8)
+    cv2.drawContours(mask,[bestCtn[0]],0,255,-1)
+    pixelPointsContour = np.transpose(np.nonzero(mask))
     
-    cv2.imshow('filter', closing)
+    #get x and y values for each button
+    xPoints = []
+    yPoints = []
+    for points in pixelPointsContour:
+        xPoints.append(points[0])
+        yPoints.append(points[1])
 
-    cv2.waitKey(0);
+    
+    meanXPoints = np.mean(xPoints)
+    meanYPoints = np.mean(yPoints)
+
+   
+    return meanXPoints, meanYPoints, closing
+ 
+#input for this is the mean point value for the green, blue, and lit up space
+#this is to check and see what color is lit up
+#last input should be the BINARY <-----
+#1 is yellow
+#2 is green
+#3 is red
+#4 is nothing
+def findColor(brightX, brightY, greenX, greenY, blueX, blueY, minXPointL, maxXPointL, minYPointL, maxYPointL, minXPointR, maxXPointR, minYPointR, maxYPointR):
+    averageRow = (greenX + blueX)/2
+
+    if(brightX > averageRow and brightY > greenY and brightY < blueY):
+        return 1 #  we have a yellow button lighting up
+    elif(brightX < averageRow and brightY > greenY and brightY < blueY):
+        return 3  #  we have a red button lighting up
+    elif(brightX < maxXPointL and brightX > minXPointL and brightY < maxYPointL and brightY > minYPointL):
+        return 2
+    elif(brightX < maxXPointR and brightX > minXPointR and brightY < maxYPointR and brightY > minYPointR):
+        return 4
+    else:
+        return -1
 
 
 
+        
+
+
+
+
+def makeHSV(img):
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    return hsv_img
+
+
+####HEY SLEEP TEST OUT THAT THE COLORS READ IN RIGHT!#############3
 newimg = cv2.imread('Images/ss6.JPG')
+newimg = cv2.imread('Images/ss6.JPG')
+newimg = cv2.imread('Images/ss6.JPG')
+newimg = cv2.imread('Images/ss6.JPG')
+newimg = cv2.imread('Images/ss6.JPG')
+newimg = cv2.imread('Images/ss6.JPG')
+newimg = makeHSV(newimg)
 getStandardState(newimg)
+getLitUpButton(newimg)
+colors = []
+
 
     
 
