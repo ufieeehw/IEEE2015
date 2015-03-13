@@ -47,7 +47,8 @@ class SCARA_Controller(object):
         '''
         print "Targeting angles shoulder: {0:0.2f} (rad), elbow: {0:0.2f} (rad)".format(shoulder, elbow)
         shoulder_angle_offset = 0.3 - np.pi/2
-        elbow_angle_offset = 1.75
+        # elbow_angle_offset = 1.75
+        elbow_angle_offset = np.pi / 6
 
         _shoulder_angle = shoulder + shoulder_angle_offset
         _elbow_angle = np.pi - (elbow + elbow_angle_offset)

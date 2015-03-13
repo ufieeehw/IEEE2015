@@ -7,9 +7,10 @@ shoulder_controller:
     joint_speed: 0.6
     motor:
         id: 5
-        init: 512
-        min: 0
-        max: 4095
+        init: 2048
+        min: 1200
+        max: 2440
+        # Maximum: 4096
 
 elbow_controller:
     controller:
@@ -20,7 +21,8 @@ elbow_controller:
     joint_speed: 0.6
     motor:
         id: 6
-        init: 512
-        min: 0
-        max: 4095
+        init: 2048
+        min: 1722
+        max: 2440
+        # Maximum: 4096
 

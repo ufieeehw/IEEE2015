@@ -58,7 +58,7 @@ class SCARA(object):
         self.error_sub = rospy.Subscriber('/arm_des_pose', PointStamped, self.got_des_pose)
 
         # Message defaults
-        self.shoulder_angle, self.elbow_angle = 0.3 , -1.75
+        self.shoulder_angle, self.elbow_angle = 0.0 , 0.0
         self.position = None
 
     def got_des_pose(self, msg):
@@ -80,7 +80,7 @@ class SCARA(object):
         # Make this non-instantaneous
 
         shoulder_angle_offset =  (-3 * np.pi/2) - 0.3
-        elbow_angle_offset = 1.75
+        elbow_angle_offset = np.pi / 6
         
         _shoulder_angle = self.shoulder_angle + shoulder_angle_offset
         _elbow_angle = -(self.elbow_angle + elbow_angle_offset)
