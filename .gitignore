@@ -16,6 +16,9 @@ todo
 *~
 *.pyc
 
+#ros
+*.o
+
 # Images
 *.pdf
 
