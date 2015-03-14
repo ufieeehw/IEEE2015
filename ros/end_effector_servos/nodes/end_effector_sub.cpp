@@ -41,15 +41,8 @@
 
 #include "high_level_commands.h"
 #include "communications.h"
+#include "end_effector_servos/Num.h"
 
-
-void main_loop(){
-  while(1){
-    SetVelocity(1,1000);
-    SetPosition(1,500);
-    sleep(1);
-  }
-}
 
 void ListAllDynamixels(int usb2ax_index) {
   int baud_num, dxl_id;
@@ -65,10 +58,7 @@ void ListAllDynamixels(int usb2ax_index) {
 
     for (dxl_id = 0; dxl_id < 200; dxl_id++) {
       if (SendPing(dxl_id, &model_num, &firmware_version)) {
-        
         printf("Device found| Baud rate %d, ID: %d, Model number: %d, Firmware version: %d\n", baud_num, dxl_id, model_num, firmware_version);
-        SetID(1,2);
-        main_loop();
       }
     }
     }
@@ -95,7 +85,6 @@ void ListDevices() {
         printf("%s\n", ent->d_name);
       }
       else{
-        printf("%s\n", "wrong" );
       }
     }
     closedir (dir);
@@ -108,9 +97,10 @@ void ListDevices() {
  * This tutorial demonstrates simple receipt of messages over the ROS system.
  */
 // %Tag(CALLBACK)%
-void chatterCallback(const std_msgs::String::ConstPtr& msg)
+void chatterCallback(const end_effector_servos::Num::ConstPtr &num)
 {
-  ROS_INFO("I heard: [%s]", msg->data.c_str());
+  SetPosition(5, num->position);
+  SetVelocity(5, num->velocity);
 }
 // %EndTag(CALLBACK)%
 
@@ -158,24 +148,10 @@ int main(int argc, char **argv)
    * ros::spin() will enter a loop, pumping callbacks.  With this version, all
    * callbacks will be called from within this thread (the main one).  ros::spin()
    * will exit when Ctrl-C is pressed, or the node is shutdown by the master.
-
-
    */
 
-  int device_num = 0; // Default to device ID 0
-  if (argc >= 2) {
-    if (!(argv[2])) {
-      ListAllDynamixels(device_num);
-    } else {
-      printf("Arg 1 (%s) was not recognized as an integer device number.\n", argv[1]);
-    }
-  } else {
-    printf("Enter USB2AX ttyACM number as argument 1!\n");
-    printf("Here are some possible device ID's from /dev/*.\n");
-    ListDevices();
-  }
-  return 0;
-
+  int device_num = 1; // Default to device ID 0
+  InitDXL(5, 3);
 
 // %Tag(SPIN)%
   ros::spin();

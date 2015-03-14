@@ -1,2 +1,2 @@
-int64 num
-string msg
+int64 velocity
+int64 position
