@@ -1,0 +1,20 @@
+<package>
+  <name>end_effector_servos</name>
+  <version>0.4.0</version>
+  <description>
+    Starts XL320 Connection
+  </description>
+  <maintainer email="zach.a.goins@gmail.com">Zach Goins</maintainer>
+
+  <license>BSD</license>
+
+  <author>Zach Goins</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>message_generation</build_depend>
+
+  <export>
+
+  </export>
+</package>
