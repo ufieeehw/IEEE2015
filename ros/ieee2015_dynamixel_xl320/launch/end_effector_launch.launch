@@ -1,8 +1,0 @@
-<launch>
-
-<node pkg="end_effector_servos" name="end_effector_sub" type="end_effector_sub" required="true" output="screen" >
-</node>
-<node pkg="end_effector_servos" name="end_effector_pub" type="end_effector_pub" required="true" output="screen" >
-</node>
-
-</launch>
