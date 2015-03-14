@@ -88,7 +88,6 @@ bool ReadMovingStatus(uint8_t dxl_id, bool* moving) {
 
 /* WRITING COMMANDS */
 
-
 bool SetID(uint8_t dxl_id, uint8_t new_id) {
   uint8_t data[MAX_PACKET_BYTES];
 
@@ -98,7 +97,7 @@ bool SetID(uint8_t dxl_id, uint8_t new_id) {
   uint16_t num_parameters_rx = 1; // Error
   bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
 
-  uint8_t error = GetByteParam(data, 1);
+  uint8_t error = GetByteParam(data, 0);
   if (result && error == 0) {
     return true;
     printf("yes\n");
@@ -187,7 +186,6 @@ bool SetVelocity(uint8_t dxl_id, uint16_t velocity) {
     return false;
   }
 }
-
 
 /*
 bool SetPositionAndVelocity(uint8_t dxl_id, uint16_t position, uint16_t velocity) {

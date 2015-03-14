@@ -27,13 +27,15 @@ bool ReadStatusReturnLevel(uint8_t dxl_id, uint8_t* return_level);
 
 // Check whether the dynamixel is still moving.
 bool ReadMovingStatus(uint8_t dxl_id, bool* moving);
-bool SetID(uint8_t xl_current_id, uint8_t xl_new_id);
+
 /*
   Set the LED color/on/off.
   The color should be a number 0-8.
   The first 3 bits correspond to R G and B,
   So, 0 (0b000) is off and 8 (0b111) is white.
 */
+
+bool SetID(uint8_t dxl_id, uint8_t new_id);
 bool SetLED(uint8_t dxl_id, uint8_t color);
 
 // "Torque enable" is whether the device is actuating for not.

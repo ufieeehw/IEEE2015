@@ -37,6 +37,7 @@ extern inline uint16_t MakeWord(uint8_t low_bits, uint8_t high_bits) {
 }
 
 void SetPacketPrefix(uint8_t* data, uint8_t dxl_id, uint8_t instruction, uint16_t num_parameters);
+void FinalPacketConsistencyCheck(uint8_t* data, uint16_t num_bytes);
 
 // Adds the checksum. This should be the final piece of the packet, so this also
 // returns the total number of bytes in the final packet.

@@ -33,12 +33,9 @@ void ListAllDynamixels(int usb2ax_index) {
 
     for (dxl_id = 0; dxl_id < 200; dxl_id++) {
       if (SendPing(dxl_id, &model_num, &firmware_version)) {
-        
-        printf("Device found| Baud rate %d, ID: %d, Model number: %d, Firmware version: %d\n", baud_num, dxl_id, model_num, firmware_version);
-        SetID(1,2);
+        printf("Device found| Baud rate: %d, ID: %d, Model number: %d, Firmware version: %d\n", baud_num, dxl_id, model_num, firmware_version);
         main_loop();
       }
-    }
     }
     // ID 200 is one of the controllers or something.
     // ID 253 is USB2AX
@@ -48,22 +45,19 @@ void ListAllDynamixels(int usb2ax_index) {
         printf("Device found| Baud rate: %d, ID: %d, Model number: %d, Firmware version: %d\n", baud_num, dxl_id, model_num, firmware_version);
       }
     }
-  
+  }
 }
 
 void ListDevices() {
-  DIR * dir;
-  struct dirent * ent;
+  DIR *dir;
+  struct dirent *ent;
   char* devices_dir = "/dev/";
   char* expected_prefix = "ttyACM";
-  int i;
   if ((dir = opendir (devices_dir)) != NULL) {
     while ((ent = readdir (dir)) != NULL) {
-      if (strlen(expected_prefix) <= strlen(ent->d_name)) {
+      if (strlen(expected_prefix) <= strlen(ent->d_name) &&
+        memcmp(ent->d_name, expected_prefix, strlen(expected_prefix)) == 0) {
         printf("%s\n", ent->d_name);
-      }
-      else{
-        printf("%s\n", "wrong" );
       }
     }
     closedir (dir);
@@ -75,15 +69,13 @@ void ListDevices() {
 int main(int argc, char* argv[]) {
   int device_num = 0; // Default to device ID 0
   if (argc >= 2) {
-    char *end;
-    long value = strtol(argv[1], &end, 10); 
-    if (!(end == argv[1] || *end != '\0' || errno == ERANGE)) {
+    if (!(argv[2])) {
       ListAllDynamixels(device_num);
     } else {
       printf("Arg 1 (%s) was not recognized as an integer device number.\n", argv[1]);
     }
   } else {
-    printf("Enter USB2AX ttyACM number as argument 1!\n");
+    printf("Enter USB2AX ttyACM* number as argument 1!\n");
     printf("Here are some possible device ID's from /dev/*.\n");
     ListDevices();
   }

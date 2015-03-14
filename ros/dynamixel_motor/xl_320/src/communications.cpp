@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include "dxl_hal.h"
+#include "crc.h"
 
 #include "packet_utils.h"
 
@@ -120,7 +122,7 @@ bool TXRXPacket(uint8_t* data, int num_params_sending, int num_params_receiving)
   // TRANSMIT PACKET
   bool result = TXPacket(data, BASE_PACKET_SIZE + num_params_sending);
   if (!result) {
-    printf("Couldn't send packet successfully.\n");
+    // printf("Couldn't send packet successfully.\n");
     return false;
   }
 
@@ -133,7 +135,7 @@ bool TXRXPacket(uint8_t* data, int num_params_sending, int num_params_receiving)
   int num_bytes_received;
   result = RXPacket(data, BASE_PACKET_SIZE + num_params_receiving, &num_bytes_received);
   if (!result) {
-    printf("Couldn't receive packet successfully.\n");
+    // printf("Couldn't receive packet successfully.\n");
     return false;
   }
   return true;

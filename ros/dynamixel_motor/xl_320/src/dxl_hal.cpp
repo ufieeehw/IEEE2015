@@ -51,7 +51,6 @@ int dxl_hal_open(int deviceIndex, int baudrate)
     break;
   case 1000000:
     baud_num = B1000000;
-    printf("%s\n", "1000000" );
     break;
   default:
     baud_num = B1000000;
