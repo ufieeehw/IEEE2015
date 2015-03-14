@@ -95,13 +95,8 @@ class Controller(object):
         '''
         v_target = np.matrix(desired_action).T
         mecanum_speeds = self.left_inverse * v_target 
-        wheel_speeds = SetWheelSpeeds(
-            wheel_1=mecanum_speeds[0],
-            wheel_2=mecanum_speeds[1],
-            wheel_3=mecanum_speeds[2],
-            wheel_4=mecanum_speeds[3],
-        )
-        self.wheel_speed_proxy(wheel_speeds)
+        wheel_speeds = [mecanum_speeds[0], mecanum_speeds[1], mecanum_speeds[2], mecanum_speeds[3]]
+        self.wheel_speed_proxy(*wheel_speeds)
 
 
 if __name__=='__main__':
