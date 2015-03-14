@@ -118,5 +118,5 @@ if __name__ == '__main__':
         # assert(False, "Need a topic name and a name name!")
         # exit()
     JSV = Joint_State_Visualizer(topic, name=name,
-        plot_items=['goal_pos', 'current_pos', 'error', 'velocity', 'load'])
+        plot_items=['error', 'velocity', 'load'])
 

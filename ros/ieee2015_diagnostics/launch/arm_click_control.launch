@@ -1,8 +1,8 @@
 <launch>
     <node name="arm_controller" pkg="ieee2015_controller" type="arm_controller.py"
-        output="screen" ns="/robot" />
+        output="screen" ns="/" />
     <node name="arm_simulator" pkg="ieee2015_simulator" type="arm_simulator.py"
-        output="screen" ns="/robot" />
+        output="screen" ns="/" />
     <include file="$(find ieee2015_servo_controller)/launch/start_arm_servos.launch"/>
 
     <node name="elbow_state_visualization" pkg="ieee2015_diagnostics" type="visualize_arm_behavior" 
