@@ -1,12 +1,7 @@
 import cv2
 import numpy as np
 
-def getStartingButtonPoints(contours):
-    buttonParts = []
-    for cnt in contours:
-        if (area > 200 and area < 4500):
-            buttonParts.append(cnt)
-    
+def getStartingButtonCoord(contours):
     #get the individual button identitites
     bottomB = buttonParts[0]
     topB = buttonParts[1]

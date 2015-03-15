@@ -13,6 +13,7 @@ def getStandardState(img):
     upperRange = np.array([118, 255, 255])
     filteredIMG = cv2.inRange(img, lowerRange, upperRange)
 
+
     #morphological stuff, std
     kernel = np.ones((3, 3), np.uint8)
     #kernel for eroding
@@ -23,21 +24,24 @@ def getStandardState(img):
     dilated = cv2.dilate(eroded, kernel3)
     closing = cv2.morphologyEx(dilated, cv2.MORPH_CLOSE, kernel, iterations=10)
 
-    #to be used later
-    cont_img = closing.copy()
-
+    copy = closing.copy()
     ############################################Start of Contour Manipulation######################
     #get minimum contour
-    contours, hierarchy = cv2.findContours(cont_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(copy, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     #get all the contour points
-    contoursAll, hierarchyAll = cv2.findContours(cont_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    #contoursAll, hierarchyAll = cv2.findContours(closing, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     #filtering contours to find the green and blue button
     bestCtn = []
+    buttonCnts = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area > 8000:
+        print 'this is area'
+        print area
+        if area > 150000:
             bestCtn.append(cnt)
+        else if area > 2000 and area < 12000:
+            buttonCnts.append(cnt)
 
     #testing        
     closing = cv2.resize(closing, (0,0), fx=0.5, fy=0.5) 
@@ -86,7 +90,7 @@ def getStandardState(img):
     minYPointR = min(yPointsR)
     maxYPointR = max(yPointsR)
 
-    return contours, meanXPointsR, meanYPointsR, meanXPointsL, meanYPointsL, minXPointL, maxXPointL, minYPointL, maxYPointL, minXPointR, maxXPointR, minYPointR, maxYPointR
+    return bestCtn, buttonCnts, meanXPointsR, meanYPointsR, meanXPointsL, meanYPointsL, minXPointL, maxXPointL, minYPointL, maxYPointL, minXPointR, maxXPointR, minYPointR, maxYPointR
     #print meanxPointsL
     '''
     #gets min and max values in all cardinal directions for both buttons
@@ -151,3 +155,9 @@ def getStandardState(img):
 
     print ellipseBest
     '''
+img = cv2.imread('Images/Set2/sbright5.JPG')
+img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+
+getStandardState(img)
+
