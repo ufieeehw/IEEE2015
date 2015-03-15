@@ -4,7 +4,7 @@ import numpy as np
 def getLitUpButton(img):
     
     #below ranges should work for all of the lights on ranges
-    lower_on = np.array([0, 0, 245])
+    lower_on = np.array([26, 180, 215])
     upper_on = np.array([255, 255, 255])
 
     brightButton = cv2.inRange(img, lower_on, upper_on)
@@ -12,6 +12,8 @@ def getLitUpButton(img):
     brightButton = cv2.resize(brightButton, (0,0), fx=0.5, fy=0.5) 
     cv2.imshow('lit up button', brightButton)
     cv2.waitKey(0)
+
+    print 'we got here'
 
     kernel = np.ones((3, 3), np.uint8)
     #kernel for eroding
@@ -52,9 +54,9 @@ def getLitUpButton(img):
         yPoints.append(points[1])
 
     
-    meanXPoints = np.mean(xPoints)
-    meanYPoints = np.mean(yPoints)
-
+    meanXPoints = int(np.mean(xPoints))
+    meanYPoints = int(np.mean(yPoints))
+    
    
     return meanXPoints, meanYPoints, closing
  

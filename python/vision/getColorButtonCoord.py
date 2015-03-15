@@ -5,11 +5,14 @@ import cv2
 #3 is red
 #4 is blue
 #-1 error as always
-def getColorButtonCoord(colorArray, minXL, maxXL, minYL, maxYL, 
-     		minXR, maxXR, minYR, maxYR):
+def getColorButtonCoord(colorArray, minXL, maxXL, minYL, maxYL, minXR, maxXR, minYR, maxYR):
+	xCoord = 5
+	yCoord = 5
+
+	print 'this is minYR'
+	print minYR
+
 	for currentColor in colorArray:
-			xCoord = 0
-			yCoord = 0
 			if currentColor == 1:  #yellow
 				#get row coord
 				if(maxXL > maxXR):
@@ -45,4 +48,7 @@ def getColorButtonCoord(colorArray, minXL, maxXL, minYL, maxYL,
 				#get col coord
 				yCoord = (maxYR + minYR)/2
 
+	print 'color coordinates are'
+	print xCoord
+	print yCoord
 	return xCoord, yCoord

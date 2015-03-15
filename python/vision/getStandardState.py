@@ -40,13 +40,13 @@ def getStandardState(img):
         print area
         if area > 150000:
             bestCtn.append(cnt)
-        else if area > 2000 and area < 12000:
+        elif area > 2000 and area < 12000:
             buttonCnts.append(cnt)
 
     #testing        
-    closing = cv2.resize(closing, (0,0), fx=0.5, fy=0.5) 
-    cv2.imshow('filter', closing)
-    cv2.waitKey(0);
+    #closing = cv2.resize(closing, (0,0), fx=0.5, fy=0.5) 
+    #cv2.imshow('filter', closing)
+    #cv2.waitKey(0);
 
     #distinguishing the buttons from the contours
     greenButton = bestCtn[0]

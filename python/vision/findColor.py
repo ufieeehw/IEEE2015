@@ -1,7 +1,7 @@
 import cv2
 
 
-def findColor(brightX, brightY, greenX, greenY, blueX, blueY, minXPointL, maxXPointL, minYPointL, maxYPointL, minXPointR, maxXPointR, minYPointR, maxYPointR):
+def findColor(brightX, brightY, blueX, blueY, greenX, greenY, minXPointL, maxXPointL, minYPointL, maxYPointL, minXPointR, maxXPointR, minYPointR, maxYPointR):
     averageRow = (greenX + blueX)/2
 
     if(brightX > averageRow and brightY > greenY and brightY < blueY):

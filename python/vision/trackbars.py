@@ -11,7 +11,7 @@ def nothing(x):
     pass
 
 # Create a black image, a window
-img = cv2.imread('Images/Set2/sbright1.JPG')
+img = cv2.imread('Images/Set3/snorm9.JPG')
 cv2.namedWindow('image')
 
 hsvimg = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)

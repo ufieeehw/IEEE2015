@@ -38,31 +38,32 @@ contours = []
 
 #first step it to get standard state
 def setStandard(img):
-	hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-	bestCnts, buttonCnts, meanXR, meanYR, meanXL, meanYL, minXL, maxXL, minYL, maxYL, minXR, maxXR, minYR, maxYR = getStandardState.getStandardState(hsv_img)
-	topPoint, bottomPoint = getStartingButtonCoord.getStartingButtonCoord(buttonCnts)
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    bestCnts, buttonCnts, meanXR, meanYR, meanXL, meanYL, minXL, maxXL, minYL, maxYL, minXR, maxXR, minYR, maxYR = getStandardState.getStandardState(hsv_img)
+    topPoint, bottomPoint = getStartingButtonCoord.getStartingButtonCoord(buttonCnts)
+    return bestCnts, buttonCnts, meanXR, meanYR, meanXL, meanYL, minXL, maxXL, minYL, maxYL, minXR, maxXR, minYR, maxYR, topPoint, bottomPoint
 
-def playSimonSays():
-     while(len(colorsPlayed) < 5):
-     	meanBrightX, meanBrightY, closing = getLitUpButton.getLitUpButton(hsv_img)
-     	#color is a number
-     	color = findColor.findColor(meanBrightX, meanBrightY, meanXL, meanYL, meanXR, meanYR, 
-     		minXL, maxXL, minYL, maxYL, 
-     		minXR, maxXR, minYR, maxYR)
+def playSimonSays(img):
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    print 'we made it here'
+    while(len(colorsPlayed) < 5):
+        meanBrightX, meanBrightY, closing = getLitUpButton.getLitUpButton(hsv_img)
+        #color is a number
+        color = findColor.findColor(meanBrightX, meanBrightY, meanXR, meanYR, meanXL, meanYL, minXL, maxXL, minYL, maxYL, minXR, maxXR, minYR, maxYR)
 
-     	colorsPlayed.append(color)
+        colorsPlayed.append(color)
 
-     	xPush, yPush = getColorButtonCoord.getColorButtonCoord(colorsPlayed, minXL, maxXL, minYL, maxYL, 
-     		minXR, maxXR, minYR, maxYR)
+        xPush, yPush = getColorButtonCoord.getColorButtonCoord(colorsPlayed, minXL, maxXL, minYL, maxYL, 
+            minXR, maxXR, minYR, maxYR)
 
-     	coordToAdd = [(xPush, yPush)]
-     	pushArray.append(coordToAdd)
-     	print(pushArray)
-     	print(len(colorsPlayed))
+        coordToAdd = [(xPush, yPush)]
+        pushArray.append(coordToAdd)
+    print(pushArray)
+    print(len(colorsPlayed))
 
 
 ####HEY SLEEP TEST OUT THAT THE COLORS READ IN RIGHT!#############3
-newimg = cv2.imread('Images/Set2/sbright1.JPG')
+newimg = cv2.imread('Images/Set2/sbright2.JPG')
 
 newimg2 = cv2.imread('Images/Set2/sbright5.JPG')
 '''
@@ -72,8 +73,5 @@ newimg = cv2.imread('Images/ss6.JPG')
 newimg = cv2.imread('Images/ss6.JPG')
 '''
 #newimg = makeHSV(newimg)
-setStandard(newimg2)
+bestCnts, buttonCnts, meanXR, meanYR, meanXL, meanYL, minXL, maxXL, minYL, maxYL, minXR, maxXR, minYR, maxYR, topPoint, bottomPoint = setStandard(newimg2)
 playSimonSays(newimg)
-
-
-    
