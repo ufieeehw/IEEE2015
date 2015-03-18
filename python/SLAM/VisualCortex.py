@@ -21,32 +21,32 @@ class VisualCortex:
     #####  1. LIST OF PROPERTIES   #####
     ####################################
     # Map image of the course
-    full_map = None;
+    full_map = None
     # Dimensions of full course
     full_map_x = 2000
     full_map_y = 2000
-    full_map_mask = None;
+    full_map_mask = None
     # Robot's position and rotation
-    position = None;
-    rotation = None;
+    position = None
+    rotation = None
     # Dimensions of images that come from camera feed
-    cam_x = None;
-    cam_y = None;
+    cam_x = None
+    cam_y = None
     # Dimensions of camera images after perspec transform (bird's eye dims)
-    bird_x = None;
-    bird_y = None;
-    bird_mask = None;
-    trapezoid = None;
+    bird_x = None
+    bird_y = None
+    bird_mask = None
+    trapezoid = None
     # Features and descriptors of full map
-    _map_kp = None;
-    _map_descriptors = None;
+    _map_kp = None
+    _map_descriptors = None
 
     # Some useful private variables
-    _view_features = None;
-    _transformed_view = None;
-    _perspective_matrix = None;
+    _view_features = None
+    _transformed_view = None
+    _perspective_matrix = None
     #position on a perspec transformed img that corresponds to robot's loc
-    _robot_coordinates = [400, 800, 1];
+    _robot_coordinates = [400, 800, 1]
     _perspec_corners = None
 
 
@@ -66,21 +66,21 @@ class VisualCortex:
     we need to fit transformed images.
     """
     def __init__(self, view_coordinates, map_coordinates, img):
-        self.full_map= np.ones((self.full_map_x, self.full_map_y), np.uint8);
+        self.full_map= np.ones((self.full_map_x, self.full_map_y), np.uint8)
         self.full_map_mask = np.zeros((self.full_map_x, self.full_map_y), np.uint8)
         # TODO: This is not actually the starting position... This is the center of
         #    where we place the first image on the black map.  We can then extract
         #    the actual starting position by running "self.localize" on the affine
         #    matrix given by self._initialize_affine_matrix below
-        self.position = [self.full_map_x/2, self.full_map_y/2];
-        self.rotation = 0;
+        self.position = [self.full_map_x/2, self.full_map_y/2]
+        self.rotation = 0
 
         # Read off the dimensions of images we are getting from camera
         self._initialize_cam_dimensions(img)
 
         # Get the perspec transform matrix
         # TODO: Get a more accurate transform
-        self._perspective_matrix = self._get_perspective_matrix(view_coordinates, map_coordinates);
+        self._perspective_matrix = self._get_perspective_matrix(view_coordinates, map_coordinates)
         # Now that we have a matrix, get the bird's eye image dimensions
         self._get_bird_dims()
         self._calculate_perspec_corners()
@@ -109,22 +109,24 @@ class VisualCortex:
         kp1, des1 = self.feature_detect(imgx, "new")
 
         #self._draw_features(self.full_map, self._map_kp, None, "points")
-        self._draw_features(imgx, kp1, None, "points")
-        self._draw_features(self.full_map, self._map_kp, None, "points")
+        # self._draw_features(imgx, kp1, None, "points")
+        # self._draw_features(self.full_map, self._map_kp, None, "points")
         # Match features between imgx and full_map
         M, matches, q, t = self.feature_match(kp1, des1)
         #self._draw_features(imgx, kp1, None, "array")
         #self._draw_features(self.full_map, self._map_kp, None, "array")
-        self._draw_matches(imgx, self.full_map, kp1, self._map_kp, matches)
+        # self._draw_matches(imgx, self.full_map, kp1, self._map_kp, matches)
 
         # Use this affine matrix to update robot position
         # TODO: Make position/rotation a property
         self.localize(M)
         # Use this affine matrix to update full_map
         self.stitch(imgx, M)
-
-
-        return;
+        cv2.imshow('Input', image)
+        cv2.waitKey(0)
+        cv2.imshow('Transformed', imgx)
+        cv2.waitKey(0)
+        return
 
     """Takes an image from the camera's video feed and transforms it into a 
     bird's eye view, returning this transformed image
@@ -133,11 +135,11 @@ class VisualCortex:
         #remap original image by applying transform matrix
         imgx = cv2.warpPerspective(image, self._perspective_matrix,
                                    (self.bird_x,self.bird_y), flags = 1, 
-                                   borderMode = 0, borderValue = (0,0,0))
+                                   borderMode = 0, borderValue = (0, 0, 0))
         # Clean up the image
         imgx = self.clean_image(imgx)
 
-        return imgx;
+        return imgx
 
     """Find the features/corners of interest of an input image, 
     which can be either the bird's eye image or full_map, and returns the 
@@ -149,7 +151,7 @@ class VisualCortex:
         # Find the keypoints and descriptors with ORB
         if typ == "new":
             kp, des = orb.detectAndCompute(image, self.bird_mask)
-            return kp, des;
+            return kp, des 
         else:
             self._map_kp, self._map_descriptors = orb.detectAndCompute(self.full_map, self.full_map_mask)
             return
@@ -355,12 +357,12 @@ class VisualCortex:
                                            borderMode = 0, borderValue = (0,0,0))
         else:
             print "ERROR: Unknown transform matrix.  Cannot stitch to full map"
-            fullimgx = np.ones((self.full_map_x, self.full_map_y), np.uint8);  
+            fullimgx = np.ones((self.full_map_x, self.full_map_y), np.uint8)   
 
         fullimg2 = self.full_map
         # Add the images together
         # TODO: Use "blip" or something to add the images together
-        self.full_map = fullimgx/2 + self.full_map/2;
+        self.full_map = fullimgx/2 + self.full_map/2 
         # Clean up the image
         self.full_map = self.clean_image(self.full_map)
         # Update the roi
@@ -384,13 +386,9 @@ class VisualCortex:
     def display_map(self):
         """ Handle the while loop that shows an image, to clean up code a bit since we use this so often
         """
-        while(1):
-            cv2.imshow('full',cv2.resize(self.full_map,(0,0),fx=.5,fy=.5));
-
-            if cv2.waitKey(20) & 0xFF == 27:
-                break;
-        cv2.destroyAllWindows()
-        return;
+        cv2.imshow('full',cv2.resize(self.full_map,(0,0),fx=.5,fy=.5)) 
+        cv2.waitKey(0)
+        return 
 
     ####################################
     #####    4. PRIVATE METHODS    #####
@@ -404,11 +402,11 @@ class VisualCortex:
             # Plot the keypoints
             for i in range(0,len(kp)):
                 # Extract coordinates of these keypoints
-                feature1 = kp[i].pt;
+                feature1 = kp[i].pt 
                 # Offset feature2
-                feature1 = tuple([int(feature1[0]), int(feature1[1])]);
+                feature1 = tuple([int(feature1[0]), int(feature1[1])]) 
                 # Put dots on these features
-                cv2.circle(color_img, feature1, 2, (0,0,255), -1);
+                cv2.circle(color_img, feature1, 2, (0,0,255), -1) 
 
             if (bird_corners != None):
                 cv2.line(color_img, tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
@@ -423,12 +421,9 @@ class VisualCortex:
                 cv2.line(color_img, tuple([int(bird_corners[0][3]),int(bird_corners[1][3])]),
                                     tuple([int(bird_corners[0][0]),int(bird_corners[1][0])]),
                                     (255,0,0))
-            while(1):
-                cv2.imshow('full',color_img);
-
-                if cv2.waitKey(20) & 0xFF == 27:
-                    break;
-            cv2.destroyAllWindows()
+            print 'drawing features 1'
+            cv2.imshow('full', color_img) 
+            cv2.waitKey(0)
 
         elif intype == "array":
             # Turn this image into color so we see green dots
@@ -436,16 +431,13 @@ class VisualCortex:
             # Plot the keypoints
             for i in range(0,len(kp)):
                 # Offset feature2
-                feature1 = tuple([int(kp[i][0]), int(kp[i][1])]);
+                feature1 = tuple([int(kp[i][0]), int(kp[i][1])]) 
                 # Put dots on these features
-                cv2.circle(color_img, feature1, 2, (0,0,255), -1);
+                cv2.circle(color_img, feature1, 2, (0,0,255), -1) 
 
-            while(1):
-                cv2.imshow('full',color_img);
-
-                if cv2.waitKey(20) & 0xFF == 27:
-                    break;
-            cv2.destroyAllWindows()
+            print 'drawing features 2'
+            cv2.imshow('full', color_img) 
+            cv2.waitKey()
 
 
     # Read off the dimensions of an image
@@ -467,7 +459,7 @@ class VisualCortex:
         newpoints = deepcopy(points)
         avg_x = (points[0][0] + points[1][0] + points[2][0] + points[3][0])/4
         avg_y = (points[0][1] + points[1][1] + points[2][1] + points[3][1])/4
-        for n in range(0,4):
+        for n in range(0, 4):
             newpoints[n][0] = avg_x - (avg_x - points[n][0])*scale + translate[0]
             newpoints[n][1] = avg_y - (avg_y - points[n][1])*scale + translate[1]
         return newpoints
@@ -556,42 +548,39 @@ class VisualCortex:
     # Useful tool for drawing matches between two images
     def _draw_matches(self, img1, img2, kp1, kp2, matches):
         # Get image dimensions        
-        rows1, cols1 = img1.shape;
-        rows2, cols2 = img2.shape;
+        rows1, cols1 = img1.shape 
+        rows2, cols2 = img2.shape 
         # Get ready to add it to the train image
-        fullimg = np.zeros((max(rows1,rows2),cols1 + cols2 + 5,3), np.uint8);
+        fullimg = np.zeros((max(rows1,rows2),cols1 + cols2 + 5,3), np.uint8) 
         # Stick the two images together on full image (offset img2)
         for x in range(0,rows2-1):
             for y in range(0,cols2-1):
-                fullimg[x,y+cols1+5] = img2[x,y];
+                fullimg[x,y+cols1+5] = img2[x,y] 
         for x in range(0,rows1-1):
             for y in range(0,cols1-1):
-                fullimg[x,y] = img1[x,y];
+                fullimg[x,y] = img1[x,y]
 
         # Plot the keypoint matches
         for i in range(0,len(matches)):
             # Get indices of matched points in the kp arrays
-            index1 = matches[i].queryIdx;
-            index2 = matches[i].trainIdx;
+            index1 = matches[i].queryIdx
+            index2 = matches[i].trainIdx
             # Extract coordinates of these keypoints
-            feature1 = kp1[index1].pt;
-            feature2 = kp2[index2].pt;
+            feature1 = kp1[index1].pt
+            feature2 = kp2[index2].pt
             # Offset feature2
-            feature1 = tuple([int(feature1[0]), int(feature1[1])]);
-            feature2 = tuple([int(feature2[0] + cols1 + 5), int(feature2[1])]);
+            feature1 = tuple([int(feature1[0]), int(feature1[1])])
+            feature2 = tuple([int(feature2[0] + cols1 + 5), int(feature2[1])])
             # Put dots on these features
-            cv2.circle(fullimg, feature1, 2, (0,255,0), -1);
-            cv2.circle(fullimg, feature2, 2, (0,255,0), -1);
+            cv2.circle(fullimg, feature1, 2, (0,255,0), -1)
+            cv2.circle(fullimg, feature2, 2, (0,255,0), -1)
             # Connect the dots with a line
             cv2.line(fullimg,feature1,feature2,(0,255,0),1)
 
-        while(1):
-            cv2.imshow('full',cv2.resize(fullimg,(0,0),fx=.5,fy=.5));
-
-            if cv2.waitKey(20) & 0xFF == 27:
-                break;
-        cv2.destroyAllWindows()
-        return;
+        print 'drawing matches'
+        cv2.imshow('full',cv2.resize(fullimg,(0,0),fx=.5,fy=.5))
+        cv2.waitKey(0)
+        return
 
     # Given the mask generated from BF, use it to filter out the
     # outliers from matches list
@@ -606,27 +595,43 @@ class VisualCortex:
     ####################################
 
 # Got these points from "cap6"
-view_coordinates = np.float32([[922,220],[688,27],[276,27],[7,218]])
+view_coordinates = np.float32([[922, 220], [688, 27], [276, 27], [7, 218]])
 # Assuming square is 227px big
-map_coordinates = np.float32([[650,650],[650,350],[350,350],[350,650]])
+map_coordinates = np.float32([[650, 650], [650, 350], [350, 350], [350, 650]])
 
 # Set filename and read it into an opencv object
 
+print 'Reading cap1.jpg'
 img_location = 'test_images/cap1.jpg'
 img = cv2.cvtColor(cv2.imread(img_location), cv2.COLOR_BGR2GRAY)
 # Create a new VC object
-VC = VisualCortex(view_coordinates,map_coordinates,img);
+VC = VisualCortex(view_coordinates,map_coordinates,img)
 
+print 'Reading cap2.jpg'
 img_location = 'test_images/cap2.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 VC.SLAM(img)
 VC.display_map()
 
 
+print 'Reading cap3.jpg'
 img_location = 'test_images/cap3.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
 VC.SLAM(img)
 VC.display_map()
+
+print 'Reading cap4.jpg'
+img_location = 'test_images/cap4.jpg'
+img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
+VC.SLAM(img)
+VC.display_map()
+
+print 'Reading cap5.jpg'
+img_location = 'test_images/cap5.jpg'
+img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
+VC.SLAM(img)
+VC.display_map()
+
 '''
 img_location = 'SLAMPics/c6.jpg'
 img = cv2.cvtColor(cv2.imread(img_location) , cv2.COLOR_BGR2GRAY)
