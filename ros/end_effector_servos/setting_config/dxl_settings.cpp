@@ -8,6 +8,9 @@
 #include <time.h>
 #include <iostream>
 #include <stdlib.h>
+#include <typeinfo>
+
+
 
 #include "high_level_commands.h"
 #include "communications.h"
@@ -27,6 +30,7 @@ void do_action(int dxl_action, int dxl_id, int dxl_command){
 
     switch(dxl_action){
       case 1:  SetID(dxl_id, dxl_command);
+      break;
       default: std::cout << "That action was not recognized. Use -h to view all available options.";
       break;
     }
@@ -36,9 +40,9 @@ void do_action(int dxl_action, int dxl_id, int dxl_command){
 int main(int argc, char **argv)
 {
 
-  int dxl_id = (int)argv[1];
-  int dxl_action = (int)argv[2];
-  int dxl_command = (int)argv[3];
+  int dxl_id = (int)*argv[1] -48;
+  int dxl_action = (int)*argv[2] - 48;
+  int dxl_command = (int)*argv[3] -48;
 
   std::string help = argv[1];
 
@@ -50,7 +54,6 @@ int main(int argc, char **argv)
       exit(0);
     }
   }
-
 
   if (argc >= 4)
   {
