@@ -4,6 +4,7 @@ import numpy as np
 ## Display
 import pygame
 import time
+import math
 ## Ros
 import rospy
 from tf import transformations as tf_trans
@@ -64,7 +65,7 @@ class SCARA(object):
     def got_des_pose(self, msg):
         '''Recieved desired arm pose'''
         self.position = (msg.point.x, msg.point.y)
-        print "Targeting position: ({}, {})".format(*self.position)
+        print "Targeting Arm position: ({}, {})".format(*self.position)
 
     def got_elbow_angle(self, msg):
         '''Recieved current elbow angle'''
@@ -118,12 +119,51 @@ class SCARA(object):
             pygame.draw.circle(display, (250, 30, 30), round_point(self.position), 5, 1)
 
 
+class BASE(object):
+
+    def __init__(self):
+
+        rospy.init_node('SCARA_simulator')
+        self.base = np.array([0.0, 0.0], np.float32)
+        self.point = np.array([0.0, 0.0], np.float32)
+        self.starting = np.array([.308, 0.0], np.float32)
+        self.desired_pos = rospy.Subscriber('/base_des_pose', PointStamped, self.got_des_pose)
+
+    def got_des_pose(self, msg):
+        '''Recieved desired arm pose'''
+        self.point = (msg.point.x, msg.point.y)
+
+        to_radians = math.atan2(msg.point.y, msg.point.x)
+
+        print "Targeting Base position: ({}, {})".format(*self.point) 
+        print "Base moved to ", to_radians, "radians"
+
+        base_pub = rospy.Publisher('/base_controller/command', Float64, queue_size=1)
+        base_pub.publish(to_radians)
+
+    def draw(self, display, new_base=(0, 0)):
+        '''Draw the whole arm'''
+        # Update positions given current 
+
+        pygame.draw.line(display, (255, 162, 0), round_point(self.base), round_point(self.point), 3)
+        pygame.draw.line(display, (255, 255, 255), round_point(self.base), round_point(self.starting), 1)
+        
+
+        # Draw the desired position circle
+
+
+
+        
+
 def main():
     '''In principle, we can support an arbitrary number of arms in simulation'''
     arms = [SCARA()]
+    base = [BASE()]
 
     display = pygame.display.set_mode(SCREEN_DIM)
     des_pose_pub = rospy.Publisher('/arm_des_pose', PointStamped, queue_size=1)
+
+    des_pose_pub_base = rospy.Publisher('/base_des_pose', PointStamped, queue_size=1)
 
     def publish_des_pos(pos):
         '''Publish desired position of the arm end-effector based on click position'''
@@ -140,18 +180,45 @@ def main():
                 )
             )
         )
+    def publish_des_pos_base(pos):
+        '''Publish desired position of the arm end-effector based on click position'''
+        des_pose_pub_base.publish(
+            PointStamped(
+                header = Header(
+                    stamp=rospy.Time.now(),
+                    frame_id='/robot',
+                ),
+                point=Point(
+                    x=pos[0], 
+                    y=pos[1], 
+                    z=0
+                )
+            )
+        )
+
+    
 
     clock = pygame.time.Clock()
+
     while not rospy.is_shutdown():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                pt = pygame.mouse.get_pos()
-                publish_des_pos(unround_point(pt))
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_a:
+                    pt = pygame.mouse.get_pos()
+                    publish_des_pos(unround_point(pt))
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_b:
+                    pt = pygame.mouse.get_pos()
+                    publish_des_pos_base(unround_point(pt))
 
         t = time.time()
         for arm in arms:
+            arm.draw(display)
+
+
+        for arm in base:
             arm.draw(display)
         
         pygame.display.update()
