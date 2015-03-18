@@ -62,6 +62,7 @@ To get everything without any effort, do:
 ```sudo aptitude install python-pygame ros-indigo-gazebo-ros-pkgs ros-indigo-ros-control ros-indigo-ros-controllers ros-indigo-gazebo-ros-control```
 then run 
 ```catkin_make -C ~/catkin_ws```
+```mkdir ~/repos; cd ~/repos; git clone https://github.com/vispy/vispy.git; cd vispy; sudo python setup.py install```
 
 
 ## **Git Best Practices**
