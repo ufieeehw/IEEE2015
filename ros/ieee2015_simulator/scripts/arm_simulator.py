@@ -78,10 +78,9 @@ class SCARA(object):
     def update(self, center=np.array([0, 0], np.float32)):
         '''Update each arm joint position according to the angles and lengths'''
         # TODO:
-        # Make this non-instantaneous
-
-        shoulder_angle_offset =  (-3 * np.pi/2) - 0.3
-        elbow_angle_offset = np.pi / 6
+        # Make this non-instantaneous2
+        shoulder_angle_offset =  (-3 * np.pi/2) - .5 
+        elbow_angle_offset = np.pi / 3
         
         _shoulder_angle = self.shoulder_angle + shoulder_angle_offset
         _elbow_angle = -(self.elbow_angle + elbow_angle_offset)
