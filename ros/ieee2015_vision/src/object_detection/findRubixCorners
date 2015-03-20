@@ -1,0 +1,94 @@
+import numpy as np
+import cv2
+import math
+
+#give the function a filename as an argument
+#returns the center and angle (point and float) or none
+def findRubixCorners(filename):
+  src = cv2.imread(filename, cv2.IMREAD_COLOR) #get the image
+  if src == None:
+    print 'Invalid Image'
+    return None;  # no useful data
+  
+  hsv_img = cv2.cvtColor(src, cv2.COLOR_BGR2HSV) #convert to HSV
+  filter_imgR = cv2.inRange(hsv_img, (158,105, 75), (255,255,255)) #filter all weak colors
+  filter_imgO = cv2.inRange(hsv_img, (0,26, 139), (25,255,255)) #filter all weak colors
+  filter_imgY = cv2.inRange(hsv_img, (13,26, 139), (40,255,255)) #filter all weak colors
+  filter_imgG = cv2.inRange(hsv_img, (60,23, 65), (83,255,255)) #filter all weak colors
+  filter_imgB = cv2.inRange(hsv_img, (95, 40, 125), (130,255,255)) #filter all weak colors
+  
+
+  filter_img = cv2.bitwise_or(filter_imgB, filter_imgG)
+  filter_img = cv2.bitwise_or(filter_img, filter_imgY)
+  filter_img = cv2.bitwise_or(filter_img, filter_imgO)
+  filter_img = cv2.bitwise_or(filter_img, filter_imgR)
+
+
+  cv2.imshow('filter', filter_img)
+  cv2.waitKey(0);
+  cv2.destroyAllWindows()
+  #blur_img = cv2.medianBlur(filter_img, 5) #blur the image
+  #why does blurring really matter
+  kernel = np.ones((3,10),np.uint8)
+  kernel3 = np.ones((5,5), np.uint8)
+  kernel2 = np.ones((13,13),np.uint8)
+  dilation = cv2.dilate(filter_img, kernel2, iterations = 1)
+  erosion = cv2.erode(dilation,kernel,iterations = 1)
+  erosion = cv2.erode(erosion, kernel2, iterations = 1)
+  
+  gradient = dilation - erosion;
+
+  #bImg = cv2.morphologyEx(dilation, cv2.MORPH_CLOSE, kernel2)
+
+
+  cv2.imshow('blur', gradient);
+  cv2.waitKey(0);
+  cv2.destroyAllWindows()
+  
+  contours, hierarchy = cv2.findContours(erosion, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) #get the contours
+  cnt = contours[0]
+  perimeter = cv2.arcLength(cnt, False)
+  epsilon = .1*perimeter
+  approx = cv2.approxPolyDP(cnt, epsilon, False)
+  #cv2.drawContours(dilation,cv2.approxPolyDP(contours[0], 1.1, 1),-1,(0,90,200),1)
+  #cv2.imshow("contours", dilation)
+  #cv2.waitKey(0)
+  print(approx)
+  print('this is the length of approx')
+  print(len(approx))
+  rect = cv2.minAreaRect(cnt)
+  box = cv2.cv.BoxPoints(rect)
+  box = np.int0(box)
+  print('this is box');
+  print(box)
+  cv2.drawContours(erosion,contours,0 ,(0,0,255),3)
+
+  cv2.imshow("contours", erosion)
+  cv2.waitKey(0)
+
+  x,y,w,h = cv2.boundingRect(cnt)
+  cv2.rectangle(src,(x,y),(x+w,y+h),(0,255,0),2)
+  cv2.imshow("Show",dilation)
+  cv2.waitKey()
+  cv2.destroyAllWindows()
+  squares = [] # create list of the tile squares
+  for c in contours:
+    squares.append(cv2.minAreaRect(c)) #get a rectangle around the contour
+  
+  # I'm realizing that extra contours might be an issue, will keep an eye on it
+  
+  #average the points
+  angle = x = y = 0
+  print squares[0]
+  for i in range(len(squares)):
+    angle = (angle*i + squares[i][2]/180*math.pi)/(i+1)  # convert angle to radians
+    x = (x*i + squares[i][0][0])/(i+1)  # x coordinate of center
+    y = (y*i + squares[i][0][1])/(i+1)  # y coordinate of center
+  
+  # move origin from upper left to center of image
+  x = x - (len(dilation) / 2)    #should be rows
+  y = (len(dilation[0]) / 2) - y #should be cols
+  
+  return {'center':(x,y), 'angle':angle}
+
+findRubixCorners('r2.jpg');
