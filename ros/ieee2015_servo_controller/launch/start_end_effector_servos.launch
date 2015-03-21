@@ -1,0 +1,4 @@
+<launch>
+    <node name="dynamixel_end_servos" pkg="xl_320" type="xl320_start.c.py" required="true" output="screen">
+    </node>
+</launch>

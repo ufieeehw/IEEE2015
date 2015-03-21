@@ -4,7 +4,7 @@ base_controller:
         module: joint_position_controller
         type: JointPositionController
     joint_name: base_joint
-    joint_speed: 3
+    joint_speed: 1
     motor:
         id: 10
         init: 512

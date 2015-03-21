@@ -26,10 +26,11 @@ void tutorial(){
   std::cout << "ID Values --> 1-252\n";
 }
 
-void do_action(int dxl_action, int dxl_id, int dxl_command){
+void do_action(uint8_t dxl_action, uint8_t dxl_id, uint8_t dxl_command){
 
     switch(dxl_action){
       case 1:  SetID(dxl_id, dxl_command);
+               std::cout << "ID change called\n";
       break;
       default: std::cout << "That action was not recognized. Use -h to view all available options.";
       break;
@@ -40,28 +41,28 @@ void do_action(int dxl_action, int dxl_id, int dxl_command){
 int main(int argc, char **argv)
 {
 
-  int dxl_id = (int)*argv[1] -48;
-  int dxl_action = (int)*argv[2] - 48;
-  int dxl_command = (int)*argv[3] -48;
+  uint8_t dxl_id, dxl_action, dxl_command;
+  
 
-  std::string help = argv[1];
+  std::cout << "ID: ";
+  std::cin >> dxl_id;
+  std::cout << "Command: ";
+  std::cin >> dxl_action;
+  std::cout << "Setting: ";
+  std::cin >> dxl_command;
+
 
   if (argc == 2)
   {
+    std::string help = argv[1];
     if (help.compare("-h") == 0)
     {
       tutorial();
       exit(0);
     }
-  }
-
-  if (argc >= 4)
-  {
-    InitDXL(dxl_id, 3);
-    do_action(dxl_action, dxl_command, dxl_id);
   }else{
-    std::cout << "Please enter a proper input command\n";
-    std::cout << "Enter -h for input layout.";
-    std::cout << help;
+    InitDXL(dxl_id, 3);
+    SetLED(dxl_id, 7);
+    do_action(dxl_action, dxl_command, dxl_id);
   }
 }

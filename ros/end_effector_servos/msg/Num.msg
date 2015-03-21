@@ -1,2 +1,2 @@
-int64 velocity
-int64 position
+int64 position_one
+int64 position_two

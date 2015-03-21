@@ -25,7 +25,7 @@ int dxl_hal_open(int deviceIndex, int baudrate)
   // struct serial_struct serinfo;
   char dev_name[100] = {0, };
 
-  sprintf(dev_name, "/dev/serial/by-id/usb-FTDI_USB__-__Serial_Cable_FTTKRX9B-if03-port0");
+  sprintf(dev_name, "/dev/serial/by-id/usb-FTDI_USB__-__Serial_Cable_FTTKRYZP-if03-port0");
 
   strcpy(gDeviceName, dev_name);
   memset(&newtio, 0, sizeof(newtio));

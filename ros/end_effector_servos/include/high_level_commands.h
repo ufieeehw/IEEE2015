@@ -37,6 +37,7 @@ bool ReadMovingStatus(uint8_t dxl_id, bool* moving);
 
 bool SetID(uint8_t dxl_id, uint8_t new_id);
 bool SetLED(uint8_t dxl_id, uint8_t color);
+bool SetControl(uint8_t dxl_id, uint8_t value);
 
 // "Torque enable" is whether the device is actuating for not.
 bool SetTorqueEnable(uint8_t dxl_id, uint8_t is_enabled);
