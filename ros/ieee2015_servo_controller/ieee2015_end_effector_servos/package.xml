@@ -1,5 +1,5 @@
 <package>
-  <name>end_effector_servos</name>
+  <name>ieee2015_end_effector_servos</name>
   <version>0.4.0</version>
   <description>
     Starts XL320 Connection
