@@ -48,46 +48,42 @@ def etchaSketch(img):
     cnt = contours_knobs[6] #Detected contours. Each contour is stored as a vector of points.
     print cnt
 
-    
+    print type(cnt)
 
-    M = cv2.moments(cnt)
-    print M
-    
-    #area = cv2.contourArea(cnt)
+    bestCtn = []
+    for bae in contours_knobs:
+        area = cv2.contourArea(bae)
+        print area
+        if area > 8000 and area < 20000:
+            bestCtn.append(bae)
+
+    #should be the two buttons
+    bae1 = bestCtn[0]
+    bae2 = bestCtn[1]
+
+    # The following code actually calculates center points and draws contours for testing
+    # The first coordinate
+    M = cv2.moments(bae1)
+
     cx_coord= int(M['m10']/M['m00'])
     cy_coord = int(M['m01']/M['m00'])
 
-    print cx_coord
-    print cy_coord
-    print 'this is the len of contour knobs'
-    print len(contours_knobs)
-
-
     cv2.circle(img, (cx_coord, cy_coord), 50, (100, 255, 0), thickness=1, lineType=8, shift=0)
-    cv2.drawContours(img,[cnt],0,(255,0,0),-1)
+    cv2.circle(img,(cx_coord, cy_coord),2,(0,0,255),3)
+    cv2.drawContours(img,[bae1],0,(0,255,0),1)
     
-  
+    # The second coordinate
+    M2 = cv2.moments(bae2)
+
+    cx_coord2 = int(M2['m10']/M2['m00'])
+    cy_coord2 = int(M2['m01']/M2['m00'])
+
+    cv2.circle(img, (cx_coord2, cy_coord2), 50, (100, 255, 0), thickness=1, lineType=8, shift=0)
+    cv2.circle(img,(cx_coord2, cy_coord2),2,(0,0,255),3)
+    cv2.drawContours(img,[bae2],0,(255,0,0),1)
+
+
     ####START DISPLAY METHODS####
-    grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
- 
-
-    equ = cv2.equalizeHist(grayscale)
-    #equ = cv2.resize(equ, (300,250))
-    cv2.imshow('detected circles', equ)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    circles = cv2.HoughCircles(equ,cv.CV_HOUGH_GRADIENT, 1.2, 100)
-          
-    if circles is not None:
-        circles = np.uint16(np.around(circles))
-        for i in circles[0,:]:
-        # draw the outer circle
-            cv2.circle(img,(i[0],i[1]),i[2],(0,255,0),2)
-            # draw the center of the circle
-            cv2.circle(img,(i[0],i[1]),2,(0,0,255),3)
-    else:
-        print "You screwed up"
-
     #small = cv2.resize(image, (300, 250))
     cv2.imshow('detected circles', img)
     cv2.waitKey(0)
@@ -96,9 +92,6 @@ def etchaSketch(img):
 
     return cx_coord, cy_coord
 
-    cv2.imshow('image w/ contours', grayscale)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
 img = cv2.imread('Images/etch2.jpg')
 etchaSketch(img)
