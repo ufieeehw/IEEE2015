@@ -27,10 +27,18 @@ def etchaSketch(img):
     cv2.waitKey(0)
     cv2.destroyAllWindows
 
-    ###FOLLOWING IS FOR GRAYSCALE ATTEMPT###
+
+    ###FOLLOWING IS FOR GRAYSCALE ATTEMPT###= 
+    kernelg = np.ones((4,4), np.uint8)
     #seems to be extremely less effective, just grouping old code together
-    #grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    #equ = cv2.equalizeHist(grayscale)
+    grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    equ = cv2.equalizeHist(grayscale)
+    gray = cv2.adaptiveThreshold(equ,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+            cv2.THRESH_BINARY,33,2)
+    gray = cv2.erode(gray, kernelg)
+    gray = cv2.dilate(gray, kernelg)
+    cv2.imshow('adaptive thresh', gray)
+    cv2.waitKey(0)
     #grayscale = cv2.resize(equ, (300, 250))
     #ret,thresh = cv2.threshold(grayscale,175,255,0)
     #cv2.imshow('binary', equ)
@@ -82,6 +90,18 @@ def etchaSketch(img):
     cv2.circle(img,(cx_coord2, cy_coord2),2,(0,0,255),3)
     cv2.drawContours(img,[bae2],0,(255,0,0),1)
 
+    #keep 1, 2, 2nd to last, last)
+    #4th parameter seems to be very important
+    circles = cv2.HoughCircles(equ, cv2.cv.CV_HOUGH_GRADIENT, 1, 200, 1, 520, 10, 5)
+    if circles is not None:
+        circles = np.uint16(np.around(circles))
+        for i in circles[0,:]:
+        # draw the outer circle
+            cv2.circle(img,(i[0],i[1]),i[2],(0,255,0),2)
+            # draw the center of the circle
+            cv2.circle(img,(i[0],i[1]),2,(0,0,255),3)
+    else:
+        print "You screwed up"
 
     ####START DISPLAY METHODS####
     #small = cv2.resize(image, (300, 250))
