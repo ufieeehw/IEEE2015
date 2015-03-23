@@ -13,16 +13,35 @@ def findRubix(filename):
   
   hsv_img = cv2.cvtColor(src, cv2.COLOR_BGR2HSV) #convert to HSV
   filter_img = cv2.inRange(hsv_img, (0,150,100), (180,255,255)) #filter all weak colors
-  blur_img = cv2.medianBlur(filter_img, 5) #blur the image
+  filter_imgG = cv2.inRange(hsv_img, (60,23, 65), (83,255,255)) #filter all weak colors
+  filter_imgFinal = cv2.bitwise_or(filter_img, filter_imgG)
+  blur_img = cv2.medianBlur(filter_imgFinal, 5) #blur the image
   
+  cv2.imshow('contos', blur_img);
+  cv2.waitKey(0);
+
   contours, hierarchy = cv2.findContours(blur_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE) #get the contours
   
+  goodContours = []
+  for current in contours:
+        area = cv2.contourArea(current)
+        print area
+        if area > 4000:
+            goodContours.append(current)
+
+
+  for cnt in goodContours:
+    cv2.drawContours(src,[cnt],0,(0,255,0),1)
+
+
+  cv2.imshow('contos', src);
+  cv2.waitKey(0);
+
   squares = [] # create list of the tile squares
-  for c in contours:
+  for c in goodContours:
     squares.append(cv2.minAreaRect(c)) #get a rectangle around the contour
   
-  # I'm realizing that extra contours might be an issue, will keep an eye on it
-  
+
   #average the points
   angle = x = y = 0
   print squares[0]
@@ -36,3 +55,5 @@ def findRubix(filename):
   y = (len(blur_img[0]) / 2) - y #should be cols
   
   return {'center':(x,y), 'angle':angle}
+
+findRubix('Images/Rubix/r2.jpg')
