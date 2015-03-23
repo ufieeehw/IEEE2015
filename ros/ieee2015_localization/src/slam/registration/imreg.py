@@ -139,7 +139,7 @@ def similarity(im0, im1):
     f1 = fftshift(abs(fft2(im1)))
     toc = time() - tic
 
-    # print 'FFT computation took {}'.format(toc)
+    print 'FFT computation took {}'.format(toc)
 
     tic = time()
     h = highpass(f0.shape)
@@ -147,12 +147,13 @@ def similarity(im0, im1):
     f0 *= h
     f1 *= h
     del h
-    # print 'High pass computation took {}'.format(toc)
+    print 'High pass computation took {}'.format(toc)
 
 
     tic = time()
     f0, log_base = logpolar(f0)
     f1, log_base = logpolar(f1)
+    toc = time() - tic
 
     f0 = fft2(f0)
     f1 = fft2(f1)
@@ -163,9 +164,8 @@ def similarity(im0, im1):
     angle = 180.0 * i0 / ir.shape[0]
 
     scale = log_base ** i1
-    toc = time() - tic
 
-    # print 'misc took  {} seconds'.format(toc)
+    print 'misc took  {} seconds'.format(toc)
 
     tic = time()
     if scale > 1.8:
@@ -184,7 +184,7 @@ def similarity(im0, im1):
     im2 = ndii.zoom(im1, 1.0/scale)
     im2 = ndii.rotate(im2, angle)
     toc = time() - tic
-    # print 'misc2 took  {} seconds'.format(toc)
+    print 'misc2 took  {} seconds'.format(toc)
 
     tic = time()
 
@@ -207,7 +207,7 @@ def similarity(im0, im1):
 
     im2 = ndii.shift(im2, [t0, t1])
     toc = time() - tic
-    # print 'misc3 took  {} seconds'.format(toc)
+    print 'misc3 took  {} seconds'.format(toc)
 
     tic = time()
 
@@ -221,7 +221,7 @@ def similarity(im0, im1):
     scale = (im1.shape[1] - 1) / (int(im1.shape[1] / scale) - 1)
 
     toc = time() - tic
-    # print 'misc4 took  {} seconds'.format(toc)
+    print 'misc4 took  {} seconds'.format(toc)
 
     end_time = time() - start_time
     print "Registration took {} seconds".format(end_time)
@@ -316,8 +316,8 @@ if __name__ == '__main__':
     fpath = os.path.dirname(os.path.realpath(__file__))
     img_path = os.path.join(fpath, "..", "..", "..", "..", "..", "python", "SLAM", "test_images")
 
-    img_1 = cv2.resize(cv2.imread(os.path.join(img_path, 'picasso2.jpg'), 0)[:623, :623], (150, 150))
-    img_2 = cv2.resize(cv2.imread(os.path.join(img_path, 'picasso3.jpg'), 0)[:623, :623], (150, 150))
+    img_1 = cv2.resize(cv2.imread(os.path.join(img_path, 'picasso2.jpg'), 0)[:623, :623], (250, 250))
+    img_2 = cv2.resize(cv2.imread(os.path.join(img_path, 'picasso3.jpg'), 0)[:623, :623], (250, 250))
 
     print img_1.shape
     print img_2.shape
@@ -325,5 +325,5 @@ if __name__ == '__main__':
     tic = time()
     im2, scale, angle, (t0, t1) = similarity(img_1, img_2)
     toc = time() - tic
-    print 'Took {} seconds'.format(toc)
-    # imshow(img_1, img_2, im2)
+    print 'Took {} seconds with image'.format(toc)
+    print 'Scale {}, angle {}, t0 {}, t1 {}'.format(scale, angle, t0, t1)
