@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <assert.h>
 
@@ -7,7 +8,8 @@
 #include "xl320_control_table.h"
 
 
-/* READING COMMANDS */
+/* PING ---------------------------------------------------------------------------------------  */
+
 
 bool SendPing(uint8_t dxl_id, int* modelnum, int* firmware_version) {
   uint8_t data[MAX_PACKET_BYTES];
@@ -29,64 +31,8 @@ bool SendPing(uint8_t dxl_id, int* modelnum, int* firmware_version) {
 }
 
 
-bool ReadPosition(uint8_t dxl_id, uint16_t* position) {
-  uint8_t data[MAX_PACKET_BYTES];
 
-  int position_register = 37;
-  int position_bytes = 2;
-  int num_parameters_tx = MakeReadPacket(data, dxl_id, position_register, position_bytes);
-
-  uint16_t num_parameters_rx = 1 + position_bytes; // Error, Position low, position high
-  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
-
-  uint8_t error = GetByteParam(data, 0);
-  if (result && error == 0) {
-    *position = GetWordParam(data, 1);
-    return true;
-  } else {
-    return false;
-  }
-}
-
-bool ReadStatusReturnLevel(uint8_t dxl_id, uint8_t* return_level) {
-  uint8_t data[MAX_PACKET_BYTES];
-
-  int return_level_register = 17;
-  int return_level_bytes = 1;
-  int num_parameters_tx = MakeReadPacket(data, dxl_id, return_level_register, return_level_bytes);
-
-  uint16_t num_parameters_rx = 1 + return_level_bytes; // Error, Position low, position high
-  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
-
-  uint8_t error = GetByteParam(data, 0);
-  if (result && error == 0) {
-    *return_level = GetByteParam(data, 1);
-    return true;
-  } else {
-    return false;
-  }
-}
-
-bool ReadMovingStatus(uint8_t dxl_id, bool* moving) {
-  uint8_t data[MAX_PACKET_BYTES];
-
-  int moving_register = 49;
-  int moving_bytes = 1;
-  int num_parameters_tx = MakeReadBytePacket(data, dxl_id, moving_register);
-
-  uint16_t num_parameters_rx = 1 + 1; // Error, moving byte
-  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
-
-  uint8_t error = GetByteParam(data, 0);
-  if (result && error == 0) {
-    *moving = GetByteParam(data, 1);
-    return true;
-  } else {
-    return false;
-  }
-}
-
-/* WRITING COMMANDS */
+/* WRITING COMMANDS ---------------------------------------------------------------------------- */ 
 
 bool SetID(uint8_t dxl_id, uint8_t new_id) {
   uint8_t data[MAX_PACKET_BYTES];
@@ -100,17 +46,16 @@ bool SetID(uint8_t dxl_id, uint8_t new_id) {
   uint8_t error = GetByteParam(data, 0);
   if (result && error == 0) {
     return true;
-    printf("yes\n");
   } else {
     return false;
   }
 }
 
-bool SetLED(uint8_t dxl_id, uint8_t color) {
+bool SetBaud(uint8_t dxl_id, uint8_t new_baud){
   uint8_t data[MAX_PACKET_BYTES];
 
-  int led_register = 25;
-  int num_parameters_tx = MakeWriteBytePacket(data, dxl_id, led_register, color);
+  int baud_register = 4;
+  int num_parameters_tx = MakeWriteBytePacket(data, dxl_id, baud_register, new_baud);
 
   uint16_t num_parameters_rx = 1; // Error
   bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
@@ -123,11 +68,28 @@ bool SetLED(uint8_t dxl_id, uint8_t color) {
   }
 }
 
-bool SetPosition(uint8_t dxl_id, uint16_t position) {
+bool SetCWAngleLimit(uint8_t dxl_id, uint16_t limit) {
   uint8_t data[MAX_PACKET_BYTES];
 
-  int position_register = 30;
-  int num_parameters_tx = MakeWriteWordPacket(data, dxl_id, position_register, position);
+  int limit_register = 6;
+  int num_parameters_tx = MakeWriteWordPacket(data, dxl_id, limit_register, limit);
+
+  uint16_t num_parameters_rx = 1; // Error
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool SetCW_WAngleLimit(uint8_t dxl_id, uint16_t limit) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int limit_register = 8;
+  int num_parameters_tx = MakeWriteWordPacket(data, dxl_id, limit_register, limit);
 
   uint16_t num_parameters_rx = 1; // Error
   bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
@@ -141,8 +103,8 @@ bool SetPosition(uint8_t dxl_id, uint16_t position) {
 }
 
 bool SetControl(uint8_t dxl_id, uint8_t value) {
-  uint8_t data[MAX_PACKET_BYTES];
 
+  uint8_t data[MAX_PACKET_BYTES];
   int position_register = 11;
   int num_parameters_tx = MakeWriteWordPacket(data, dxl_id, position_register, value);
 
@@ -150,9 +112,26 @@ bool SetControl(uint8_t dxl_id, uint8_t value) {
   bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
 
   uint8_t error = GetByteParam(data, 0);
+  
   if (result && error == 0) {
     return true;
-    printf("yes\n");
+  } else {
+    return false;
+  }
+}
+
+bool SetMaxTorque(uint8_t dxl_id, uint16_t position) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int position_register = 15;
+  int num_parameters_tx = MakeWriteWordPacket(data, dxl_id, position_register, position);
+
+  uint16_t num_parameters_rx = 1; // Error
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    return true;
   } else {
     return false;
   }
@@ -186,11 +165,97 @@ bool TorqueDisable(uint8_t dxl_id) {
 }
 
 
+bool SetLED(uint8_t dxl_id, uint8_t color) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int led_register = 25;
+  int num_parameters_tx = MakeWriteBytePacket(data, dxl_id, led_register, color);
+
+  uint16_t num_parameters_rx = 1; // Error
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool SetDGain(uint8_t dxl_id, uint8_t value) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int gain_register = 27;
+  int num_parameters_tx = MakeWriteWordPacket(data, dxl_id, gain_register, value);
+
+  uint16_t num_parameters_rx = 1; // Error
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool SetIGain(uint8_t dxl_id, uint8_t value) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int gain_register = 28;
+  int num_parameters_tx = MakeWriteWordPacket(data, dxl_id, gain_register, value);
+
+  uint16_t num_parameters_rx = 1; // Error
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool SetPGain(uint8_t dxl_id, uint8_t value) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int gain_register = 29;
+  int num_parameters_tx = MakeWriteWordPacket(data, dxl_id, gain_register, value);
+
+  uint16_t num_parameters_rx = 1; // Error
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
+bool SetPosition(uint8_t dxl_id, uint16_t position) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int position_register = 30;
+  int num_parameters_tx = MakeWriteWordPacket(data, dxl_id, position_register, position);
+
+  uint16_t num_parameters_rx = 1; // Error
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
 bool SetVelocity(uint8_t dxl_id, uint16_t velocity) {
   uint8_t data[MAX_PACKET_BYTES];
 
   int velocity_register = 32;
-  int max_velocity = 1023;
   int min_velocity = 0;
   int num_parameters_tx = MakeWriteWordPacket(data, dxl_id, velocity_register, velocity);
 
@@ -205,14 +270,12 @@ bool SetVelocity(uint8_t dxl_id, uint16_t velocity) {
   }
 }
 
-/*
-bool SetPositionAndVelocity(uint8_t dxl_id, uint16_t position, uint16_t velocity) {
+
+bool SetTorque(uint8_t dxl_id, uint8_t value) {
   uint8_t data[MAX_PACKET_BYTES];
 
-  int velocity_register = 32;
-  int max_velocity = 1023;
-  int min_velocity = 0;
-  int num_parameters_tx = MakeWritePacket(data, dxl_id, velocity_register, velocity);
+  int position_register = 35;
+  int num_parameters_tx = MakeWriteWordPacket(data, dxl_id, position_register, value);
 
   uint16_t num_parameters_rx = 1; // Error
   bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
@@ -224,4 +287,118 @@ bool SetPositionAndVelocity(uint8_t dxl_id, uint16_t position, uint16_t velocity
     return false;
   }
 }
-*/
+/* READING COMMANDS ----------------------------------------------------------------------------  */
+
+
+bool ReadTorque(uint8_t dxl_id, uint16_t* position) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int position_register = 35;
+  int position_bytes = 2;
+  int num_parameters_tx = MakeReadPacket(data, dxl_id, position_register, position_bytes);
+
+  uint16_t num_parameters_rx = 1 + position_bytes; // Error, Position low, position high
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    *position = GetWordParam(data, 1);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool ReadPosition(uint8_t dxl_id, uint16_t* position) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int position_register = 37;
+  int position_bytes = 2;
+  int num_parameters_tx = MakeReadPacket(data, dxl_id, position_register, position_bytes);
+
+  uint16_t num_parameters_rx = 1 + position_bytes; // Error, Position low, position high
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    *position = GetWordParam(data, 1);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool ReadLoad(uint8_t dxl_id, uint16_t* load) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int position_register = 41;
+  int position_bytes = 2;
+  int num_parameters_tx = MakeReadPacket(data, dxl_id, position_register, position_bytes);
+
+  uint16_t num_parameters_rx = 1 + position_bytes; // Error, Position low, position high
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    *load = GetWordParam(data, 1);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool ReadStatusReturnLevel(uint8_t dxl_id, uint8_t* return_level) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int return_level_register = 17;
+  int return_level_bytes = 1;
+  int num_parameters_tx = MakeReadPacket(data, dxl_id, return_level_register, return_level_bytes);
+
+  uint16_t num_parameters_rx = 1 + return_level_bytes; // Error, Position low, position high
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    *return_level = GetByteParam(data, 1);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool ReadControl(uint8_t dxl_id, uint8_t* mode) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int control_register = 11;
+  int control_bytes = 1;
+  int num_parameters_tx = MakeReadPacket(data, dxl_id, control_register, control_bytes);
+
+  uint16_t num_parameters_rx = 1 + control_bytes; // Error, Position low, position high
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    *mode = GetByteParam(data, 1);
+    return true;
+  } else {
+    return false;
+  }
+}
+bool ReadMovingStatus(uint8_t dxl_id, bool* moving) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int moving_register = 49;
+  int moving_bytes = 1;
+  int num_parameters_tx = MakeReadBytePacket(data, dxl_id, moving_register);
+
+  uint16_t num_parameters_rx = 1 + 1; // Error, moving byte
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    *moving = GetByteParam(data, 1);
+    return true;
+  } else {
+    return false;
+  }
+}

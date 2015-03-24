@@ -9,6 +9,7 @@ import codecs
 
 
 serial_port = 0
+
 # <--------------------------------Function Definitions--------------------------------->
 
 # function to convert character into hex value
@@ -76,7 +77,7 @@ def listener():
 
     global serial_port
 
-    serial_port = serial.Serial("/dev/ttyUSB0", baudrate=9600, timeout=0)
+    serial_port = serial.Serial("/dev/ttyUSB1", baudrate=9600, timeout=0)
 
     rospy.init_node('listener', anonymous=True)
 

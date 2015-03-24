@@ -16,7 +16,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
-  end_effector_servos
+  ieee2015_end_effector_servos
 )
 
 catkin_package(

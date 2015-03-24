@@ -13,12 +13,14 @@
 
 #include "high_level_commands.h"
 #include "communications.h"
- #include "end_effector_servos/Num.h"
+#include "ieee2015_end_effector_servos/Num.h"
 
 
-void chatterCallback(const end_effector_servos::Num::ConstPtr &num)
+void chatterCallback(const ieee2015_end_effector_servos::Num::ConstPtr &num)
 {
-  SetPosition(3, num->position_one);
+  SetControl(3, num->control_one);
+  SetControl(4, num->control_two);
+  SetPosition(1, num->position_one);
   SetPosition(4, num->position_two);
 }
 
@@ -30,16 +32,24 @@ int main(int argc, char **argv)
 
   ros::NodeHandle n;
 
-  ros::Subscriber sub = n.subscribe("end_effector_servos", 1000, chatterCallback);
+  ros::Subscriber sub = n.subscribe("ieee2015_end_effector_servos", 1000, chatterCallback);
 
-  int device_num = 0; // Default to device ID
-  InitDXL(3,3);
-  InitDXL(4,3);
+  InitDXL(1,3);
+  TorqueDisable(1);
+  SetLED(1,7);
+  SetControl(1,1);
+  TorqueEnable(1);
+  SetTorque(1,1000);
+  for (int i = 0; i < 1000; i++)
+  {
+      SetTorque(1,1000);
 
-  SetLED(3,7);
-  SetLED(4,7);
-  SetVelocity(3, 700);
-  SetVelocity(4, 700);
+      SetVelocity(1,i);
+      sleep(1);
+  }
+
+
+  
 
 
   ros::spin();
