@@ -74,8 +74,6 @@ def findRubix(filename):
   points = cv2.cv.BoxPoints(boxpoints)         # Find four vertices of rectangle from above rect
   points = np.int0(np.around(points)) 
 
-  print boxpoints[2]
-
   xVals =[]
   yVals = []
   for i in range(0, 4):
