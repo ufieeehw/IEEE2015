@@ -111,7 +111,7 @@ def translation(im0, im1):
     return [t0, t1]
 
 
-def similarity(im0, im1):
+def similarity(im0, im1, timing=False):
     """Return similarity transformed image im1 and transformation parameters.
 
     Transformation parameters are: isotropic scale factor, rotation angle (in
@@ -139,7 +139,8 @@ def similarity(im0, im1):
     f1 = fftshift(abs(fft2(im1)))
     toc = time() - tic
 
-    print 'FFT computation took {}'.format(toc)
+    if timing:
+        print 'FFT computation took {}'.format(toc)
 
     tic = time()
     h = highpass(f0.shape)
@@ -147,7 +148,8 @@ def similarity(im0, im1):
     f0 *= h
     f1 *= h
     del h
-    print 'High pass computation took {}'.format(toc)
+    if timing:
+        print 'High pass computation took {}'.format(toc)
 
 
     tic = time()
@@ -165,7 +167,8 @@ def similarity(im0, im1):
 
     scale = log_base ** i1
 
-    print 'misc took  {} seconds'.format(toc)
+    if timing:
+        print 'misc took  {} seconds'.format(toc)
 
     tic = time()
     if scale > 1.8:
@@ -184,7 +187,8 @@ def similarity(im0, im1):
     im2 = ndii.zoom(im1, 1.0/scale)
     im2 = ndii.rotate(im2, angle)
     toc = time() - tic
-    print 'misc2 took  {} seconds'.format(toc)
+    if timing:
+        print 'misc2 took  {} seconds'.format(toc)
 
     tic = time()
 
@@ -207,7 +211,8 @@ def similarity(im0, im1):
 
     im2 = ndii.shift(im2, [t0, t1])
     toc = time() - tic
-    print 'misc3 took  {} seconds'.format(toc)
+    if timing:
+        print 'misc3 took  {} seconds'.format(toc)
 
     tic = time()
 
@@ -221,10 +226,12 @@ def similarity(im0, im1):
     scale = (im1.shape[1] - 1) / (int(im1.shape[1] / scale) - 1)
 
     toc = time() - tic
-    print 'misc4 took  {} seconds'.format(toc)
+    if timing:
+        print 'misc4 took  {} seconds'.format(toc)
 
     end_time = time() - start_time
-    print "Registration took {} seconds".format(end_time)
+    if timing:
+        print "Registration took {} seconds".format(end_time)
     return im2, scale, angle, [-t0, -t1]
 
 
@@ -260,7 +267,7 @@ def logpolar(image, angles=None, radii=None):
     theta = numpy.empty((angles, radii), dtype=numpy.float64)
     theta.T[:] = -numpy.linspace(0, numpy.pi, angles, endpoint=False)
     #d = radii
-    d = numpy.hypot(shape[0]-center[0], shape[1]-center[1])
+    d = numpy.hypot(shape[0] - center[0], shape[1] - center[1])
     log_base = 10.0 ** (math.log10(d) / (radii))
     radius = numpy.empty_like(theta)
     radius[:] = numpy.power(log_base, numpy.arange(radii,
@@ -323,7 +330,9 @@ if __name__ == '__main__':
     print img_2.shape
 
     tic = time()
-    im2, scale, angle, (t0, t1) = similarity(img_1, img_2)
+    matched, scale, angle, (t0, t1) = similarity(img_1, img_2, timing=True)
     toc = time() - tic
     print 'Took {} seconds with image'.format(toc)
     print 'Scale {}, angle {}, t0 {}, t1 {}'.format(scale, angle, t0, t1)
+
+    # imshow(img_1, img_2, matched)
