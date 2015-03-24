@@ -1,12 +1,13 @@
 '''Authors: 
     Matt Feldman
     Brandon Peterson
+    Jacob Panikulam
 '''
 import cv2
 import numpy as np
 from copy import deepcopy
 
-class SLAM(object):
+class Transform(object):
 
     cam_x = 640
     cam_y = 480
@@ -14,27 +15,38 @@ class SLAM(object):
     @classmethod
     def get_view_points(self, angle, height):
 
-        width = 20
-        z_offset = -5
-
-        points = [
-            [width, -height, width + z_offset],
-            [width, -height, -width + z_offset],
-            [-width, -height, -width + z_offset],
-            [-width, -height, width + z_offset],
-        ]
-
-        objectPoints = map(lambda pt: np.array([pt], np.float32), points)
-
-        rvec = angle * np.array((1.0, 0.0, 0.0), np.float32)
-        tvec = np.array((0.0, 0.0, 0.0), np.float32)
-
+        # Camera Matrix (Intrinsic Parameters)
         c920_cam = np.array([
             [631.58, 0.0, 300.169], 
             [0.0, 648.15, 259.594], 
             [0.0, 0.0, 1.0]], 
             dtype=np.float32
         )
+
+
+        width = 0.3
+        z_offset = -0.2
+
+        view_points = [
+            (616, 425, 1),
+            (469, 350, 1),
+            (169, 356, 1),
+            (23,  430, 1),
+        ]
+        points = []
+        for pt in view_points:
+            pt = np.matrix(pt).T # Append a 1!
+
+            back_projected = (np.matrix(c920_cam).I * pt).A1
+            print ' one point', back_projected
+            points.append(back_projected)
+
+
+        objectPoints = map(lambda pt: np.array([pt], np.float32), points)
+
+        rvec = angle * np.array((1.0, 0.0, 0.0), np.float32)
+        tvec = np.array((0.0, 0.0, 0.0), np.float32)
+
 
         # distCoeffs = np.array([0.169985, -0.401052, 0.005058, -0.00463, 0.0], np.float32)
         distCoeffs = np.array([0.1, 0.1, 0.1, 0.1, 0.1])
@@ -73,7 +85,8 @@ class SLAM(object):
     def _get_perspective_matrix(self, orig, guess):
         # Scale and move image around so that your location is equal to what
         # you defined in _robot_coordinates
-        new = self._tune_output_square(.5, [-285.7, -368], guess)
+        # new = self._tune_output_square(.5, [-285.7, -368], guess)
+        new = guess
         # Calculate the actual 3x3 matrix
         self._perspective_matrix = cv2.getPerspectiveTransform(orig, new)
         return self._perspective_matrix
@@ -81,6 +94,7 @@ class SLAM(object):
     @classmethod
     def transform_image(self, image, (bird_x, bird_y)): 
         #remap original image by applying transform matrix
+        print "Bird's Eye Coords ({} {})".format(bird_x, bird_y)
         imgx = cv2.warpPerspective(image, self._perspective_matrix,
                                    (bird_x, bird_y), flags=1, 
                                    borderMode=0, borderValue=(0, 0, 0))
@@ -100,23 +114,45 @@ class SLAM(object):
 
 if __name__ == '__main__':
     import os
+    from matplotlib import pyplot
     fpath = os.path.dirname(os.path.realpath(__file__))
-    img_path = os.path.join(fpath, "..", "..", "..", "..", "..", "python", "SLAM", "SLAMPics", 'c1.jpg')
 
-    image = cv2.imread(img_path)
-    cv2.imshow("Input image", image)
+    # Rubik's test
+    height = 0.086 # meters
+    height = height - 0.014 # Height of chess
 
+    angle = -0.26
+    view_points = Transform.get_view_points(height, angle)
 
-    height = 0.125  # meters
-    angle = 0.1
-    view_points = SLAM.get_view_points(height, angle)
-    map_coordinates = np.float32([[650, 650], [650, 350], [350, 350], [350, 650]])
+    # map_coordinates = np.float32([[650, 650], [650, 350], [350, 350], [350, 650]])
+    sq_size = 50
+    map_coordinates = np.float32([
+        [320 + sq_size, 240 + sq_size], 
+        [320 + sq_size, 240 - sq_size], 
+        [320 - sq_size, 240 - sq_size], 
+        [320 - sq_size, 240 + sq_size]
+    ])
+    Transform._get_perspective_matrix(view_points, map_coordinates)
+    (bird_dims) = Transform._get_bird_dims()
 
-    print view_points
-    print map_coordinates
-    perspective_matrix = SLAM._get_perspective_matrix(view_points, map_coordinates)
-    bird_dims = SLAM._get_bird_dims()
+    cap = cv2.VideoCapture(1)
+    while(True):
+        # Capture frame-by-frame
+        ret, frame = cap.read()
 
-    xformed = SLAM.transform_image(image, bird_dims)
+        # Our operations on the frame come here
 
-    cv2.imshow("xformed", xformed)
+        # Display the resulting frame
+        key_press = cv2.waitKey(1)
+        if key_press & 0xFF == ord('q'):
+            break
+        elif key_press & 0xFF == ord('f'):
+            pyplot.imshow(frame)
+            pyplot.show()
+
+        xformed = Transform.transform_image(frame, (1000, 1000))
+        print xformed.shape
+
+        # cv2.imshow("SDASDAD", image)
+        cv2.imshow("xformed", xformed)
+        # cv2.waitKey(0)
