@@ -19,8 +19,24 @@ class Localization(object):
         self.image_sub = Image_Subscriber('camera', self.image_cb)
         self.image = None
 
-    def stitch(self, image):
-        pass
+    def stitch(self, image, fx, fy, angle):
+        angle = np.radians(angle)
+        c, s = np.cos(angle), np.sin(angle)
+
+        trans_M = np.float32([
+            [0.0, 0.0, fy],
+            [0.0, 0.0, fx]
+        ])
+
+        rows, cols = image.shape
+        rot_M = cv2.getRotationMatrix2D((cols / 2, rows / 2), np.degrees(angle), 1)
+
+        rotated = cv2.warpAffine(image, rot_M, (cols, rows))
+        translated = cv2.warpAffine(rotated, trans_M, (cols, rows))
+
+        cv2.imshow('Destination', translated)
+        cv2.waitKey(1)
+
 
     def fix_size(self, image, size=200):
         '''Takes an image, makes it square, resizes it
@@ -33,7 +49,6 @@ class Localization(object):
         return sized
 
     def image_cb(self, image):
-        cv2.imshow("Image recvd", image)
         image = self.fix_size(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), size=125)
         if self.image is None:
             self.image = image
@@ -42,8 +57,11 @@ class Localization(object):
         cv2.imshow('Image!', self.image)
         matched, scale, angle, (t0, t1) = similarity(self.image, image)
         print 'Changes; scale: {}, angle: {}, t0: {}, t1: {}'.format(scale, angle, t0, t1)
-        cv2.imshow('Other!', matched)
-        cv2.waitKey(1)
+        # cv2.imshow('Other!', matched)
+        # cv2.waitKey(1)
+
+        self.stitch(image, t0, t1, angle)
+
 
 if __name__ == '__main__':
     localization = Localization()
