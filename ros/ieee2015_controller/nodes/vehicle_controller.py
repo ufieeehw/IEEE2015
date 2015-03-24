@@ -120,7 +120,7 @@ class Controller(object):
         Velocity calcluation should be done in a separate thread
          this thread should have an independent information "watchdog" timing method
         '''
-        if (self.des_pose is None) or (self.des_yaw is None):
+        if (self.des_position is None) or (self.des_yaw is None):
             return
 
         # World frame position
