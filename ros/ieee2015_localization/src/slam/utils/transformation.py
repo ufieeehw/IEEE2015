@@ -121,8 +121,8 @@ if __name__ == '__main__':
     height = 0.086 # meters
     height = height - 0.014 # Height of chess
 
-    angle = -0.26
-    view_points = Transform.get_view_points(height, angle)
+    angle = -0.0
+    view_points = Transform.get_view_points(angle, height)
 
     # map_coordinates = np.float32([[650, 650], [650, 350], [350, 350], [350, 650]])
     sq_size = 50
@@ -130,7 +130,7 @@ if __name__ == '__main__':
         [320 + sq_size, 240 + sq_size], 
         [320 + sq_size, 240 - sq_size], 
         [320 - sq_size, 240 - sq_size], 
-        [320 - sq_size, 240 + sq_size]
+        [320 - sq_size, 240 + sq_size],
     ])
     Transform._get_perspective_matrix(view_points, map_coordinates)
     (bird_dims) = Transform._get_bird_dims()
@@ -150,7 +150,7 @@ if __name__ == '__main__':
             pyplot.imshow(frame)
             pyplot.show()
 
-        xformed = Transform.transform_image(frame, (1000, 1000))
+        xformed = cv2.resize(Transform.transform_image(frame, (2000, 2000)), (500, 500))
         print xformed.shape
 
         # cv2.imshow("SDASDAD", image)

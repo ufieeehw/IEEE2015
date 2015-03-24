@@ -81,7 +81,8 @@ class Canvas(app.Canvas):
 
         vertices = VertexBuffer(vertices)
 
-        self.rotate = [60, 0, 0]
+        camera_pitch = 0.0 # Degrees
+        self.rotate = [camera_pitch, 0, 0]
         self.translate = [0, 0, -3]
 
         # Build program
