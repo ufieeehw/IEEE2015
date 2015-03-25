@@ -19,6 +19,9 @@ to_radians_two = 512
 control_one = 2
 control_two = 2
 
+past_location_one = 0
+past_location_two = 0
+
 SCREEN_DIM = (750, 750)
 ORIGIN = np.array([SCREEN_DIM[0]/2.0, SCREEN_DIM[1]/2.0])
 
@@ -31,6 +34,33 @@ def unround_point((x, y)):
     '''Change center-origin coordinates to pygame coordinates'''
     return ((x - ORIGIN[0])/1000.0, (-y + ORIGIN[1])/1000.0)
 
+def to_degrees(param):
+        if param < 0:
+            temp = 180 - math.fabs(param)
+            temp2 = temp * 2
+            return math.fabs(param) + temp2
+        else:
+            return param
+
+def check_size(param, servo):
+
+    global past_location_one
+    global past_location_two
+
+    temp = int(param * 3.405)
+
+    if temp < 1023:
+        if servo == 1:
+            past_location_one = temp
+        if servo == 2:
+            past_location_two = temp
+        return temp
+    if temp > 1024:
+        if servo == 1:
+            return past_location_one
+        if servo == 2:
+            return past_location_two
+
 
 class END(object):
 
@@ -42,24 +72,29 @@ class END(object):
 
         self.point_two = np.array([0.0, 0.0], np.float32) 
 
-        self.starting = np.array([2, 0], np.float32)
-        self.starting_two = np.array([-2, 0], np.float32)
+        self.starting = np.array([2, -3.5], np.float32)
+        self.starting_two = np.array([-2, -3.5], np.float32)
         self.starting_three = np.array([0, 1], np.float32)
 
         self.desired_pos = rospy.Subscriber('/end_des_pose', PointStamped, self.got_des_pose)
         self.desired_pos_two = rospy.Subscriber('/end_des_pose_two', PointStamped, self.got_des_pose_two)
+
 
     def got_des_pose(self, msg):
         '''Recieved desired arm pose'''
         self.point = (msg.point.x, msg.point.y)
         global to_radians_one
 
-        to_radians_one = math.atan2(msg.point.y, msg.point.x)
+        to_radians_one = math.atan2(msg.point.y, msg.point.x) * (180/np.pi) + 60
+
+        degrees_one = to_degrees(to_radians_one)
+        xl_format = check_size(degrees_one, 1)
+
+        to_radians_one = xl_format
 
         print "Targeting Base position: ({}, {})".format(*self.point) 
-        print "LARGE SERVO moved to ", to_radians_one, "radians"
-
-        to_radians_one = to_radians_one * 326
+        print "LARGE SERVO moved to ", degrees_one, "radians"
+        print "LARGE SERVO moved to ", xl_format, "in position register"
 
         base_pub = rospy.Publisher('/ieee2015_end_effector_servos', Num, queue_size=1)
         base_pub.publish(control_one, control_two, to_radians_one, to_radians_two)
@@ -69,12 +104,16 @@ class END(object):
         self.point = (msg.point.x, msg.point.y)
         global to_radians_two
 
-        to_radians_two = math.atan2(msg.point.y, msg.point.x)
+        to_radians_two = math.atan2(msg.point.y, msg.point.x)  * (180/np.pi) + 60
+
+        degrees_two =to_degrees(to_radians_two)
+        xl_format = check_size(degrees_two, 2)
+
+        to_radians_two = xl_format
 
         print "Targeting Base position: ({}, {})".format(*self.point) 
-        print "SMALL SERVO moved to ", to_radians_two, "radians"
-
-        to_radians_two = to_radians_two * 326
+        print "SMALL SERVO moved to ", degrees_two, "radians"
+        print "SMALL SERVO moved to ", xl_format, "in position register"
 
         base_pub = rospy.Publisher('/ieee2015_end_effector_servos', Num, queue_size=1)
         base_pub.publish(control_one, control_two, to_radians_one, to_radians_two)
@@ -91,15 +130,9 @@ class END(object):
         pygame.draw.line(display, (255, 255, 255), round_point(self.base), round_point(self.starting_three), 1)
 
 
-        
-
-        # Draw the desired position circle
-
-
-
 
 def main():
-    '''In principle, we can support an arbitrary number of arms in simulation'''
+    '''In principle, we can support an arbitrary number of servos in simulation'''
     end_one = [END()]
 
     global control_one
