@@ -20,5 +20,5 @@ if __name__== "__main__":
     rospy.init_node('ieee2015_tf_broadcaster')
     listener = tf.TransformListener()
     (trans,rot) = listener.lookupTransform('/end_camera', '/course', rospy.Time(0))
-    end_camera_height=trans[1]# also try trans[0]
+    end_camera_height=trans[2]# also try trans[0]
     compute_distance_server()
