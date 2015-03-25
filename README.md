@@ -58,11 +58,16 @@ If you want to use the 3D simulator, you need some Gazebo packages
 
 To get everything without any effort, do:
     sudo apt-get install aptitude
-    sudo aptitude install python-pip python-pygame
+
+    sudo aptitude install python-pip python-pygame python-scipy
+
     sudo pip install scikit-fmm
+
 ```sudo aptitude install python-pygame ros-indigo-gazebo-ros-pkgs ros-indigo-ros-control ros-indigo-ros-controllers ros-indigo-gazebo-ros-control```
+
 then run 
 ```catkin_make -C ~/catkin_ws```
+
 ```mkdir ~/repos; cd ~/repos; git clone https://github.com/vispy/vispy.git; cd vispy; sudo python setup.py install```
 
 ## **Git Best Practices**
