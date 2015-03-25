@@ -4,6 +4,6 @@
     <node name="arm_simulator" pkg="ieee2015_simulator" type="arm_simulator.py"
         output="screen" ns="/robot" />
     <node name="end_effector_sim" pkg="ieee2015_simulator" type="end_effector_sim.py"
-        output="screen" ns="/robot" />
+        output="screen" />
 </launch>
 

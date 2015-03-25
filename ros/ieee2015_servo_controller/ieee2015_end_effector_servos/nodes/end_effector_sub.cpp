@@ -18,9 +18,7 @@
 
 void chatterCallback(const ieee2015_end_effector_servos::Num::ConstPtr &num)
 {
-  SetControl(3, num->control_one);
-  SetControl(4, num->control_two);
-  SetPosition(1, num->position_one);
+  SetPosition(3, num->position_one);
   SetPosition(4, num->position_two);
 }
 
@@ -34,23 +32,52 @@ int main(int argc, char **argv)
 
   ros::Subscriber sub = n.subscribe("ieee2015_end_effector_servos", 1000, chatterCallback);
 
-  InitDXL(1,3);
-  TorqueDisable(1);
+
+  uint16_t position;
+  uint8_t mode;
+
+  InitDXL(3,3);
+  InitDXL(4,3);
+
+  TorqueDisable(3);
+  TorqueDisable(4);
+
+  TorqueEnable(3);
+  TorqueEnable(4);
+
+  SetMaxTorque(3,1023);
+  ReadTorque(3, &position);
+  ReadControl(3, &mode);
+  std::cout << position << mode << "\n";
+  SetTorque(3,1023);
+  ReadTorque(3, &position);
+  ReadControl(3, &mode);
+  std::cout << position << mode << "\n";
+  SetMaxTorque(4,1023);
+  ReadTorque(4, &position);
+  ReadControl(4, &mode);
+  std::cout << position << mode << "\n";
+  SetTorque(4,1023);
+  ReadTorque(4, &position);
+  ReadControl(4, &mode);
+  std::cout << position << mode << "\n";
+
+  SetVelocity(3,700);
+  SetVelocity(4,700);
+
+  SetLED(3,7);
+  SetLED(4,7);
+
+  /*
   SetLED(1,7);
-  SetControl(1,1);
-  TorqueEnable(1);
-  SetTorque(1,1000);
+  SetMaxTorque(1,1023);
+
   for (int i = 0; i < 1000; i++)
   {
-      SetTorque(1,1000);
-
-      SetVelocity(1,i);
-      sleep(1);
-  }
-
-
+    SetTorque(1,1023);
+    SetVelocity(1,1000);
+  }*/
   
-
 
   ros::spin();
 

@@ -6,7 +6,7 @@
             namespace: dxl_manager
             serial_ports:
                 arm_control_port:
-                    port_name: "/dev/serial/by-id/usb-FTDI_USB__-__Serial_Cable_FTTKRX37-if03-port0"
+                    port_name: "/dev/serial/by-id/usb-FTDI_USB__-__Serial_Cable_FTTKRW6G-if03-port0"
                     baud_rate: 1000000
                     min_motor_id: 1
                     max_motor_id: 25

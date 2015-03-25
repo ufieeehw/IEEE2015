@@ -271,7 +271,7 @@ bool SetVelocity(uint8_t dxl_id, uint16_t velocity) {
 }
 
 
-bool SetTorque(uint8_t dxl_id, uint8_t value) {
+bool SetTorque(uint8_t dxl_id, uint16_t value) {
   uint8_t data[MAX_PACKET_BYTES];
 
   int position_register = 35;
@@ -293,7 +293,7 @@ bool SetTorque(uint8_t dxl_id, uint8_t value) {
 bool ReadTorque(uint8_t dxl_id, uint16_t* position) {
   uint8_t data[MAX_PACKET_BYTES];
 
-  int position_register = 35;
+  int position_register = 15;
   int position_bytes = 2;
   int num_parameters_tx = MakeReadPacket(data, dxl_id, position_register, position_bytes);
 

@@ -19,7 +19,7 @@ bool SetTorqueEnable(uint8_t dxl_id, uint8_t is_enabled);
 bool TorqueEnable(uint8_t dxl_id);
 bool TorqueDisable(uint8_t dxl_id);
 bool SetLED(uint8_t dxl_id, uint8_t color);
-bool SetTorque(uint8_t dxl_id, uint8_t value);
+bool SetTorque(uint8_t dxl_id, uint16_t value);
 bool SetVelocity(uint8_t dxl_id, uint16_t velocity);
 bool SetPosition(uint8_t dxl_id, uint16_t position);
 bool SetDGain(uint8_t dxl_id, uint8_t value);

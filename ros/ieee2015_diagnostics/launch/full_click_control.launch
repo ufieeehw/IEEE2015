@@ -3,9 +3,13 @@
         output="screen" ns="/" />
     <node name="arm_simulator" pkg="ieee2015_simulator" type="arm_simulator.py"
         output="screen" ns="/" />
+    <node name="end_effector_sim" pkg="ieee2015_simulator" type="end_effector_sim.py"
+        output="screen" />
+
 
     <include file="$(find ieee2015_arm_servos)/launch/start_arm_servos.launch"/>
     <include file="$(find ieee2015_arm_servos)/launch/start_base_servo.launch"/>
+    <include file="$(find ieee2015_end_effector_servos)/launch/end_effector_launch.launch"/>
 
     <node name="elbow_state_visualization" pkg="ieee2015_diagnostics" type="visualize_arm_behavior" 
         args="--topic /elbow_controller/state --name Elbow_Servo"
