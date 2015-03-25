@@ -1,6 +1,5 @@
 <!-- -*- mode: XML -*- -->
 
 <launch>
-    <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="0 0 0.119 0 0 0 robot camera 100" />
     <node pkg="ieee2015_tf_broadcaster" type="ieee2015_tf_broadcaster.py" name="ieee2015_tf_broadcaster"/>
 </launch>

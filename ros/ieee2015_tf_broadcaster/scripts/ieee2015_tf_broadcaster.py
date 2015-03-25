@@ -17,7 +17,9 @@ tf_broad = tf.TransformBroadcaster()
 
 def handle_camera_pose(msg):
     translation = (msg.pose.position.x, msg.pose.position.y, 0)#assuming camera is in the slot closest to edge
-    rotation = tf.transformations.quaternion_from_euler(msg.pose.orientation.x,msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w)
+    print translation
+    rotation = tf.transformations.quaternion_from_euler(0,0, msg.pose.orientation.z)
+    print rotation
     time = rospy.Time.now()
 
     tf_broad.sendTransform(translation, rotation, time, "/camera", "/course")
@@ -29,7 +31,8 @@ def read_spinner_servo(msg):
     rotation = tf.transformations.quaternion_from_euler(0, 1.570796, last_spinner_servo_position) #rotates about the y axis to make the z axis along the motor, servo rotation value is sent to z rotation
     time = rospy.Time.now()
     
-    tf_broad.sendTransform(translation, rotation, time, "/spinner_servo", "/camera")			  
+    tf_broad.sendTransform(translation, rotation, time, "/spinner_servo", "/camera")
+			  
 
 def read_shoulder_servo(msg):
     global last_shoulder_servo_position
@@ -74,16 +77,16 @@ def read_end_camera(msg):
     tf_broad.sendTransform(translation, rotation, time, "/end_camera", "/end_servo")
 
 
-
-#def read_end_effector(msg): 
-#	translation = () #it will be a slight vertical shift down
-#	rotation = () #joint value
-#	time = rospy.Time.now()
+'''
+def read_end_effector(msg): 
+	translation = () #it will be a slight vertical(z) shift down
+	rotation = () #joint value(z)
+	time = rospy.Time.now()
    
-#    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
+    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
+'''
 
-
-    if __name__ == '__main__':
+if __name__ == '__main__':
     rospy.init_node('ieee2015_tf_broadcaster')
 
     sim = rospy.get_param('~sim', "N")
@@ -98,4 +101,4 @@ def read_end_camera(msg):
     rospy.Subscriber('/{0}elbow_controller/state'.format(prefix), JointState, read_elbow_servo)
     rospy.Subscriber('/{0}end_controller/state'.format(prefix), JointState, read_end_servo)
 
-    rospy.spin()
+rospy.spin()
