@@ -56,7 +56,7 @@ def getCardLoc( img ):
     
     
     # Fits the binary image contours with a rectangle
-    (x,y),(MA,ma),ang = cv2.minAreaRect(boundingBox)
+    (xCenter,yCenter),(MA,ma),ang = cv2.minAreaRect(boundingBox)
     
     cv2.circle(img,(int(x), int(y)),2,(0,0,255),30)
     
@@ -65,6 +65,7 @@ def getCardLoc( img ):
     cv2.imshow('img', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+    '''
     #OUTPUT PRINTS
     print '\n(x,y): '
     print (x,y)
@@ -72,10 +73,11 @@ def getCardLoc( img ):
     print (MA, ma)
     print '\nangle: '
     print ang
+    '''
     
     
     # Outputs the center coordinate, minor and MAJOR axes, and angle of rotation.
-    return (x,y), (MA, ma), ang
+    return (xCenter,yCenter), (MA, ma), ang
 
 colorimage = cv2.imread('Images/color_in-9.jpg') 
 getCardLoc(colorimage)
