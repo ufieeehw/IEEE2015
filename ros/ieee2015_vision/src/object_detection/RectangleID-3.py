@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 
 #Reads image in two copies. One is color, one is grayscale.
-colorimage = cv2.imread('card1.jpg') 
+colorimage = cv2.imread('Images/color_in-9.jpg') 
 greyscale= cv2.cvtColor(colorimage,cv2.COLOR_BGR2GRAY)
 
 #Creates an image called threshold, which is the threshold of the grayscale image
