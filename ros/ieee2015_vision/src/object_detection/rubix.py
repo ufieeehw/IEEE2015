@@ -28,7 +28,7 @@ def findRubix(filename):
   gray = cv2.adaptiveThreshold(grayscale,255,cv2.ADAPTIVE_THRESH_MEAN_C,\
           cv2.THRESH_BINARY,37,15)
   gray = cv2.erode(gray, kernelg)
-  gray = cv2.dilate(gray, kernelD)
+  #gray = cv2.dilate(gray, kernelD)
   cv2.imshow('adaptive thresh', gray)
   cv2.waitKey(0)
 
