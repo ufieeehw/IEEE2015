@@ -122,7 +122,7 @@ class END(object):
         '''Draw the whole arm'''
         # Update positions given current 
 
-        pygame.draw.circle(display, (255, 255, 50), round_point(self.base), int(200), 2)
+        pygame.draw.circle(display, (255, 255, 50), round_point(self.base), int(300), 2)
         pygame.draw.line(display, (255, 162, 0), round_point(self.base), round_point(self.point), 3)
         pygame.draw.line(display, (255, 130, 0), round_point(self.base), round_point(self.point_two), 3)
         pygame.draw.line(display, (255, 255, 255), round_point(self.base), round_point(self.starting), 1)
