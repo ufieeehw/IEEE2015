@@ -95,9 +95,9 @@ class Canvas(app.Canvas):
         self.cube = Program(cube_vertex, cube_fragment)
         self.cube['position'] = vertices
         # 4640 x 2256
-        imtex = cv2.imread(os.path.join(img_path, 'stage.jpg'))
+        imtex = cv2.imread(os.path.join(img_path, 'stage.jpg')) 
         self.cube['texcoord'] = texcoord
-        self.cube["texture"] = imtex
+        self.cube["texture"] = np.uint8(np.fabs(imtex + np.random.randint(-20, 20, size=imtex.shape)))
         self.cube["texture"].interpolation = 'linear'
         self.cube['model'] = model
         self.cube['view'] = view
