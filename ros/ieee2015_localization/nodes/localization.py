@@ -3,11 +3,14 @@ import cv2
 import rospy
 import numpy as np
 
+from geometry_msgs.msg import Twist, Point, PoseStamped, Pose2D, Quaternion
+
 import roslib
 roslib.load_manifest('ieee2015_vision')
 from ros_image_tools import Image_Subscriber
 roslib.load_manifest('ieee2015_localization')
-from slam.registration import similarity
+from slam.registration import similarity, translation, similarity_fast
+from time import time
 
 class Localization(object):
     def __init__(self):
@@ -19,19 +22,22 @@ class Localization(object):
         self.image_sub = Image_Subscriber('camera', self.image_cb)
         self.image = None
 
-    def stitch(self, image, fx, fy, angle):
-        angle = np.radians(angle)
-        c, s = np.cos(angle), np.sin(angle)
+        self.pose_pub = rospy.Publisher('SLAM_pose', Pose2D, queue_size=3)
 
-        trans_M = np.float32([
-            [0.0, 0.0, fy],
-            [0.0, 0.0, fx]
-        ])
 
+    def stitch(self, image, angle):
         rows, cols = image.shape
-        rot_M = cv2.getRotationMatrix2D((cols / 2, rows / 2), np.degrees(angle), 1)
+        rot_M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
 
         rotated = cv2.warpAffine(image, rot_M, (cols, rows))
+        [tx, ty] = translation(self.image, rotated[:125, :125])
+        trans_M = np.float32([
+            [1.0, 0.0, ty],
+            [0.0, 1.0, tx]
+        ])
+
+        print '\ttranslate_1: {}, translate_2: {}'.format(tx, ty)
+
         translated = cv2.warpAffine(rotated, trans_M, (cols, rows))
 
         cv2.imshow('Destination', translated)
@@ -55,12 +61,15 @@ class Localization(object):
             return
 
         cv2.imshow('Image!', self.image)
-        matched, scale, angle, (t0, t1) = similarity(self.image, image)
-        print 'Changes; scale: {}, angle: {}, t0: {}, t1: {}'.format(scale, angle, t0, t1)
-        # cv2.imshow('Other!', matched)
-        # cv2.waitKey(1)
 
-        self.stitch(image, t0, t1, angle)
+        tic = time()
+        scale, angle = similarity_fast(self.image, image)
+
+        print 'Changes; scale: {}, angle: {}'.format(scale, angle)
+
+        self.stitch(image, angle)
+        toc = time() - tic
+        print 'Single loop took {} seconds'.format(toc)
 
 
 if __name__ == '__main__':
