@@ -16,13 +16,15 @@ class Localization(object):
     def __init__(self):
         rospy.init_node('localization')
 
-        self.map_size = 2000
+        self.map_size = 1000
         self.full_map = np.zeros((self.map_size, self.map_size), np.uint8)
 
         self.image_sub = Image_Subscriber('camera', self.image_cb)
         self.image = None
 
         self.pose_pub = rospy.Publisher('SLAM_pose', Pose2D, queue_size=3)
+
+        self.current_position = (500, 500)
 
 
     def stitch(self, image, angle):
@@ -37,10 +39,15 @@ class Localization(object):
         ])
 
         print '\ttranslate_1: {}, translate_2: {}'.format(tx, ty)
-
         translated = cv2.warpAffine(rotated, trans_M, (cols, rows))
-
         cv2.imshow('Destination', translated)
+
+        self.full_map[
+            self.current_position[0] + tx: self.current_position[0] + tx + 125, 
+            self.current_position[1] + ty: self.current_position[1] + ty + 125
+            ] = rotated
+
+        cv2.imshow('Map', self.full_map)
         cv2.waitKey(1)
 
 

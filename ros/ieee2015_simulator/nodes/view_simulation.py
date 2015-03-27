@@ -97,7 +97,7 @@ class Canvas(app.Canvas):
         # 4640 x 2256
         imtex = cv2.imread(os.path.join(img_path, 'stage.jpg')) 
         self.cube['texcoord'] = texcoord
-        self.cube["texture"] = np.uint8(np.fabs(imtex + np.random.randint(-20, 20, size=imtex.shape)))
+        self.cube["texture"] = np.uint8(np.clip(imtex + np.random.randint(-60, 20, size=imtex.shape), 0, 255))
         self.cube["texture"].interpolation = 'linear'
         self.cube['model'] = model
         self.cube['view'] = view

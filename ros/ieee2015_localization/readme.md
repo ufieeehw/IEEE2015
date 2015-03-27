@@ -20,9 +20,13 @@ Convolutional template matching?
 
 # TODO
 
+Do comparison only to the previous image
+
 Add a perspective transform based on angle of camera, without requiring someone to input 4 points. This should not be hard to do, but will require some serious math
 
-Make fourier registration work in real-time: Remove creation of the 2nd image; don't do redundant fft/ifft's
+Make fourier registration work in real-time: 
+    - Remove creation of the 2nd image; don't do redundant fft/ifft's
+    - Speed up logpolar estimation (linspace, ndii.map_coordinates)
 
 Benchmarks:
     (150 x 150) -> 0.1 sec
