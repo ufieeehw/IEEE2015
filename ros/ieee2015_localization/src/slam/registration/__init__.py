@@ -1,1 +1,1 @@
-from .imreg import similarity
+from .imreg import similarity, translation, similarity_fast

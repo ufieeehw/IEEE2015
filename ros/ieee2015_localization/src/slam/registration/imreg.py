@@ -235,6 +235,86 @@ def similarity(im0, im1, timing=False):
     return im2, scale, angle, [-t0, -t1]
 
 
+def similarity_fast(im0, im1, timing=False):
+    """Return similarity transformed image im1 and transformation parameters.
+
+    Transformation parameters are: isotropic scale factor, rotation angle (in
+    degrees), and translation vector.
+
+    A similarity transformation is an affine transformation with isotropic
+    scale and without shear.
+
+    Limitations:
+    Image shapes must be equal and square.
+    All image areas must have same scale, rotation, and shift.
+    Scale change must be less than 1.8.
+    No subpixel precision.
+
+    """
+    start_time = time()
+    if im0.shape != im1.shape:
+        raise ValueError("Images must have same shapes.")
+    elif len(im0.shape) != 2:
+        raise ValueError("Images must be 2 dimensional.")
+
+
+    tic = time()
+    f0 = fftshift(abs(fft2(im0)))
+    f1 = fftshift(abs(fft2(im1)))
+    toc = time() - tic
+
+    if timing:
+        print 'FFT computation took {}'.format(toc)
+
+    tic = time()
+    h = highpass(f0.shape)
+    toc = time() - tic
+    f0 *= h
+    f1 *= h
+    del h
+    if timing:
+        print 'High pass computation took {}'.format(toc)
+
+
+    tic = time()
+    f0, log_base = logpolar(f0)
+    f1, log_base = logpolar(f1)
+    toc = time() - tic
+
+    f0 = fft2(f0)
+    f1 = fft2(f1)
+
+    r0 = abs(f0) * abs(f1)
+    ir = abs(ifft2((f0 * f1.conjugate()) / r0))
+    i0, i1 = numpy.unravel_index(numpy.argmax(ir), ir.shape)
+    angle = 180.0 * i0 / ir.shape[0]
+
+    scale = log_base ** i1
+
+    if timing:
+        print 'misc took  {} seconds'.format(toc)
+
+    tic = time()
+    if scale > 1.8:
+        ir = abs(ifft2((f1 * f0.conjugate()) / r0))
+        i0, i1 = numpy.unravel_index(numpy.argmax(ir), ir.shape)
+        angle = -180.0 * i0 / ir.shape[0]
+        scale = 1.0 / (log_base ** i1)
+        if scale > 1.8:
+            raise ValueError("Images are not compatible. Scale change > 1.8")
+
+    if angle < -90.0:
+        angle += 180.0
+    elif angle > 90.0:
+        angle -= 180.0
+
+    end_time = time() - start_time
+    if timing:
+        print "Registration took {} seconds".format(end_time)
+
+    return scale, angle
+
+
 def similarity_matrix(scale, angle, vector):
     """Return homogeneous transformation matrix from similarity parameters.
 
@@ -333,6 +413,9 @@ if __name__ == '__main__':
     matched, scale, angle, (t0, t1) = similarity(img_1, img_2, timing=True)
     toc = time() - tic
     print 'Took {} seconds with image'.format(toc)
+    print 'Scale {}, angle {}, t0 {}, t1 {}'.format(scale, angle, t0, t1)
+
+    scale, angle = similarity_fast(img_1, img_2, timing=True)
     print 'Scale {}, angle {}, t0 {}, t1 {}'.format(scale, angle, t0, t1)
 
     # imshow(img_1, img_2, matched)
