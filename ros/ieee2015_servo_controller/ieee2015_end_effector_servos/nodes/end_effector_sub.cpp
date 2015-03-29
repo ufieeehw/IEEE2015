@@ -15,6 +15,95 @@
 #include "communications.h"
 #include "ieee2015_end_effector_servos/Num.h"
 
+bool is_testing = false;
+
+uint16_t m_pos_l = 0;
+uint16_t m_pos_r = 0;
+uint16_t t_pos_l = 0;
+uint16_t t_pos_r = 0;
+
+
+void ToWheelMode(int dxl_id)
+{
+    SetCWAngleLimit(dxl_id,0);
+    SetCW_WAngleLimit(dxl_id,0);
+    SetControl(dxl_id,1);
+}
+
+
+void ToAngleMode(int dxl_id)
+{
+    SetCWAngleLimit(dxl_id,0);
+    SetCW_WAngleLimit(dxl_id,1023);
+    SetControl(dxl_id,2);
+}
+
+void servo_up(){
+
+  SetVelocity(5,785);
+  SetVelocity(6,785);
+
+  sleep(3);
+
+  SetVelocity(5,0);
+  SetVelocity(6,0);
+
+  PAYLOAD(5,1);
+  PAYLOAD(6,1);
+
+  SetPosition(5, m_pos_r);
+  SetPosition(6, m_pos_l);
+
+  PAYLOAD(5,2);
+  PAYLOAD(6,2);
+
+}
+
+void servo_down(){
+
+  SetVelocity(5,1860);
+  SetVelocity(6,1860);
+
+  sleep(3);
+
+  SetVelocity(5,0);
+  SetVelocity(6,0);
+
+  PAYLOAD(5,1);
+  PAYLOAD(6,1);
+
+  SetPosition(5, m_pos_r);
+  SetPosition(6, m_pos_l);
+
+  PAYLOAD(5,2);
+  PAYLOAD(6,2);
+
+}
+
+void PAYLOAD(int dxl_id, int wheel_or_angle){
+
+    if (wheel_or_angle == 1)
+    {
+      TorqueDisable(dxl_id);
+      ToAngleMode(dxl_id);
+      TorqueEnable(dxl_id);
+      SetTemp(dxl_id,150);
+      SetMaxTorque(dxl_id,1023);
+      SetTorque(dxl_id,1023);
+      SetVelocity(dxl_id,700);
+    }
+    if (wheel_or_angle == 2)
+    {
+      TorqueDisable(dxl_id);
+      ToWheelMode(dxl_id);
+      TorqueEnable(dxl_id);
+      SetTemp(dxl_id,150);
+      SetMaxTorque(dxl_id,1023);
+      SetTorque(dxl_id,1023);
+    }
+    
+
+}
 void read_from_servos(int dxl_id){
 
   uint16_t position, angle, c_load;
@@ -48,81 +137,119 @@ void read_from_servos(int dxl_id){
 
 }
 
+int last_control = 1;
 
 void chatterCallback(const ieee2015_end_effector_servos::Num::ConstPtr &num)
 {
+
+  if(last_control != num->control){
+    if (num->control == 1) // Set to angle mode
+    {
+      PAYLOAD(3,1);
+      PAYLOAD(4,1);
+      SetLED(3,7);
+      SetLED(4,7);
+      servo_down();
+
+    }
+    if (num->control == 2) // Set to continous mode
+    {
+      servo_up();
+      PAYLOAD(3,2);
+      SetVelocity(3,500);
+      SetLED(3,5);
+
+      usleep(500);
+
+      PAYLOAD(4,2);
+      SetVelocity(4,500);
+      SetLED(4,5);
+
+    }
+  }
+
   SetPosition(3, num->position_one);
   SetPosition(4, num->position_two);
-  read_from_servos(3);
-  read_from_servos(4);
+
+  last_control = num->control;
 
 }
 
 
 int main(int argc, char **argv)
 {
-   
+
   ros::init(argc, argv, "listener");
 
   ros::NodeHandle n;
 
   ros::Subscriber sub = n.subscribe("ieee2015_end_effector_servos", 1000, chatterCallback);
 
-  // Enable Servos
-  InitDXL(5,3);
-  InitDXL(6,3);
-  InitDXL(3,3);
-  InitDXL(4,3);
+  uint16_t position;
 
-  // Turn Torque off to set Control
-  TorqueDisable(3);
-  TorqueDisable(4);
-  TorqueDisable(5);
-  TorqueDisable(6);
-
-  // Set Control
-  SetControl(3,2);
-  SetControl(4,2);
-  SetControl(5,1);
-  SetControl(6,1);
-  
-  // Done changing control
-  TorqueEnable(3);
-  TorqueEnable(4);
-  TorqueEnable(5);
-  TorqueEnable(6);
-
-  // Set max torques
-  SetMaxTorque(3,1023);
-  SetMaxTorque(4,1023);
-  SetMaxTorque(5, 1023);
-  SetMaxTorque(6, 1023);
-  
-  // Set Torque for Angle mode servos
-  SetTorque(3,1023);
-  SetTorque(4,1023);
-
-  // Set Velocity
-  SetVelocity(3,700);
-  SetVelocity(4,700);
-
-  // Setup Complete
-  SetLED(3,7);
-  SetLED(4,7);
-  SetLED(5,7);
-  SetLED(6,7);
-
-  /*
-  for (int i = 0; i < 1023; i++)
+  if (is_testing == true)
   {
-    SetTorque(5,1000);
-    SetTorque(6,1000);
-    SetVelocity(6,1000);
-    SetVelocity(5,1000);
-  }
-  */
+    
+    InitDXL(1,3);
+    SetID(1,6);
+    SetLED(6,1);
 
-  ros::spin();
+  }
+
+  if (is_testing == false)
+  {
+
+    InitDXL(3,3);
+    PAYLOAD(3,1);
+
+    usleep(1000);
+
+    InitDXL(4,3);
+    PAYLOAD(4,1);
+
+    usleep(1000);
+
+    InitDXL(5,3);
+    PAYLOAD(5,2);
+
+    usleep(1000);
+
+    InitDXL(6,3);
+    PAYLOAD(6,2);
+
+    SetVelocity(5,0);
+    SetVelocity(6,0);
+
+    usleep(1000);
+
+    ReadPosition(5, &m_pos_r);
+    ReadPosition(6, &m_pos_l);
+
+
+    // Setup complete buffoonery
+    for (int i = 4; i < 7; i++)
+    {
+      SetLED(3,0);
+      SetLED(4,0);
+      SetLED(5,0);
+      SetLED(6,0);
+
+      usleep(2000);
+
+      SetLED(3,i);
+      SetLED(4,i);
+      SetLED(5,i);
+      SetLED(6,i);
+
+      usleep(2000);
+    }
+
+    ros::spin();
+
+    return 0;
+
+  }
 
   return 0;
+
 }
