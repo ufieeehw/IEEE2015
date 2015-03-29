@@ -9,19 +9,20 @@ from copy import deepcopy
 
 class Transform(object):
 
+    # Camera Matrix (Intrinsic Parameters)
+    c920_cam = np.array([
+        [631.58, 0.0, 300.169], 
+        [0.0, 648.15, 259.594], 
+        [0.0, 0.0, 1.0]], 
+        dtype=np.float32
+    )
+    distCoeffs = np.array([0.169985, -0.40105, 0.005058, -0.000463, 0.0])
+
     cam_x = 640
     cam_y = 480
 
     @classmethod
     def get_view_points(self, angle, height):
-
-        # Camera Matrix (Intrinsic Parameters)
-        c920_cam = np.array([
-            [631.58, 0.0, 300.169], 
-            [0.0, 648.15, 259.594], 
-            [0.0, 0.0, 1.0]], 
-            dtype=np.float32
-        )
 
 
         width = 0.3
@@ -37,7 +38,7 @@ class Transform(object):
         for pt in view_points:
             pt = np.matrix(pt).T # Append a 1!
 
-            back_projected = (np.matrix(c920_cam).I * pt).A1
+            back_projected = (np.matrix(self.c920_cam).I * pt).A1
             print ' one point', back_projected
             points.append(back_projected)
 
@@ -48,12 +49,12 @@ class Transform(object):
         tvec = np.array((0.0, 0.0, 0.0), np.float32)
 
 
-        # distCoeffs = np.array([0.169985, -0.401052, 0.005058, -0.00463, 0.0], np.float32)
-        distCoeffs = np.array([0.1, 0.1, 0.1, 0.1, 0.1])
+        distCoeffs = np.array([0.169985, -0.401052, 0.005058, -0.00463, 0.0], np.float32)
+        # distCoeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
         view_coordinates = []
         for i in range(4):
-            img_point, _ = cv2.projectPoints(objectPoints[i], rvec, tvec, c920_cam, distCoeffs)
+            img_point, _ = cv2.projectPoints(objectPoints[i], rvec, tvec, self.c920_cam, distCoeffs)
             view_coordinates.append(img_point[0][0])
         return np.float32(view_coordinates)
 
@@ -112,24 +113,36 @@ class Transform(object):
             newpoints[n][1] = avg_y - (avg_y - points[n][1]) * scale + translate[1]
         return newpoints
 
+    @classmethod
+    def rectify_image(self, image):
+
+        rected = cv2.undistort(image, self.c920_cam, self.distCoeffs)
+        return rected
+
 if __name__ == '__main__':
     import os
     from matplotlib import pyplot
+    from time import time
     fpath = os.path.dirname(os.path.realpath(__file__))
 
-    # Rubik's test
-    height = 0.086 # meters
-    height = height - 0.014 # Height of chess
 
-    angle = -0.0
+
+    # Rubik's test
+    # height = 0.086 # meters
+    # height = height - 0.014 # Height of chess
+    height = 0.085 # meters
+    height = height - 0.007 # Height of chess
+
+    # angle = -0.0
+    angle = 0.2
     view_points = Transform.get_view_points(angle, height)
 
     # map_coordinates = np.float32([[650, 650], [650, 350], [350, 350], [350, 650]])
     sq_size = 50
     map_coordinates = np.float32([
-        [320 + sq_size, 240 + sq_size], 
-        [320 + sq_size, 240 - sq_size], 
-        [320 - sq_size, 240 - sq_size], 
+        [320 + sq_size, 240 + sq_size],
+        [320 + sq_size, 240 - sq_size],
+        [320 - sq_size, 240 - sq_size],
         [320 - sq_size, 240 + sq_size],
     ])
     Transform._get_perspective_matrix(view_points, map_coordinates)
@@ -150,9 +163,14 @@ if __name__ == '__main__':
             pyplot.imshow(frame)
             pyplot.show()
 
-        xformed = cv2.resize(Transform.transform_image(frame, (2000, 2000)), (500, 500))
+        tic = time()
+        rected = Transform.rectify_image(frame)
+        # cv2.imshow("Rectified", rected)
+
+        xformed = cv2.resize(Transform.transform_image(rected, (800, 800)), (500, 500))
+        toc = time() - tic
+        print 'Rectification took {} seconds'.format(toc)
+
         print xformed.shape
 
-        # cv2.imshow("SDASDAD", image)
         cv2.imshow("xformed", xformed)
-        # cv2.waitKey(0)
