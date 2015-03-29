@@ -11,8 +11,7 @@ import tf
 from geometry_msgs.msg import PoseStamped, Transform
 from dynamixel_msgs.msg import JointState
 
-last_pan_position = 0.0
-last_tilt_position = 0.0
+
 tf_broad = tf.TransformBroadcaster()
 
 def handle_camera_pose(msg):
@@ -24,6 +23,15 @@ def handle_camera_pose(msg):
 
     tf_broad.sendTransform(translation, rotation, time, "/camera", "/course")
 
+def robot_center(msg):
+    translation = (0, 0, -0.0185)#assuming camera is in the slot closest to edge
+    print translation
+    rotation = tf.transformations.quaternion_from_euler(0,0, 0)
+    print rotation
+    time = rospy.Time.now()
+
+    tf_broad.sendTransform(translation, rotation, time, "/robot", "/camera")
+
 def read_spinner_servo(msg):
     global last_spinner_servo_position
     last_spinner_servo_position = msg.current_pos
@@ -31,7 +39,7 @@ def read_spinner_servo(msg):
     rotation = tf.transformations.quaternion_from_euler(0, 1.570796, last_spinner_servo_position) #rotates about the y axis to make the z axis along the motor, servo rotation value is sent to z rotation
     time = rospy.Time.now()
     
-    tf_broad.sendTransform(translation, rotation, time, "/spinner_servo", "/camera")
+    tf_broad.sendTransform(translation, rotation, time, "/spinner_servo", "/robot")
 			  
 
 def read_shoulder_servo(msg):
