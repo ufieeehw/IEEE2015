@@ -69,9 +69,15 @@ class Controller(object):
     def send_twist(self, (xvel,yvel), angvel):
         '''Generate twist message'''
         self.twist_pub.publish(
-            Twist(
-                linear=Vector3(xvel, yvel, 0),
-                angular=Vector3(0, 0, angvel),  # Radians
+            TwistStamped(
+                header = Header(
+                    stamp=rospy.Time.now(),
+                    frame_id='/robot',
+                ),
+                twist=Twist(
+                    linear=Vector3(xvel, yvel, 0),
+                    angular=Vector3(0, 0, angvel),  # Radians
+                )
             )
         )
 
@@ -87,7 +93,7 @@ class Controller(object):
         norm = np.linalg.norm(v)
         if norm == 0:
             return(v)
-        return np.array(v)/np.linalg.norm(v)
+        return np.array(v) / np.linalg.norm(v)
 
     def vec_diff(self, v1, v2):
         '''norm(v1 - v2)'''

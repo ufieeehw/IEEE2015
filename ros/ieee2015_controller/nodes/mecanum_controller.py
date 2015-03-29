@@ -30,13 +30,14 @@ class Controller(object):
         self.left_inverse = (mecanum_matrix.T * mecanum_matrix).I * mecanum_matrix.T
 
         # Twist subscriber
-        self.twist_sub = rospy.Subscriber('/twist', Twist, self.got_twist)
+        self.twist_sub = rospy.Subscriber('/twist', TwistStamped, self.got_twist)
         # We do not currently use the Mecanum publisher, instead only the service is called
         self.mecanum_pub = rospy.Publisher('/mecanum_speeds', Mecanum, queue_size=1)
         rospy.loginfo("Attempting to find set_wheel_speeds service")
         self.wheel_speed_proxy = rospy.ServiceProxy('/xmega_connector/set_wheel_speeds', SetWheelSpeeds)
 
-    def got_twist(self, twist_msg):
+    def got_twist(self, twist_stamped_msg):
+        twist_msg = twist_stamped_msg.twist
         desired_action = np.array([twist_msg.linear.x, twist_msg.linear.y, twist_msg.angular.z, 0.0], dtype=np.float32)
         self.send_mecanum(desired_action)
 
