@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   message_runtime
   std_msgs
+  geometry_msgs
 )
 
 ## Generate messages in the 'msg' folder
@@ -15,11 +16,11 @@ add_message_files(
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
+ add_service_files(
+   FILES
+   ComputeDistance.srv
 #   Service2.srv
-# )
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -32,6 +33,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  geometry_msgs
 )
 
 catkin_package(
