@@ -65,6 +65,7 @@ class Joint_State_Visualizer(object):
 
         # Set up and start the plot
         fig = plt.figure()
+        fig.set_size_inches(5.5, 5.5)
         self.ax = fig.add_subplot(1, 1, 1)
         ani = animation.FuncAnimation(fig, self.draw, interval=100)
         plt.show()
