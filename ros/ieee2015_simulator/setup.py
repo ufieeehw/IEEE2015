@@ -5,7 +5,7 @@ from catkin_pkg.python_setup import generate_distutils_setup
 
 # fetch values from package.xml
 setup_args = generate_distutils_setup(
-    packages=['view_sim'],
+    packages=['view_sim', 'sim_tools'],
     package_dir={'': 'src'},
 )
 
