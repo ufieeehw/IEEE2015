@@ -1,0 +1,23 @@
+Packet format
+
+^^^  -- start sequence (three carets)
+len  -- length (1 byte) of data until checksum
+type -- 0-255 (1 byte) type corresponding to message type
+data -- (len -1) bytes of data
+-16  -- LSByte of checksum
+CRC  -- MSByte of checksum
+
+
+Reserved types
+$00-$10 -- 16
+00 -- echo request
+01 -- echo response
+02 -- ACK -- valid checksum
+03 -- retransmit -- invalid checksum -- we must not send any more messages until 
+
+$F0-$FF -- 16
+
+FF -- error?
+
+bool uart_send_msg_block(uint8_t type, char* msg); -- can fail if last message not ACKnowleged 
+bool uart_send_msg_noblock(uint8_t type, char* msg);
