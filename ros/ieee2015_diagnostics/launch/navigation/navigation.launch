@@ -1,0 +1,8 @@
+<launch>
+
+    <node name="navigation_state_visualization" pkg="ieee2015_diagnostics" type="visualize_motion" 
+        args="--topic /SLAM_pose --name NavigationViz"
+        output="screen" />
+
+</launch>
+
