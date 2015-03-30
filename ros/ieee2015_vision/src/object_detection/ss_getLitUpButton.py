@@ -1,8 +1,9 @@
 import cv2
 import numpy as np
 
+
 def getLitUpButton(img):
-    #img = cv2.resize(img, (0,0), fx=0.5, fy=0.5) 
+    #img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
     #below ranges should work for all of the lights on ranges
     lower_on = np.array([26, 180, 215])
     upper_on = np.array([255, 255, 255])
@@ -14,9 +15,9 @@ def getLitUpButton(img):
 
     print 'we got here'
 
-    kernel = np.ones((3, 3), np.uint8)
+    kernel = np.ones((8, 8), np.uint8)
     #kernel for eroding
-    kernel2 = np.ones((12,12), np.uint8)
+    kernel2 = np.ones((8, 8), np.uint8)
     #kernel for dilating
     kernel3 = np.ones((4, 4), np.uint8)
     eroded = cv2.erode(brightButton, kernel2)
@@ -36,42 +37,41 @@ def getLitUpButton(img):
         area = cv2.contourArea(cnt)
         if area > 8000:
             bestCtn.append(cnt)
-            
 
     #bestCtn should ideally be length of one at this point
     litButton = bestCtn[0]
 
-    leftmost = tuple(litButton[litButton[:,:,0].argmin()][0])
+    leftmost = tuple(litButton[litButton[:, :, 0].argmin()][0])
     print 'leftmost birhgt cbutton'
     print leftmost
 
-    rightmost = tuple(litButton[litButton[:,:,0].argmax()][0])
+    rightmost = tuple(litButton[litButton[:, :, 0].argmax()][0])
     print 'rightmost bright button'
     print rightmost
 
-    topmost = tuple(litButton[litButton[:,:,1].argmin()][0])
+    topmost = tuple(litButton[litButton[:, :, 1].argmin()][0])
     print 'topmost bright button'
     print topmost
-    bottommost = tuple(litButton[litButton[:,:,1].argmax()][0])
+    bottommost = tuple(litButton[litButton[:, :, 1].argmax()][0])
     print 'bottommost bight button'
     print bottommost
-    
-    cv2.circle(img,(leftmost),2,(0,0,255),30)
-    cv2.circle(img,(rightmost),2,(0,0,255),30)
-    cv2.circle(img,(topmost),2,(0,0,255),30)
-    cv2.circle(img,(bottommost),2,(0,0,255),30)
+
+    cv2.circle(img, (leftmost), 2, (0, 0, 255), 30)
+    cv2.circle(img, (rightmost), 2, (0, 0, 255), 30)
+    cv2.circle(img, (topmost), 2, (0, 0, 255), 30)
+    cv2.circle(img, (bottommost), 2, (0, 0, 255), 30)
     #cv2.circle(img, (365, 934), 2, (0, 255, 0), 30)
-    img = cv2.resize(img, (0,0), fx=0.5, fy=0.5) 
+    img = cv2.resize(img, (0, 0), fx=0.5, fy=0.5)
     cv2.imshow('points', img)
     cv2.waitKey(0)
-  
-    meanCols = int((leftmost[0] + rightmost[0])/2)
+
+    meanCols = int((leftmost[0] + rightmost[0]) / 2)
     print 'mean cols bright'
     print meanCols
-    meanRows = int((topmost[1] + bottommost[1])/2)
+    meanRows = int((topmost[1] + bottommost[1]) / 2)
     print 'mean rows bright'
     print meanRows
-  
 
-    return meanCols, meanRows, closing
- 
+    brightCenterPoint = (meanCols, meanRows)
+
+    return brightCenterPoint, closing
