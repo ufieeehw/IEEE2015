@@ -1,8 +1,0 @@
-geometry_msgs/Point point1
-geometry_msgs/Point point2
-tf/end_camera end_camera_pos 
-float64 h
-
----
-float64 dist
-
