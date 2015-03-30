@@ -63,7 +63,10 @@ To get everything without any effort, do:
 
     sudo pip install scikit-fmm
 
-```sudo aptitude install python-pygame ros-indigo-gazebo-ros-pkgs ros-indigo-ros-control ros-indigo-ros-controllers ros-indigo-gazebo-ros-control```
+    sudo pip install matplotlib --upgrade
+
+    mkdir ~/repos; cd ~/repos; git clone https://github.com/vispy/vispy.git; cd vispy; git checkout b64489ba2c639998d0ab4a1df36acb57ba41a8c1; sudo python setup.py install;
+
 
 then run 
 ```catkin_make -C ~/catkin_ws```
