@@ -2,7 +2,7 @@
 
 <launch>
     <!-- Load controller configuration to parameter server -->
-    <rosparam file="$(find ieee2015_arm_servos)/mx-64t.yaml" command="load"/>
+    <rosparam file="$(find ieee2015_arm_servos)/mx-64t.yaml" command="load" ns="/robot"/>
     
     <!-- start specified joint controllers -->
     <node name="dynamixel_controller_spawner" pkg="dynamixel_controllers" type="controller_spawner.py"
@@ -11,6 +11,6 @@
                 shoulder_controller
                 elbow_controller"
 
-          output="screen"/>
+          output="screen" ns="/robot"/>
 </launch>
 

@@ -1,7 +1,7 @@
 <!-- -*- mode: XML -*- -->
 
 <launch>
-    <node name="dynamixel_base" pkg="dynamixel_controllers" type="controller_manager.py" required="true" output="screen">
+    <node name="dynamixel_base" pkg="dynamixel_controllers" type="controller_manager.py" required="true" output="screen" ns="/robot">
         <rosparam>
             namespace: dxl_manager
             serial_ports:

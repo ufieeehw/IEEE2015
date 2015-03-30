@@ -2,7 +2,7 @@
 
 <launch>
     <!-- Load controller configuration to parameter server -->
-    <rosparam file="$(find ieee2015_arm_servos)/rx-24f.yaml" command="load"/>
+    <rosparam file="$(find ieee2015_arm_servos)/rx-24f.yaml" command="load" ns="/robot"/>
     
     <!-- start specified joint controllers -->
     <node name="dynamixel_controller_spawnery" pkg="dynamixel_controllers" type="controller_spawner.py"
@@ -10,6 +10,6 @@
                 --port=base_control_port
                 base_controller"
                 
-          output="screen"/>
+          output="screen" ns="/robot"/>
 </launch>
 
