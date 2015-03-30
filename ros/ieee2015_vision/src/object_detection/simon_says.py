@@ -1,12 +1,13 @@
 import cv
 import cv2
-from . import numpy as np
-from . import ss_getStandardState
-from . import ss_findColor
-from . import ss_getLitUpButton
-from . import ss_getColorButtonCoord
-from . import ss_getStartingButtonCoord
-
+import numpy as np
+import ss_getStandardState
+import ss_findColor
+import ss_getLitUpButton
+import ss_getColorButtonCoord
+import ss_getStartingButtonCoord
+import ss_findButton
+import ss_getAxisPoints
 
 ######################The following are fields for Simon
 #this list holds the colors in order
@@ -51,9 +52,15 @@ def playSimonSays(img):
     hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     
     #while(len(colorsPlayed) < 5): #hard coded in up to five colors, but we are being timed on this one
-    meanBrightX, meanBrightY, closing = getLitUpButton.getLitUpButton(hsv_img)
+    brightCenterPoint, closing = getLitUpButton.getLitUpButton(hsv_img)
+
+    meanBrightCols = brightCenterPoint[0]
+    meanBrightRows = brightCenterPoint[1]
     #color is a number
-    color = findColor.findColor(meanBrightX, meanBrightY, meanXR, meanYR, meanXL, meanYL, minXL, maxXL, minYL, maxYL, minXR, maxXR, minYR, maxYR)
+    #color = findColor.findColor(meanBrightCols, meanBrightRows, meanXR, meanYR, meanXL, meanYL, minXL, maxXL, minYL, maxYL, minXR, maxXR, minYR, maxYR)
+
+    color = ss_findButton.findButton(img, brightCenterPoint)
+
 
     colorsPlayed.append(color)
 
@@ -62,5 +69,8 @@ def playSimonSays(img):
 
     coordToAdd = [(xPush, yPush)]
     pushArray.append(coordToAdd)
+
+    print "the color was"
+    print color
 
 
