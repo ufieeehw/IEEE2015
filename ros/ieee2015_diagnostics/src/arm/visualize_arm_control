@@ -72,12 +72,12 @@ class SCARA(object):
 
         ## ROS elements
         # Arm
-        self.elbow_sub = rospy.Subscriber('/elbow_controller/state', JointState, self.got_elbow_state)
-        self.shoulder_sub = rospy.Subscriber('/shoulder_controller/state', JointState, self.got_shoulder_state)
-        self.error_sub = rospy.Subscriber('/arm_des_pose', PointStamped, self.got_des_pose)
+        self.elbow_sub = rospy.Subscriber('elbow_controller/state', JointState, self.got_elbow_state)
+        self.shoulder_sub = rospy.Subscriber('shoulder_controller/state', JointState, self.got_shoulder_state)
+        self.error_sub = rospy.Subscriber('arm_des_pose', PointStamped, self.got_des_pose)
 
         # Base
-        self.base_sub = rospy.Subscriber('/base_controller/state', JointState, self.got_base_state)
+        self.base_sub = rospy.Subscriber('base_controller/state', JointState, self.got_base_state)
 
     def got_des_pose(self, msg):
         '''Recieved desired arm pose'''
@@ -166,7 +166,6 @@ class SCARA(object):
             color=(20, 250, 30), 
             text="Base: {} rad\n".format(round(self.base_angle, 4)),
         )
-
         
 
 def main():

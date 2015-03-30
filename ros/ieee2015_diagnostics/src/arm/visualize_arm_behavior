@@ -64,10 +64,10 @@ class Joint_State_Visualizer(object):
         self.state_sub = rospy.Subscriber(topic, JointState, self.got_state)
 
         # Set up and start the plot
-        fig = plt.figure()
-        fig.set_size_inches(5.5, 5.5)
+        fig = plt.figure(figsize=(6, 4), dpi=80)
         self.ax = fig.add_subplot(1, 1, 1)
         ani = animation.FuncAnimation(fig, self.draw, interval=100)
+
         plt.show()
 
     def set_plotter(self, fig, ax):
