@@ -46,12 +46,13 @@ class SCARA_Controller(object):
             Add shoulder angle
         '''
         print "Targeting angles shoulder: {0:0.2f} (rad), elbow: {0:0.2f} (rad)".format(shoulder, elbow)
-        shoulder_angle_offset = 0.55 - np.pi/2
-        # elbow_angle_offset = 1.75
-        elbow_angle_offset = np.pi / 3
+        shoulder_angle_offset = 1.06
+        elbow_angle_offset = 0.65
+        base_angle_offset = 0.0
 
-        _shoulder_angle = shoulder + shoulder_angle_offset
-        _elbow_angle = np.pi - (elbow + elbow_angle_offset)
+        # Apply the inverse of the angle correction
+        _shoulder_angle = shoulder - shoulder_angle_offset
+        _elbow_angle = elbow - elbow_angle_offset
 
         self.shoulder_pub.publish(Float64(data=_shoulder_angle))
         self.elbow_pub.publish(Float64(data=_elbow_angle))
@@ -100,7 +101,7 @@ class SCARA_Controller(object):
         elbow_angle = shoulder_angle + np.arccos(c2)
 
         if (abs(x - (self.shoulder_length * np.arccos(shoulder_angle) - self.elbow_length * np.arccos(elbow_angle))) > 10**-6 or abs(y - (self.shoulder_length * np.sin(shoulder_angle) - self.elbow_length * np.sin(elbow_angle)) > 10**-6)):
-            shoulder_angle =  - shoulder_angle
+            shoulder_angle =  -shoulder_angle
             elbow_angle = shoulder_angle + np.arccos(c2)
 
         return (shoulder_angle, elbow_angle)
