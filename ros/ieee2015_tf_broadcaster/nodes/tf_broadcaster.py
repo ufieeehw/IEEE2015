@@ -61,8 +61,11 @@ def read_elbow_servo(msg):
 
     tf_broad.sendTransform(translation, rotation, time, "/elbow_servo", "/shoulder_servo")
 
+    send_wrist_joint()
 
-def read_wrist_joint(msg): #end-effector always parallel to the floor, angle reationship between the wrist joint and elbow reference fram  
+
+def send_wrist_joint(): #end-effector always parallel to the floor, angle reationship between the wrist joint and elbow reference fram  
+    '''Called in read_elbow_servo because it only depends on elbow'''
     translation = (-0.160, 0, 0) 
     rotation = tf.transformations.quaternion_from_euler(0, 0, -last_elbow_servo_position) #angle offset applied to published servo value
     time = rospy.Time.now()
@@ -70,14 +73,14 @@ def read_wrist_joint(msg): #end-effector always parallel to the floor, angle rea
     tf_broad.sendTransform(translation, rotation, time, "/wrist_joint", "/elbow_servo")
 
 
-def read_end_servo(msg):
-    global last_end_servo_position
-    last_end_servo_position = msg.current_pos
+def read_wrist_servo(msg):
+    global last_wrist_servo_position
+    last_wrist_servo_position = msg.current_pos
     translation = (-0.03442, 0, 0) #constant offset 
-    rotation = tf.transformations.quaternion_from_euler(np.pi / 2, 0, last_end_servo_position) #published by end servo
+    rotation = tf.transformations.quaternion_from_euler(np.pi / 2, 0, last_wrist_servo_position) #published by end servo
     time = rospy.Time.now() 
 
-    tf_broad.sendTransform(translation, rotation, time, "/end_servo", "/wrist_joint")
+    tf_broad.sendTransform(translation, rotation, time, "/wrist_servo", "/wrist_joint")
 
 
 def read_end_camera(msg):
@@ -85,7 +88,7 @@ def read_end_camera(msg):
     rotation = tf.transformations.quaternion_from_euler(0, 0, 0) #follows joint conventions constant rotation of wrist joint always points straight down
     time = rospy.Time.now() 
 
-    tf_broad.sendTransform(translation, rotation, time, "/arm_camera", "/end_servo")
+    tf_broad.sendTransform(translation, rotation, time, "/arm_camera", "/wrist_servo")
 
 
 '''
@@ -100,10 +103,10 @@ def read_end_effector(msg):
 if __name__ == '__main__':
     rospy.init_node('ieee2015_tf_broadcaster')
 
-    rospy.Subscriber('/robot/pose', PoseStamped, handle_camera_pose)
-    rospy.Subscriber('/robot/base_controller/state', JointState, read_base_servo)
-    rospy.Subscriber('/robot/shoulder_controller/state', JointState, read_shoulder_servo)
-    rospy.Subscriber('/robot/elbow_controller/state', JointState, read_elbow_servo)
-    rospy.Subscriber('/robot/end_controller/state', JointState, read_end_servo)
+    rospy.Subscriber('pose', PoseStamped, handle_camera_pose)
+    rospy.Subscriber('base_controller/state', JointState, read_base_servo)
+    rospy.Subscriber('shoulder_controller/state', JointState, read_shoulder_servo)
+    rospy.Subscriber('elbow_controller/state', JointState, read_elbow_servo)
+    rospy.Subscriber('wrist_controller/state', JointState, read_wrist_servo)
 
 rospy.spin()

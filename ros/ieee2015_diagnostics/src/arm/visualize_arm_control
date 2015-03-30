@@ -122,10 +122,8 @@ class SCARA(object):
         # Superimpose positions
         elbow_local_pos = self.elbow_length * np.array([np.cos(total_elbow_angle), np.sin(total_elbow_angle)])
         self.wrist_joint = self.elbow_joint + elbow_local_pos
-        # print "Angles: [{}, {}]".format(self.shoulder_angle, self.elbow_angle)
-        # print "Angles: [{}, {}]".format(_shoulder_angle, _elbow_angle)
 
-        base_length = np.fabs(self.shoulder_length * np.cos(_shoulder_angle)) + np.fabs(self.elbow_length * np.cos(_elbow_angle))
+        base_length = (self.shoulder_length * np.cos(_shoulder_angle)) + (self.elbow_length * np.cos(_elbow_angle))
         self.base_endpoint = self.base + np.array([base_length * np.cos(_base_angle), base_length * np.sin(_base_angle)])
 
 
@@ -173,7 +171,8 @@ def main():
     arms = [SCARA()]
 
     display = pygame.display.set_mode(SCREEN_DIM)
-    des_pose_pub = rospy.Publisher('/arm_des_pose', PointStamped, queue_size=1)
+    pygame.display.set_caption("Arm Control Visualization")
+    des_pose_pub = rospy.Publisher('arm_des_pose', PointStamped, queue_size=1)
 
     def publish_des_pos(pos):
         '''Publish desired position of the arm end-effector based on click position'''

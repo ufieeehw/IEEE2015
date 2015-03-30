@@ -50,9 +50,9 @@ class SCARA_Controller(object):
         elbow_angle_offset = 0.65
         base_angle_offset = 0.0
 
-        # Apply the inverse of the angle correction
+        # Apply the inverse of the angle correction to get the servo angles from arm angles
         _shoulder_angle = shoulder - shoulder_angle_offset
-        _elbow_angle = elbow - elbow_angle_offset
+        _elbow_angle = np.pi -(elbow + elbow_angle_offset)
 
         self.shoulder_pub.publish(Float64(data=_shoulder_angle))
         self.elbow_pub.publish(Float64(data=_elbow_angle))

@@ -2,6 +2,8 @@ import pygame
 
 class Text_Box(object):
     '''Text_Box()
+    You never have to initialize this! Just call Text_Box.draw(display, pos, color, text)
+    It draws the same way a pygame primitive would.
     '''
     pygame.font.init()
     font = pygame.font.SysFont("monospace", 15)
