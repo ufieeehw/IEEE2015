@@ -106,7 +106,7 @@ class Visualizer(object):
         # for item_name, item_queue in self.plot_dict.items():
             # y = np.array(item_queue)
             # self.ax.plot(x, y, '-', label=item_name)
-        y = np.array(self.plot_dict['theta'], np.float64)
+        y = np.array(self.plot_dict['y'], np.float64)
         print y
         self.ax.plot(x, y, '-', label='Position')
         self.ax.set_autoscale_on(False)
