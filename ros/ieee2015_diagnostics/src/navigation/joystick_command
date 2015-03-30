@@ -1,0 +1,49 @@
+#!/usr/bin/python
+'''Author: Khaled Hassan, Forrest Voight'''
+from __future__ import division
+
+import roslib
+roslib.load_manifest('joystick_command')
+
+import rospy
+
+from sensor_msgs.msg import Joy
+from geometry_msgs.msg import Twist, TwistStamped, Vector3
+from std_msgs.msg import String
+
+rospy.init_node('joystick_command')
+
+pub = rospy.Publisher('twist', TwistStamped)
+
+def got_joy_msg(joy_msg):
+    linear_x = joy_msg.axes[1] * max_linear_velocity
+    linear_y = joy_msg.axes[0] * max_linear_velocity
+    angular_z = joy_msg.axes[3] * max_angular_velocity
+    seq = joy_msg.header.seq
+
+    twist_stamped_msg = TwistStamped()
+    twist_stamped_msg.twist = Twist()
+    twist_stamped_msg.twist.linear = Vector3()
+    twist_stamped_msg.twist.angular = Vector3()
+
+    twist_stamped_msg.twist.linear.x = linear_x
+    twist_stamped_msg.twist.linear.y = linear_y
+    twist_stamped_msg.twist.linear.z = 0
+    
+    twist_stamped_msg.twist.angular.x = 0
+    twist_stamped_msg.twist.angular.y = 0
+    twist_stamped_msg.twist.angular.z = angular_z
+
+    twist_stamped_msg.header.seq = seq
+    twist_stamped_msg.header.frame_id = '/robot'
+    twist_stamped_msg.header.stamp = joy_msg.header.stamp
+    pub.publish(twist_stamped_msg)
+
+# These values are hardcoded for now.
+max_linear_velocity = 1 # rospy.get_param('max_linear_velocity')
+max_angular_velocity = 4 # rospy.get_param('max_angular_velocity')
+
+rospy.Subscriber('joy', Joy, got_joy_msg)
+
+rospy.spin()    
+
