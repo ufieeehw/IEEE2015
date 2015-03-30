@@ -1,6 +1,4 @@
-import cv
 import cv2
-import numpy as np
 import ss_getStandardState
 import ss_findColor
 import ss_getLitUpButton
@@ -40,19 +38,22 @@ contours = []
 
 #first step it to get standard state
 #the standard state is the base image we go off of between each button push or between player moves (TBD). It gets
-#the location of the green and blue button and from their create a basis of where all the buttons are. 
+#the location of the green and blue button and from their create a basis of where all the buttons are.
+
+
 def setStandard(img):
     hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    bestCnts, buttonCnts, meanXR, meanYR, meanXL, meanYL, minXL, maxXL, minYL, maxYL, minXR, maxXR, minYR, maxYR = getStandardState.getStandardState(hsv_img)
-    topPoint, bottomPoint = getStartingButtonCoord.getStartingButtonCoord(buttonCnts)
+    bestCnts, buttonCnts, meanXR, meanYR, meanXL, meanYL, minXL, maxXL, minYL, maxYL, minXR, maxXR, minYR, maxYR = ss_getStandardState.getStandardState(hsv_img)
+    topPoint, bottomPoint = ss_getStartingButtonCoord.getStartingButtonCoord(buttonCnts)
     return bestCnts, buttonCnts, meanXR, meanYR, meanXL, meanYL, minXL, maxXL, minYL, maxYL, minXR, maxXR, minYR, maxYR, topPoint, bottomPoint
+
 
 #the main method to get everything running. from the coordinates to push to indentifying what color lit up.
 def playSimonSays(img):
     hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    
+
     #while(len(colorsPlayed) < 5): #hard coded in up to five colors, but we are being timed on this one
-    brightCenterPoint, closing = getLitUpButton.getLitUpButton(hsv_img)
+    brightCenterPoint, closing = ss_getLitUpButton.getLitUpButton(hsv_img)
 
     meanBrightCols = brightCenterPoint[0]
     meanBrightRows = brightCenterPoint[1]
@@ -61,16 +62,12 @@ def playSimonSays(img):
 
     color = ss_findButton.findButton(img, brightCenterPoint)
 
-
     colorsPlayed.append(color)
 
-    xPush, yPush = getColorButtonCoord.getColorButtonCoord(colorsPlayed, minXL, maxXL, minYL, maxYL, 
-        minXR, maxXR, minYR, maxYR)
+    xPush, yPush = ss_getColorButtonCoord.getColorButtonCoord(colorsPlayed, minXL, maxXL, minYL, maxYL, minXR, maxXR, minYR, maxYR)
 
     coordToAdd = [(xPush, yPush)]
     pushArray.append(coordToAdd)
 
     print "the color was"
     print color
-
-
