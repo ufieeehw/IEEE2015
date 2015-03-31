@@ -17,6 +17,9 @@ base_angle_offset = 0.0
 
 tf_broad = tf.TransformBroadcaster()
 
+global last_shoulder_servo_position
+last_shoulder_servo_position = 0.0
+
 def handle_camera_pose(msg):
     translation = (msg.pose.position.x, msg.pose.position.y, 0)#assuming forward_camera is in the slot closest to edge
     rotation = tf.transformations.quaternion_from_euler(0, 0, msg.pose.orientation.z)
@@ -44,9 +47,9 @@ def read_base_servo(msg):
 
 def read_shoulder_servo(msg):
     global last_shoulder_servo_position
-    last_shoulder_servo_position = msg.current_pos + shoulder_angle_offset
+    last_shoulder_servo_position = (msg.current_pos + shoulder_angle_offset)
     translation = (-0.07358, 0, -0.02073) 
-    rotation = tf.transformations.quaternion_from_euler(0.0, last_shoulder_servo_position, 0.0) #may include a constant shift to follow axis reference conventions, will have a published angle from shoulder servo
+    rotation = tf.transformations.quaternion_from_euler(0.0, np.pi/2-last_shoulder_servo_position, 0.0) #may include a constant shift to follow axis reference conventions, will have a published angle from shoulder servo
     time = rospy.Time.now() 
 
     tf_broad.sendTransform(translation, rotation, time, "/shoulder_servo", "/base_servo")
@@ -54,9 +57,10 @@ def read_shoulder_servo(msg):
 
 def read_elbow_servo(msg):
     global last_elbow_servo_position
-    last_elbow_servo_position = msg.current_pos + elbow_angle_offset
+    global last_base_servo_position
+    last_elbow_servo_position = -(msg.current_pos + elbow_angle_offset)
     translation = (-0.148, 0, 0) #assume the servo is located at the elbow for simplicity  
-    rotation = tf.transformations.quaternion_from_euler(0, last_elbow_servo_position+np.pi/6, 0) #may include a constant shift to follow axis reference conventions, will have a published angle from elbow servo
+    rotation = tf.transformations.quaternion_from_euler(0, -last_elbow_servo_position + last_shoulder_servo_position, 0) #may include a constant shift to follow axis reference conventions, will have a published angle from elbow servo
     time = rospy.Time.now() 
 
     tf_broad.sendTransform(translation, rotation, time, "/elbow_servo", "/shoulder_servo")
@@ -67,7 +71,7 @@ def read_elbow_servo(msg):
 def send_wrist_joint(): #end-effector always parallel to the floor, angle reationship between the wrist joint and elbow reference fram  
     '''Called in read_elbow_servo because it only depends on elbow'''
     translation = (-0.160, 0, 0) 
-    rotation = tf.transformations.quaternion_from_euler(0, 0, -last_elbow_servo_position) #angle offset applied to published servo value
+    rotation = tf.transformations.quaternion_from_euler(0, 0, last_elbow_servo_position) #angle offset applied to published servo value
     time = rospy.Time.now()
    
     tf_broad.sendTransform(translation, rotation, time, "/wrist_joint", "/elbow_servo")
