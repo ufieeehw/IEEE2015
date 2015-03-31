@@ -2,64 +2,50 @@ import cv2
 import numpy as np
 import cv2.cv as cv
 
+
 def etchaSketch_detect(img):
     ###FOLLOWING IS FOR GRAYSCALE ATTEMPT###= 
     kernelg = np.ones((4,4), np.uint8)
     #seems to be extremely less effective, just grouping old code together
     grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     equ = cv2.equalizeHist(grayscale)
-    ret,thresh3 = cv2.threshold(equ,247,255,cv2.THRESH_TRUNC)
-    ret,thresh4 = cv2.threshold(thresh3,130,255,cv2.THRESH_TOZERO)
-    cv2.imshow('thresh3', thresh4)
+    ret,thresh3 = cv2.threshold(equ, 247, 255, v2.THRESH_TRUNC)
+    #ret,thresh3 = cv2.threshold(thresh3,247,255,cv2.THRESH_TRUNC)
+    ret,thresh4 = cv2.threshold(thresh3, 80, 255, cv2.THRESH_TOZERO)
+    cv2.imshow('thresh3', thresh3)
     cv2.waitKey(0)
-    gray = cv2.adaptiveThreshold(thresh3,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-            cv2.THRESH_BINARY,47,13)
-    gray = cv2.erode(gray, kernelg)
-    gray = cv2.dilate(gray, kernelg)
-    cv2.imshow('adaptive thresh', gray)
+
+    cv2.imshow('mask', thresh4)
     cv2.waitKey(0)
-    #grayscale = cv2.resize(equ, (300, 250))
-    #ret,thresh = cv2.threshold(grayscale,175,255,0)
-    #cv2.imshow('binary', equ)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows
-    #cv2.imshow('binary', thresh)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows
-    #contours_k, hierarchy_k = cv2.findContours(thresh, 1, 2)
-
-    #use distance as filter 
-    #user area
-
-    # The following code actually calculates center points and draws contours for testing
-    # The first coordinate
-
+   
     ##################USE DISTANCE FROM SQUARE TO DETERMINE A GOOD CIRCLE
     #keep 1, 2, 2nd to last, last)
     #4th parameter seems to be very important
-    circles = cv2.HoughCircles(thresh4, cv2.cv.CV_HOUGH_GRADIENT, 1, 200, 100, 520, 10, 5)
+    circles = cv2.HoughCircles(thresh4, cv2.cv.CV_HOUGH_GRADIENT, 10, 200, 100, 550, 10, 5)
     if circles is not None:
         circles = np.uint16(np.around(circles))
-        for i in circles[0,:]:
+        for i in circles[0, :]:
         # draw the outer circle
-            cv2.circle(img,(i[0],i[1]),i[2],(0,255,0),2)
-            # draw the center of the circle
-            cv2.circle(img,(i[0],i[1]),2,(0,0,255),3)
+            if i[2] < 50 and i[2] > 27:
+                cv2.circle(img, (i[0], i[1]), i[2], (0, 255, 0), 2)
+                # draw the center of the circle
+                cv2.circle(img, (i[0], i[1]), 2, (0, 0, 255), 3)
     else:
         print "You screwed up"
 
+    print 'this is circles zero'
+    print circles[0]
+    cv2.circle(img, (215, 55), 2, (255, 255, 255), 20)
     ####START DISPLAY METHODS####
     #small = cv2.resize(image, (300, 250))
     cv2.imshow('detected circles', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-
     return cx_coord, cy_coord
 
-
 img = cv2.imread('heights/22cmeas.jpg')
-etchaSketch(img)
+etchaSketch_detect(img)
 
 
 
