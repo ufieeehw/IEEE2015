@@ -1,0 +1,70 @@
+import cv2
+import numpy as np
+
+def find_card(img):
+    kernelg = np.ones((8,8), np.uint8)
+    kernelD = np.ones((2, 2), np.uint8)
+    grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    #equ = cv2.equalizeHist(grayscale)
+    gray = cv2.adaptiveThreshold(grayscale,255,cv2.ADAPTIVE_THRESH_MEAN_C,\
+            cv2.THRESH_BINARY,37,15)
+    gray = cv2.erode(gray, kernelg)
+    #gray = cv2.dilate(gray, kernelD)
+    #cv2.imshow('adaptive thresh', gray)
+    #cv2.waitKey(0)
+
+    contours, hierarchy = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+     #using grayscale thresh
+    goodContours = []
+    for current in contours:
+        area = cv2.contourArea(current)
+        print 'this is area'
+        print area
+        if area > 40000 and area < 90000: #will need to be adjusted !!!!!
+            goodContours.append(current)
+
+    #for cnt in goodContours:
+        #cv2.drawContours(img,[cnt],0,(0,255,0),1)
+
+    #cv2.imshow('contos', img);
+    #cv2.waitKey(0);
+
+      #squares = [] #goodContours[0] # create list of the tile squares
+      #for c in goodContours:
+        #squares.extend(c)
+        #squares.append(cv2.minAreaRect(c)) #get a rectangle around the contour
+
+    boxpoints = cv2.minAreaRect(goodContours[0])
+             # rect = ((center_x,center_y),(width,height),angle)
+    points = cv2.cv.BoxPoints(boxpoints)         # Find four vertices of rectangle from above rect
+    points = np.int0(np.around(points)) 
+
+    xVals =[]
+    yVals = []
+    for i in range(0, 4):
+        xVals.append(points[i][0])
+        yVals.append(points[i][1])
+
+    maxX = max(xVals)
+    minX = min(xVals)
+    maxY = max(yVals)
+    minY = min(yVals)
+
+    centerX = (maxX + minX)/2
+    centerY = (maxY + minY)/2
+
+    cv2.drawContours(img, [points], 0, (0, 0, 255), 1)
+
+    cv2.imshow('contos', img);
+    cv2.waitKey(0);
+
+    angle = boxpoints[2]
+    print angle
+    return {'center':(centerX, centerY), 'angle': angle}
+
+    #img = cv2.imread('heights/rubix23.jpg')
+    #find_rubix(img)
+
+colorimage = cv2.imread('heights/20cmcard.jpg')
+find_card(colorimage)
