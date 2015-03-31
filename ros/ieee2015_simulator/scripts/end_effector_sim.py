@@ -91,9 +91,9 @@ class END(object):
 
         to_radians_one = xl_format
 
-        print "Targeting Base position: ({}, {})".format(*self.point) 
-        print "LARGE SERVO moved to ", degrees_one, "radians"
-        print "LARGE SERVO moved to ", xl_format, "in position register"
+        #print "TARGETING POSITION:   ({}, {})".format(*self.point) 
+        #print "LARGE SERVO POSITION ", degrees_one, "radians"
+        print "LARGE SERVO POSITION: ", xl_format
 
         base_pub = rospy.Publisher('/ieee2015_end_effector_servos', Num, queue_size=1)
         base_pub.publish(control_one, to_radians_one, to_radians_two)
@@ -110,9 +110,9 @@ class END(object):
 
         to_radians_two = xl_format
 
-        print "Targeting Base position: ({}, {})".format(*self.point) 
-        print "SMALL SERVO moved to ", degrees_two, "radians"
-        print "SMALL SERVO moved to ", xl_format, "in position register"
+        #print "TARGETING POSITION:   ({}, {})".format(*self.point) 
+        #print "SMALL SERVO moved to ", degrees_two, "radians"
+        print "SMALL SERVO POSITION: ", xl_format
 
         base_pub = rospy.Publisher('/ieee2015_end_effector_servos', Num, queue_size=1)
         base_pub.publish(control_one, to_radians_one, to_radians_two)
@@ -192,21 +192,13 @@ def main():
                     pt = pygame.mouse.get_pos()
                     publish_des_pos_two(unround_point(pt))
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_q:
-                    solenoid_out.publish(1)
-                    print "Solenoids OUT"
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_w:
-                    solenoid_out.publish(0)
-                    print "Solenoids IN"
-            if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_z:
                     control_one = 1
-                    print "Control Mode SPIN"
+                    print "CONTROL MODE: Wheel"
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_x:
                     control_one = 2
-                    print "Control Mode ANGLE"
+                    print "CONTROL MODE: Angle"
 
         t = time.time()
 

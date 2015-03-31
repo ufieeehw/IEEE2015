@@ -14,7 +14,10 @@
 
 #define LARGE_SERVO 3
 #define SMALL_SERVO 4
-#define SIDES       5
+#define SIDE_ONE    5
+#define SIDE_TWO    6
+
+
 
 bool is_testing = false;
 int last_control = 1;
@@ -129,17 +132,19 @@ void servo_down(){
   SetVelocity(SMALL_SERVO, 0);
   SetVelocity(LARGE_SERVO, 0);
 
-  SetLED(SIDES,7);
-  SetPosition(SIDES,0);
+  SetLED(SIDE_ONE,7);
+  SetLED(SIDE_TWO,7);
+  SetPosition(SIDE_ONE,0);
+  SetPosition(SIDE_TWO,0);
 
   sleep(1);
 
   PAYLOAD(LARGE_SERVO, 1);
   PAYLOAD(SMALL_SERVO, 1);
 
-  SetLED(LARGE_SERVO,1);
-  SetLED(SMALL_SERVO,1);
-  SetLED(SIDES,1);
+  SetLED(LARGE_SERVO,4);
+  SetLED(SMALL_SERVO,4);
+  SetLED(SIDE_ONE,4);
 
 }
 
@@ -149,8 +154,10 @@ void servo_up(){
   SetVelocity(SMALL_SERVO, 0);
   SetVelocity(LARGE_SERVO, 0);
   
-  SetLED(SIDES,7);
-  SetPosition(SIDES,1023);
+  SetLED(SIDE_ONE,7);
+  SetLED(SIDE_TWO,7);
+  SetPosition(SIDE_ONE,1023);
+  SetPosition(SIDE_TWO,1023);
 
   sleep(1);
 
@@ -160,9 +167,10 @@ void servo_up(){
   SetVelocity(SMALL_SERVO,500);
   SetVelocity(LARGE_SERVO, 500);
 
-  SetLED(LARGE_SERVO, 3);
-  SetLED(SMALL_SERVO, 3);
-  SetLED(SIDES,3);
+  SetLED(LARGE_SERVO, 5);
+  SetLED(SMALL_SERVO, 5);
+  SetLED(SIDE_ONE,5);
+  SetLED(SIDE_TWO,5);
       
 }
 
@@ -172,13 +180,15 @@ void blink_LED(){
 
     SetLED(LARGE_SERVO,0);
     SetLED(SMALL_SERVO,0);
-    SetLED(SIDES,0);
+    SetLED(SIDE_ONE,0);
+    SetLED(SIDE_TWO,0);
 
     usleep(60000);
 
     SetLED(LARGE_SERVO,i);
     SetLED(SMALL_SERVO,i);
-    SetLED(SIDES,i);
+    SetLED(SIDE_ONE,i);
+    SetLED(SIDE_TWO,i);
 
     usleep(60000);
 
@@ -239,20 +249,20 @@ int main(int argc, char **argv)
     init(SMALL_SERVO);
     PAYLOAD(SMALL_SERVO, 1);
 
-    init(SIDES);
-    PAYLOAD(SIDES, 1);
-    SetCW_WAngleLimit(SIDES, 0);
+    init(SIDE_ONE);
+    PAYLOAD(SIDE_ONE, 1);
 
-    SetPosition(SIDES,0);
+    init(SIDE_TWO);
+    PAYLOAD(6, 1);
+
+    SetPosition(SIDE_ONE,0);
+    SetPosition(SIDE_TWO,0);
     sleep(1);
 
     read_from_servos(LARGE_SERVO);
     read_from_servos(SMALL_SERVO);
-    read_from_servos(SIDES);
-
-    ReadPosition(SIDES, &m_pos_r);
-
-    std::cout << "Base Position Setting: " << m_pos_r << "\n";
+    read_from_servos(SIDE_ONE);
+    read_from_servos(SIDE_TWO);
 
     blink_LED();
 
