@@ -42,3 +42,4 @@ bool ReadLowerVoltage(uint8_t dxl_id, uint8_t* l_volt);
 bool ReadCurrentVoltage(uint8_t dxl_id, uint8_t* c_volt);
 bool ReadCurrentLoad(uint8_t dxl_id, uint16_t* c_load);
 bool ReadCurrentTemp(uint8_t dxl_id, uint8_t* temp);
+bool SetTemp(uint8_t dxl_id, uint16_t value);

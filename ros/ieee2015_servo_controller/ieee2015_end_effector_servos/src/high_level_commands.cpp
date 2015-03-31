@@ -304,6 +304,23 @@ bool SetTorque(uint8_t dxl_id, uint16_t value) {
     return false;
   }
 }
+
+bool SetTemp(uint8_t dxl_id, uint16_t value) {
+  uint8_t data[MAX_PACKET_BYTES];
+
+  int position_register = 12;
+  int num_parameters_tx = MakeWriteWordPacket(data, dxl_id, position_register, value);
+
+  uint16_t num_parameters_rx = 1; // Error
+  bool result = TXRXPacket(data, num_parameters_tx, num_parameters_rx);
+
+  uint8_t error = GetByteParam(data, 0);
+  if (result && error == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
 /* READING COMMANDS ----------------------------------------------------------------------------  */
 
 
