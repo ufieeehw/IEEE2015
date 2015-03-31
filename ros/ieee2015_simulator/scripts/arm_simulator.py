@@ -63,14 +63,18 @@ class SCARA(object):
         self.elbow_joint = np.array([self.shoulder_length, 0.0], np.float32)
         self.wrist_joint = self.elbow_joint + np.array([self.elbow_length, 0.0], np.float32)
 
+        # Base
+        self.point = np.array([0.0, 0.0], np.float32)
+        self.starting = np.array([.308, 0.0], np.float32)
+
         # ROS elements
-        self.elbow_sub = rospy.Subscriber('elbow_controller/command', Float64, self.got_elbow_angle)
-        self.shoulder_sub = rospy.Subscriber('shoulder_controller/command', Float64, self.got_shoulder_angle)
+        self.elbow_sub = rospy.Subscriber('elbow_controller/command', Float64, self.got_elbow_angle, queue_size=1)
+        self.shoulder_sub = rospy.Subscriber('shoulder_controller/command', Float64, self.got_shoulder_angle, queue_size=1)
         self.error_sub = rospy.Subscriber('arm_des_pose', PointStamped, self.got_des_pose)
 
-        self.elbow_pub = rospy.Publisher('elbow_controller/state', JointState)
-        self.shoulder_pub = rospy.Publisher('shoulder_controller/state', JointState)
-        self.wrist_pub = rospy.Publisher('wrist_controller/state', JointState)
+        self.elbow_pub = rospy.Publisher('elbow_controller/state', JointState, queue_size=1)
+        self.shoulder_pub = rospy.Publisher('shoulder_controller/state', JointState, queue_size=1)
+        self.wrist_pub = rospy.Publisher('wrist_controller/state', JointState, queue_size=1)
 
         # Message defaults
         self.shoulder_angle, self.elbow_angle = 0.0, 0.0
@@ -80,7 +84,6 @@ class SCARA(object):
     def got_des_pose(self, msg):
         '''Recieved desired arm pose'''
         self.position = (msg.point.x, msg.point.y)
-        print "Targeting Arm position: ({}, {})".format(*self.position)
 
     def got_elbow_angle(self, msg):
         '''Recieved current elbow angle'''
@@ -122,8 +125,6 @@ class SCARA(object):
         elbow_local_pos = self.elbow_length * np.array([np.cos(total_elbow_angle), np.sin(total_elbow_angle)])
         self.wrist_joint = self.elbow_joint + elbow_local_pos
 
-        # Publish joinstates
-        self.publish_joint_angles()
 
     def draw(self, display, new_base=(0, 0)):
         '''Draw the whole arm'''
@@ -137,55 +138,46 @@ class SCARA(object):
 
         Text_Box.draw(display, 
             pos=round_point(self.elbow_joint),
-            color=(20, 250, 30), 
+            color=(250, 20, 30), 
             text="Elbow Angle: {}\n".format(round(self.elbow_angle, 4)),
         )
         Text_Box.draw(display, 
             pos=round_point(self.base),
-            color=(20, 250, 30), 
+            color=(250, 20, 30), 
             text="Shoulder Angle: {}\n".format(round(self.shoulder_angle, 4)),
         )
-
 
         if self.position is not None:
             pygame.draw.circle(display, (250, 30, 30), round_point(self.position), 5, 1)
 
+        # Publish joinstates
+        self.publish_joint_angles()
+
 
 class BASE(object):
     def __init__(self):
-
         rospy.init_node('SCARA_simulator')
         self.base = np.array([0.0, 0.0], np.float32)
         self.base_endpoint = np.array([0.0, 0.0], np.float32)
         self.starting = np.array([.308, 0.0], np.float32)
-        self.desired_pos = rospy.Subscriber('base_des_pose', PointStamped, self.got_des_pose)
+        self.desired_pos = rospy.Subscriber('base_controller/command', Float64, self.got_base_angle, queue_size=1)
         self.base_state_pub = rospy.Publisher('base_controller/state', JointState, queue_size=1)
+        self.base_angle = 0.0
 
-
-        # ----> Remove direct publishing from simulation
-        # self.base_pub = rospy.Publisher('base_controller/command', Float64, queue_size=1)
-
-    def got_des_pose(self, msg):
+    def got_base_angle(self, msg):
         '''Recieved desired arm pose'''
-        self.point = (msg.point.x, msg.point.y)
+        self.base_angle = msg.data
 
-        to_radians = math.atan2(msg.point.y, msg.point.x)
-
-        print "Targeting Base position: ({}, {})".format(*self.point) 
-        print "Base moved to ", to_radians, "radians"
-        # self.base_pub.publish(to_radians)
+        rospy.loginfo("Base moved to " + str(self.base_angle) + "radians")
         base_length = 0.4
-        _base_angle = to_radians + 0.0
-        self.base_endpoint = self.base + np.array([base_length * np.cos(_base_angle), base_length * np.sin(_base_angle)])
-
-        self.base_state_pub.publish(JointState(current_pos=to_radians))
-
+        self.base_endpoint = self.base + np.array([base_length * np.cos(self.base_angle), base_length * np.sin(self.base_angle)])
 
     def draw(self, display, new_base=(0, 0)):
         '''Draw the whole arm'''
         # Update positions given current 
         pygame.draw.line(display, (255, 162, 0), round_point(self.base), round_point(self.base_endpoint), 3)
         pygame.draw.line(display, (255, 255, 255), round_point(self.base), round_point(self.starting), 1)
+        self.base_state_pub.publish(JointState(current_pos=self.base_angle))
         
 
 def main():
@@ -197,11 +189,12 @@ def main():
 
     display = pygame.display.set_mode(SCREEN_DIM)
     pygame.display.set_caption("Arm Simulation")
+
     des_pose_pub = rospy.Publisher('arm_des_pose', PointStamped, queue_size=1)
 
     des_pose_pub_base = rospy.Publisher('base_des_pose', PointStamped, queue_size=1)
 
-    def publish_des_pos(pos):
+    def publish_des_pos((x, y, z)):
         '''Publish desired position of the arm end-effector based on click position'''
         des_pose_pub.publish(
             PointStamped(
@@ -210,44 +203,43 @@ def main():
                     frame_id='/robot',
                 ),
                 point=Point(
-                    x=pos[0], 
-                    y=pos[1], 
-                    z=0
-                )
-            )
-        )
-    def publish_des_pos_base(pos):
-        '''Publish desired position of the arm end-effector based on click position'''
-        des_pose_pub_base.publish(
-            PointStamped(
-                header = Header(
-                    stamp=rospy.Time.now(),
-                    frame_id='/robot',
-                ),
-                point=Point(
-                    x=pos[0], 
-                    y=pos[1], 
-                    z=0
+                    x=x, 
+                    y=y, 
+                    z=z,
                 )
             )
         )
 
     clock = pygame.time.Clock()
 
-    ct = 0
+    target_point = np.array([0.0, 0.0, 0.0])
+    extent = 0.0
+    base_angle = 0.0
+    z = 0.0
     while not rospy.is_shutdown():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
+
             if event.type == pygame.KEYDOWN:
                 if (event.key == pygame.K_ESCAPE) or (event.key == pygame.K_q):
                     return
+
                 if event.key == pygame.K_a:
                     pt = pygame.mouse.get_pos()
-                    publish_des_pos(unround_point(pt))
+                    extent, z = unround_point(pt)
+                    _x, _y = extent * np.cos(base_angle), extent * np.sin(base_angle)
+                    print 'Targeting position ({}, {}, {})'.format(_x, _y, z)
+                    publish_des_pos((_x, _y, z))
+
+
                 if event.key == pygame.K_b:
                     pt = pygame.mouse.get_pos()
-                    publish_des_pos_base(unround_point(pt))
+                    x, y = unround_point(pt)
+                    base_angle = np.arctan2(y, x)
+                    _x, _y = extent * np.cos(base_angle), extent * np.sin(base_angle)
+                    print 'Targeting position ({}, {}, {})'.format(_x, _y, z)
+                    publish_des_pos((_x, _y, z))
 
         t = time.time()
         for arm in arms:

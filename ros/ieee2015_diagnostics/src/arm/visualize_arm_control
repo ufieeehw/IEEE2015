@@ -82,7 +82,6 @@ class SCARA(object):
     def got_des_pose(self, msg):
         '''Recieved desired arm pose'''
         self.position = (msg.point.x, msg.point.y)
-        print "Targeting Arm position: ({}, {})".format(*self.position)
 
     def got_elbow_state(self, msg):
         '''Recieved current elbow angle'''
@@ -142,7 +141,7 @@ class SCARA(object):
         pygame.draw.line(display, (255, 0, 0), round_point(self.elbow_joint), round_point(self.wrist_joint), 4)
 
         if self.position is not None:
-            pygame.draw.circle(display, (250, 30, 30), round_point(self.position), 5, 1)
+            pygame.draw.circle(display, (20, 250, 30), round_point(self.position), 5, 1)
 
         # --- Draw Base
         pygame.draw.line(display, (255, 162, 0), round_point(self.base), round_point(self.base_endpoint), 3)
