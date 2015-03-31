@@ -16,8 +16,7 @@ from dynamixel_msgs.msg import JointState
 
 to_radians_one = 512
 to_radians_two = 512
-control_one = 2
-control_two = 2
+control_one = 1
 
 past_location_one = 0
 past_location_two = 0
@@ -97,7 +96,7 @@ class END(object):
         print "LARGE SERVO moved to ", xl_format, "in position register"
 
         base_pub = rospy.Publisher('/ieee2015_end_effector_servos', Num, queue_size=1)
-        base_pub.publish(control_one, control_two, to_radians_one, to_radians_two)
+        base_pub.publish(control_one, to_radians_one, to_radians_two)
 
     def got_des_pose_two(self, msg):
         '''Recieved desired arm pose'''
@@ -116,7 +115,7 @@ class END(object):
         print "SMALL SERVO moved to ", xl_format, "in position register"
 
         base_pub = rospy.Publisher('/ieee2015_end_effector_servos', Num, queue_size=1)
-        base_pub.publish(control_one, control_two, to_radians_one, to_radians_two)
+        base_pub.publish(control_one, to_radians_one, to_radians_two)
 
     def draw(self, display, new_base=(0, 0)):
         '''Draw the whole arm'''
@@ -206,7 +205,7 @@ def main():
                     print "Control Mode SPIN"
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_x:
-                    control_two = 2
+                    control_one = 2
                     print "Control Mode ANGLE"
 
         t = time.time()

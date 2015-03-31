@@ -1,6 +1,5 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
-
 #include <stdio.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -9,167 +8,202 @@
 #include <dirent.h>
 #include <string.h>
 #include <time.h>
-
-
 #include "high_level_commands.h"
 #include "communications.h"
 #include "ieee2015_end_effector_servos/Num.h"
 
+#define LARGE_SERVO 3
+#define SMALL_SERVO 4
+#define SIDES       5
+
 bool is_testing = false;
+int last_control = 1;
 
 uint16_t m_pos_l = 0;
 uint16_t m_pos_r = 0;
 uint16_t t_pos_l = 0;
 uint16_t t_pos_r = 0;
 
-
-void ToWheelMode(int dxl_id)
-{
-    SetCWAngleLimit(dxl_id,0);
-    SetCW_WAngleLimit(dxl_id,0);
-    SetControl(dxl_id,1);
+void init(int dxl_id){
+      InitDXL(dxl_id,3);
 }
-
-
-void ToAngleMode(int dxl_id)
-{
-    SetCWAngleLimit(dxl_id,0);
-    SetCW_WAngleLimit(dxl_id,1023);
-    SetControl(dxl_id,2);
-}
-
-void PAYLOAD(int dxl_id, int wheel_or_angle){
-
-    if (wheel_or_angle == 1)
-    {
-      TorqueDisable(dxl_id);
-      ToAngleMode(dxl_id);
-      TorqueEnable(dxl_id);
-      SetMaxTorque(dxl_id,1023);
-      SetTorque(dxl_id,1023);
-      SetVelocity(dxl_id,700);
-    }
-    if (wheel_or_angle == 2)
-    {
-      TorqueDisable(dxl_id);
-      ToWheelMode(dxl_id);
-      TorqueEnable(dxl_id);
-      SetMaxTorque(dxl_id,1023);
-      SetTorque(dxl_id,1023);
-    }
-    
-
-}
-
-void servo_up(){
-
-  SetVelocity(5,785);
-  SetVelocity(6,785);
-
-  sleep(3);
-
-  SetVelocity(5,0);
-  SetVelocity(6,0);
-
-  PAYLOAD(5,1);
-  PAYLOAD(6,1);
-
-  SetPosition(5, m_pos_r);
-  SetPosition(6, m_pos_l);
-
-  PAYLOAD(5,2);
-  PAYLOAD(6,2);
-
-}
-
-void servo_down(){
-
-  SetVelocity(5,1860);
-  SetVelocity(6,1860);
-
-  sleep(3);
-
-  SetVelocity(5,0);
-  SetVelocity(6,0);
-
-  PAYLOAD(5,1);
-  PAYLOAD(6,1);
-
-  SetPosition(5, m_pos_r);
-  SetPosition(6, m_pos_l);
-
-  PAYLOAD(5,2);
-  PAYLOAD(6,2);
-
-}
-
 
 void read_from_servos(int dxl_id){
 
   uint16_t position, angle, c_load;
-  uint8_t mode, alarm, error_return, u_volt, l_volt, c_volt, temp;
+  uint8_t mode, alarm, error_return, u_volt, l_volt, c_volt, temp, m_temp;
+
+  std::cout << "--------------------------------------------------------------------------";
+
+  std::cout << "\n\nServo: " << dxl_id << "\n\n";
 
   ReadTorque(dxl_id, &position);
-  std::cout << "Torque is: " << (int)position << " on servo id " << dxl_id << "\n";
+  std::cout << "Torque:          " << (int)position << "\n";
   ReadPosition(dxl_id, &position);
-  std::cout << "Position is: " << (int)position << " on servo id " << dxl_id << "\n";
+  std::cout << "Position:        " << (int)position << "\n";
   ReadControl(dxl_id, &mode);
-  std::cout << "Control is: " << (int)mode << " on servo id " << dxl_id << "\n";
+  std::cout << "Control:         " << (int)mode << "\n";
   ReadCWAngle(dxl_id, &angle);
-  std::cout << "CW angle limit is: " << (int)angle << " on servo id " << dxl_id << "\n";
+  std::cout << "CW Limit:        " << (int)angle << "\n";
   ReadCWWAngle(dxl_id, &angle);
-  std::cout << "CWW angle limit is: " << (int)angle << " on servo id " << dxl_id << "\n";
+  std::cout << "CWW Limit:       " << (int)angle << "\n";
   ReadAlarm(dxl_id, &alarm);
-  std::cout << "Alarm is: " << (int)alarm << " on servo id " << dxl_id << "\n";
+  std::cout << "Alarm:           " << (int)alarm << "\n";
   ReadError(dxl_id, &error_return);
-  std::cout << "Error is: " << (int)error_return << " on servo id " << dxl_id << "\n";
+  std::cout << "Error:           " << (int)error_return << "\n";
   ReadUpperVoltage(dxl_id, &u_volt);
-  std::cout << "Upper Voltage is: " << (int)u_volt << " on servo id " << dxl_id << "\n";
+  std::cout << "High Volt Limit: " << (int)u_volt << "\n";
   ReadLowerVoltage(dxl_id, &l_volt);
-  std::cout << "Lower Voltage is: " << (int)l_volt << " on servo id " << dxl_id << "\n";
+  std::cout << "Low Volt limit:  " << (int)l_volt << "\n";
   ReadCurrentVoltage(dxl_id, &c_volt);
-  std::cout << "Curernt Voltage is: " << (int)c_volt << " on servo id " << dxl_id << "\n";
+  std::cout << "Current Voltage: " << (int)c_volt << "\n";
   ReadCurrentLoad(dxl_id, &c_load);
-  std::cout << "Current Load is: " << (int)c_load << " on servo id " << dxl_id << "\n";
+  std::cout << "Current Load:    " << (int)c_load << "\n";
   ReadCurrentTemp(dxl_id, &temp);
-  std::cout << "Current Temp is: " << (int)temp << " on servo id " << dxl_id << "\n";
-  std::cout << "--------------------------------------------------------------------------";
+  std::cout << "Current Temp:    " << (int)temp << "\n";
+  ReadCurrentTemp(dxl_id, &temp);
+  std::cout << "Current Temp:    " << (int)temp << "\n\n";
+  
+}
+
+void ToAngleMode(int dxl_id){
+
+  TorqueDisable(dxl_id);
+  SetCWAngleLimit(dxl_id,0);
+  SetCW_WAngleLimit(dxl_id,1023);
+  SetControl(dxl_id,2);
+  read_from_servos(dxl_id);
+  SetTemp(dxl_id,150);
+  TorqueEnable(dxl_id);
+  SetMaxTorque(dxl_id,1023);
+  SetTorque(dxl_id,1023);
 
 }
 
-int last_control = 1;
+
+void ToWheelMode(int dxl_id){
+
+  TorqueDisable(dxl_id);
+  SetCWAngleLimit(dxl_id,0);
+  SetCW_WAngleLimit(dxl_id,0);
+  SetControl(dxl_id,1);
+  read_from_servos(dxl_id);
+  SetTemp(dxl_id,150);
+  TorqueEnable(dxl_id);
+  SetMaxTorque(dxl_id,1023);
+  SetTorque(dxl_id,1023);
+
+}
+
+// Function that will be used for verification of setting switch
+void PAYLOAD(int dxl_id, int wheel_or_angle){
+
+  uint8_t error_return;
+
+  if (wheel_or_angle == 1)
+  {
+    ToAngleMode(dxl_id);
+    SetVelocity(dxl_id,700);
+    /*ReadError(dxl_id, &error_return);
+    if (error_return != 0)
+    {
+      PAYLOAD(dxl_id, 1);
+    }
+  */
+   }
+  if (wheel_or_angle == 2)
+  {
+    ToWheelMode(dxl_id);
+    /*
+    ReadError(dxl_id, &error_return);
+    if (error_return != 0)
+    {
+      PAYLOAD(dxl_id, 2);
+    }*/
+  }
+}
+
+// For right now this is angle mode
+void servo_down(){
+
+  SetVelocity(SMALL_SERVO, 0);
+  SetVelocity(LARGE_SERVO, 0);
+
+  SetLED(SIDES,7);
+  SetPosition(SIDES,0);
+
+  sleep(1);
+
+  PAYLOAD(LARGE_SERVO, 1);
+  PAYLOAD(SMALL_SERVO, 1);
+
+  SetLED(LARGE_SERVO,1);
+  SetLED(SMALL_SERVO,1);
+  SetLED(SIDES,1);
+
+}
+
+// Wheel mode
+void servo_up(){
+
+  SetVelocity(SMALL_SERVO, 0);
+  SetVelocity(LARGE_SERVO, 0);
+  
+  SetLED(SIDES,7);
+  SetPosition(SIDES,1023);
+
+  sleep(1);
+
+  PAYLOAD(LARGE_SERVO, 2);
+  PAYLOAD(SMALL_SERVO, 2);
+
+  SetVelocity(SMALL_SERVO,500);
+  SetVelocity(LARGE_SERVO, 500);
+
+  SetLED(LARGE_SERVO, 3);
+  SetLED(SMALL_SERVO, 3);
+  SetLED(SIDES,3);
+      
+}
+
+void blink_LED(){
+
+  for (int i = 4; i < 8; i++){
+
+    SetLED(LARGE_SERVO,0);
+    SetLED(SMALL_SERVO,0);
+    SetLED(SIDES,0);
+
+    usleep(60000);
+
+    SetLED(LARGE_SERVO,i);
+    SetLED(SMALL_SERVO,i);
+    SetLED(SIDES,i);
+
+    usleep(60000);
+
+  }
+}
 
 void chatterCallback(const ieee2015_end_effector_servos::Num::ConstPtr &num)
 {
+  int contol_mode = num->control;
 
-  if(last_control != num->control){
-    if (num->control == 1) // Set to angle mode
+  if(last_control != contol_mode){
+
+    if (contol_mode == 1) // Set to angle mode
     {
-      PAYLOAD(3,1);
-      PAYLOAD(4,1);
-      SetLED(3,7);
-      SetLED(4,7);
       servo_down();
-
     }
-    if (num->control == 2) // Set to continous mode
+
+    if (contol_mode == 2) // Set to continous mode
     {
       servo_up();
-      PAYLOAD(3,2);
-      SetVelocity(3,500);
-      SetLED(3,5);
-
-      usleep(500);
-
-      PAYLOAD(4,2);
-      SetVelocity(4,500);
-      SetLED(4,5);
-
     }
-  }
 
-  SetPosition(3, num->position_one);
-  SetPosition(4, num->position_two);
+  }
+  SetPosition(LARGE_SERVO, num->position_one);
+  SetPosition(SMALL_SERVO, num->position_two);
 
   last_control = num->control;
 
@@ -199,52 +233,28 @@ int main(int argc, char **argv)
   if (is_testing == false)
   {
 
-    InitDXL(3,3);
-    PAYLOAD(3,1);
+    init(LARGE_SERVO);
+    PAYLOAD(LARGE_SERVO, 1);
 
-    usleep(1000);
+    init(SMALL_SERVO);
+    PAYLOAD(SMALL_SERVO, 1);
 
-    InitDXL(4,3);
-    PAYLOAD(4,1);
+    init(SIDES);
+    PAYLOAD(SIDES, 1);
+    SetCW_WAngleLimit(SIDES, 0);
 
-    usleep(1000);
+    SetPosition(SIDES,0);
+    sleep(1);
 
-    InitDXL(5,3);
-    PAYLOAD(5,2);
+    read_from_servos(LARGE_SERVO);
+    read_from_servos(SMALL_SERVO);
+    read_from_servos(SIDES);
 
-    usleep(1000);
+    ReadPosition(SIDES, &m_pos_r);
 
-    InitDXL(6,3);
-    PAYLOAD(6,2);
+    std::cout << "Base Position Setting: " << m_pos_r << "\n";
 
-    SetVelocity(5,0);
-    SetVelocity(6,0);
-
-    usleep(1000);
-
-    ReadPosition(5, &m_pos_r);
-    ReadPosition(6, &m_pos_l);
-
-    // SetTemp(dxl_id,150);
-
-
-    // Setup complete buffoonery
-    for (int i = 4; i < 7; i++)
-    {
-      SetLED(3,0);
-      SetLED(4,0);
-      SetLED(5,0);
-      SetLED(6,0);
-
-      usleep(100000);
-
-      SetLED(3,i);
-      SetLED(4,i);
-      SetLED(5,i);
-      SetLED(6,i);
-
-      usleep(100000);
-    }
+    blink_LED();
 
     ros::spin();
 
