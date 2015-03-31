@@ -3,5 +3,5 @@ geometry_msgs/Point point2
 float64 h
 
 ---
-float64 dist
+geometry_msgs/Point dist
 
