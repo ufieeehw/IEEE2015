@@ -29,7 +29,7 @@ def handle_camera_pose(msg):
 
 
 def robot_center(msg):
-    translation = (0.143, 0.0, 0.0) # assuming forward_camera is in the slot closest to edge
+    translation = (0.0, 0.0, -0.143) # assuming forward_camera is in the slot closest to edge
     rotation = tf.transformations.quaternion_from_euler(0, 0, 0)
     time = rospy.Time.now()
 
