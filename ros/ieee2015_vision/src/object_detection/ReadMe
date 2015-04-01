@@ -1,0 +1,26 @@
+etchasketch solver:
+for etchasketch identification, etchasketch.py is the sole file. 
+Image input needs to be normal rgb, but will be processed as grayscale
+utilized information about the perimeter length and creates minimum bounding rectangle around toy. circles are then detected and filtered out by radius and if it lies within the bounding box contour
+	Areas that could improve runtime:
+		minimize for loop iterations
+		use area instead of perimeter?
+
+
+rubix cube solver:
+for rubix identification, works very similar to etchasketch, without the use of hough circles. identifies the cube using adaptive thresholds and creates a minimum bounding rectangle. since the cube itself is rectangular then we are good. we find orientation and center point of cube. what is considered an acceptable contour is determined by contour area, which varies relative to heigh of end effector camera. 
+	areas that could improve:
+		preciseness of ratio between height and area
+		use perim instead of area? (runtime questionable)
+
+card solver:
+for the cards, works identical to rubix cube solver but with different ratio for height to area.
+
+simon says solver:
+most complicated because of constant input from environment. Main methods of interest are ss_get_axis_points. this method calculates and subdivides the simon says into quadrants based of a detected center point. then everything is oreiented from their in terms of angles and the minor axis is considered the x axis with degrees ragning from 0 - 360. Right now everything seems to be set up and working. testing is needed but method seems to be in order. Color is disregarded in this approach, instead buttons are considered as up, down, left, and right, all with respect to major and minor axis.
+
+	areas the could imporve:
+		roation is sometimes faulty, but still robust enough with angles and center points of lit up buttons to work.
+		perim vs area again
+		hough circles makes me nervous
+		adaptive threshold needs to be more robust across all test images
