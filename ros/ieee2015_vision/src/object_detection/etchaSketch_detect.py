@@ -32,11 +32,13 @@ def etchaSketch_detect(img):
     eas = []
     for current in contours:
         perim = cv2.arcLength(current, True)
-        if perim > 1000 and perim < 1300:
-            print 'this is perim'
-            print perim
+        #print 'this is perim'
+        #print perim
+        if perim > 2000 and perim < 3800:
             cv2.drawContours(img, [current], 0, (0, 255, 0), 10)
             eas.append(current)
+            print 'this is good perim'
+            print perim
 
     #gives us bounding rectangle to reference for points in and out
     #if problems arise we can use distances from contour
@@ -54,15 +56,19 @@ def etchaSketch_detect(img):
         # draw the outer circle
             temppoint = (i[0], i[1])
             tempans = cv2.pointPolygonTest(points, temppoint, False)
-            if i[2] < 50 and i[2] > 25 and tempans >= 0:
-                buttons.append(circles)
+            if tempans >= 0 and i[2] > 54 and i[2] < 65:
+                print 'this is good cricle'
+                print i
                 cv2.circle(img,(i[0],i[1]),i[2],(0,255,0),2)
-            # draw the center of the circle
+                # draw the center of the circle
                 cv2.circle(img,(i[0],i[1]),2,(0,0,255),3)
-    else:
-        print "You screwed up"
+                buttons.append(temppoint)
+            else:
+                print "You screwed up"
 
-    
+    print 'this is buttons'
+    print buttons
+
     ####START DISPLAY METHODS####
     #small = cv2.resize(image, (300, 250))
     cv2.imshow('detected circles', img)
@@ -71,7 +77,7 @@ def etchaSketch_detect(img):
 
     return cx_coord, cy_coord
 
-img = cv2.imread('heights/22cmeas.jpg')
+img = cv2.imread('Images/eas/etch1.jpg')
 etchaSketch_detect(img)
 
 
