@@ -34,7 +34,7 @@ def get_std_coordinates(img):
 	#dst is rotated Image
 	#x, y is the center point of object
 	#angle is the angle of the object's orientation
-	angle, dst, x, y, p1CentMajor, p2CentMajor, p1CentMinor, p2CentMinor, quarterMin1, quarterMin2, quarterMaj1, quarterMaj2 = ss_get_axis_points.get_axis_points(img)
+	angle, points, x, y, p1CentMajor, p2CentMajor, p1CentMinor, p2CentMinor, quarterMin1, quarterMin2, quarterMaj1, quarterMaj2 = ss_get_axis_points.get_axis_points(img)
 
 
 #call this when it lights up
@@ -45,5 +45,16 @@ def add_color(img):
 
 	colors_played.append(detected_button)
 
+	print colors_played
 
-def get_coord_and push
+	tempPoint = (mean_cols, mean_rows)
+
+	push_array.append(tempPoint)
+
+
+def set_button_locations(img):
+	###THis needs to find places to push buttons, using center circle i guess
+
+img = cv2.imread('Images/Set3/snorm9.JPG')
+img = cv2.resize(img, (0, 0), fx=0.2, fy=0.2)
+add_color(img)

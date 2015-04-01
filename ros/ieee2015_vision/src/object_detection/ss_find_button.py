@@ -9,18 +9,19 @@ import ss_get_lit_button
 #just care about location of bright center relative to major axis
 def find_button(img, mean_cols, mean_rows):
 	#testing
-	print 'this is mean cols'
-	print mean_cols
-	print mean_rows
 	cv2.circle(img, (mean_cols, mean_rows), 2, (255, 255, 255), 20)
 
-	cv2.imshow('img',img)
+	imgf = img.copy()
+	
+	cv2.imshow('img',imgf)
 	cv2.waitKey(0)
 	#get the lines of major and minor + angle or orientation for adjustments
-	angle, dst, x, y, p1CentMajor, p2CentMajor, p1CentMinor, p2CentMinor, quarterMin1, quarterMin2, quarterMaj1, quarterMaj2 = ss_get_axis_points.get_axis_points(img)
-
-	cv2.line(img, p1CentMinor, p2CentMinor, (0, 0, 0), 5)
-
+	angle, points, goodcircle = ss_get_axis_points.get_axis_points(img, .17)
+	
+	#below is for testing requires a lot of uncommenting in get axis points too
+	#cv2.line(img, p1CentMinor, p2CentMinor, (0, 0, 0), 5)
+	x = goodcircle[0]
+	y = goodcircle[1]
 	#formating for testing
 	temp_point = (x, y)
 
@@ -53,10 +54,12 @@ def find_button(img, mean_cols, mean_rows):
 		color = 4
 		print "we have a yellow thing"
 
-	cv2.imshow('final image for real', img)
+	imgg = img.copy()
+	#imgg = cv2.resize(imgg, (0, 0), fx=0.2, fy=0.2)
+	cv2.imshow('final image for real', imgg)
 	cv2.waitKey(0)
 
 	return color
-#img = cv2.imread('Images/Set3/snorm9.JPG')
+img = cv2.imread('heights/17cmss.jpg')
 #img = cv2.resize(img, (0, 0), fx=0.2, fy=0.2)
-#find_button(img, 300, 100)
+find_button(img, 280, 300)

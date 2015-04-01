@@ -1,5 +1,5 @@
 etchasketch solver:
-for etchasketch identification, etchasketch.py is the sole file. 
+for etchasketch identification, etchaSketch_detect.py is the sole file. 
 Image input needs to be normal rgb, but will be processed as grayscale
 utilized information about the perimeter length and creates minimum bounding rectangle around toy. circles are then detected and filtered out by radius and if it lies within the bounding box contour
 	Areas that could improve runtime:

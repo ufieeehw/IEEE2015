@@ -40,34 +40,30 @@ def get_lit_button(img):
     lit_button = best_ctn[0]
 
     leftmost = tuple(lit_button[lit_button[:, :, 0].argmin()][0])
-    print 'leftmost birhgt cbutton'
-    print leftmost
 
     rightmost = tuple(lit_button[lit_button[:, :, 0].argmax()][0])
-    print 'rightmost bright button'
-    print rightmost
 
     topmost = tuple(lit_button[lit_button[:, :, 1].argmin()][0])
-    print 'topmost bright button'
-    print topmost
-    bottommost = tuple(lit_button[lit_button[:, :, 1].argmax()][0])
-    print 'bottommost bight button'
-    print bottommost
 
+    bottommost = tuple(lit_button[lit_button[:, :, 1].argmax()][0])
+
+    #Testing
     cv2.circle(img, (leftmost), 2, (0, 0, 255), 30)
     cv2.circle(img, (rightmost), 2, (0, 0, 255), 30)
     cv2.circle(img, (topmost), 2, (0, 0, 255), 30)
     cv2.circle(img, (bottommost), 2, (0, 0, 255), 30)
     #cv2.circle(img, (365, 934), 2, (0, 255, 0), 30)
-    img = cv2.resize(img, (0, 0), fx=0.5, fy=0.5)
+    #img = cv2.resize(img, (0, 0), fx=0.5, fy=0.5)
     cv2.imshow('points', img)
     cv2.waitKey(0)
 
     mean_cols = int((leftmost[0] + rightmost[0]) / 2)
-    print 'mean cols bright'
-    print mean_cols
-    mean_rows = int((topmost[1] + bottommost[1]) / 2)
-    print 'mean rows bright'
-    print mean_rows
 
+    mean_rows = int((topmost[1] + bottommost[1]) / 2)
+   
     return mean_cols, mean_rows, closing
+#img = cv2.imread('Images/Set3/snorm8.JPG')
+#img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+#mc, mr, clsing = get_lit_button(img)
+#print mc, mr
