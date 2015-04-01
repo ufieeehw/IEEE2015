@@ -8,3 +8,46 @@ Gray       | Green  | Encoder GND
 Purple     | Blue   | Encoder VCC
 Blue       | Yellow | Encoder A
 Green      | White  | Encoder B
+
+Connecting to the robot:
+
+Motor Encoders:
+Port A:
+PIN1 - LR Green
+PIN2 - LF Blue
+PIN3 - LR Blue
+PIN4 - LF Green
+
+PORT B:
+PIN0 - RF Blue
+PIN1 - RR Green
+PIN2 - RF Green
+PIN3 - RR Blue
+
+Connect + and - to the power pins in the proto area, and power with 5v.
+
+Pololus:
+Blue pins connect to CS output on the Pololus, but are currently not implemented.
+Port F:
+AVR  | Cable     | Pololu
+--------------------------
+PIN0 | B1 Black  | M1EN
+PIN1 | B1 Red    | M1INA
+PIN2 | B1 Green  | M1INB
+PIN3 | B1 Yellow | M1PWM
+PIN4 | B2 Yellow | M2PWM
+PIN5 | B2 Green  | M2INB
+PIN6 | B2 Red    | M2INA
+PIN7 | B2 Black  | M2EN
+
+Port E:
+AVR  | Cable     | Pololu
+--------------------------
+PIN0 | G1 Black  | M1EN
+PIN1 | G1 Red    | M1INA
+PIN2 | G1 Green  | M1INB
+PIN3 | G1 Yellow | M1PWM
+PIN4 | G2 Yellow | M2PWM
+PIN5 | G2 Green  | M2INB
+PIN6 | G2 Red    | M2INA
+PIN7 | G2 Black  | M2EN
