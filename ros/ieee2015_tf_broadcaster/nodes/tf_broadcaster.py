@@ -48,7 +48,7 @@ def read_base_servo(msg):
 def read_shoulder_servo(msg):
     global last_shoulder_servo_position
     last_shoulder_servo_position = (msg.current_pos + shoulder_angle_offset)
-    translation = (-0.07358, 0, -0.02073) 
+    translation = (-0.07358, 0, 0.02073) 
     rotation = tf.transformations.quaternion_from_euler(0.0, np.pi/2-last_shoulder_servo_position, 0.0) #may include a constant shift to follow axis reference conventions, will have a published angle from shoulder servo
     time = rospy.Time.now() 
 
