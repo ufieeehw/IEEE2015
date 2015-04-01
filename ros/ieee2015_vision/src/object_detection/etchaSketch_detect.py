@@ -9,7 +9,7 @@ def etchaSketch_detect(img):
     #seems to be extremely less effective, just grouping old code together
     grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     equ = cv2.equalizeHist(grayscale)
-    ret,thresh3 = cv2.threshold(equ, 247, 255, v2.THRESH_TRUNC)
+    ret,thresh3 = cv2.threshold(equ, 247, 255, cv2.THRESH_TRUNC)
     #ret,thresh3 = cv2.threshold(thresh3,247,255,cv2.THRESH_TRUNC)
     ret,thresh4 = cv2.threshold(thresh3, 80, 255, cv2.THRESH_TOZERO)
     cv2.imshow('thresh3', thresh3)
@@ -18,24 +18,51 @@ def etchaSketch_detect(img):
     cv2.imshow('mask', thresh4)
     cv2.waitKey(0)
    
+    #this is pretty
+    gray = cv2.adaptiveThreshold(grayscale,255,cv2.ADAPTIVE_THRESH_MEAN_C,\
+            cv2.THRESH_BINARY,37,7)
+
+    cv2.imshow('gray', gray)
+    cv2.waitKey(0)
     ##################USE DISTANCE FROM SQUARE TO DETERMINE A GOOD CIRCLE
     #keep 1, 2, 2nd to last, last)
     #4th parameter seems to be very important
+    contours, hierarchy = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+    eas = []
+    for current in contours:
+        perim = cv2.arcLength(current, True)
+        if perim > 1000 and perim < 1300:
+            print 'this is perim'
+            print perim
+            cv2.drawContours(img, [current], 0, (0, 255, 0), 10)
+            eas.append(current)
+
+    #gives us bounding rectangle to reference for points in and out
+    #if problems arise we can use distances from contour
+    boxpoints = cv2.minAreaRect(eas[0])
+    points = cv2.cv.BoxPoints(boxpoints)         
+    points = np.int0(np.around(points)) 
+
+    cv2.imshow('img',img)
+    cv2.waitKey(0)
     circles = cv2.HoughCircles(thresh4, cv2.cv.CV_HOUGH_GRADIENT, 10, 200, 100, 550, 10, 5)
+    buttons = []
     if circles is not None:
         circles = np.uint16(np.around(circles))
         for i in circles[0, :]:
         # draw the outer circle
-            if i[2] < 50 and i[2] > 27:
-                cv2.circle(img, (i[0], i[1]), i[2], (0, 255, 0), 2)
-                # draw the center of the circle
-                cv2.circle(img, (i[0], i[1]), 2, (0, 0, 255), 3)
+            temppoint = (i[0], i[1])
+            tempans = cv2.pointPolygonTest(points, temppoint, False)
+            if i[2] < 50 and i[2] > 25 and tempans >= 0:
+                buttons.append(circles)
+                cv2.circle(img,(i[0],i[1]),i[2],(0,255,0),2)
+            # draw the center of the circle
+                cv2.circle(img,(i[0],i[1]),2,(0,0,255),3)
     else:
         print "You screwed up"
 
-    print 'this is circles zero'
-    print circles[0]
-    cv2.circle(img, (215, 55), 2, (255, 255, 255), 20)
+    
     ####START DISPLAY METHODS####
     #small = cv2.resize(image, (300, 250))
     cv2.imshow('detected circles', img)
