@@ -1,6 +1,6 @@
-geometry_msgs/Point point1
-geometry_msgs/Point point2
-float64 h
+geometry_msgs/Point point1 #center point (0,0,0)
+geometry_msgs/Point point2 #featured point (x,y,h) h=hight of feature in meters
+
 
 ---
 geometry_msgs/Point dist
