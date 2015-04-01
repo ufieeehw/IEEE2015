@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 
-def getLitUpButton(img):
+def get_lit_button(img):
     #img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
     #below ranges should work for all of the lights on ranges
     lower_on = np.array([26, 180, 215])
