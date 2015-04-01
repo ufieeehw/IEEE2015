@@ -3,6 +3,8 @@ import numpy as np
 import cv2.cv as cv
 
 
+#return value of function is cx_coord and cy_coord containing list of x and y coord
+#of center points of knobs
 def etchaSketch_detect(img):
     ###FOLLOWING IS FOR GRAYSCALE ATTEMPT###= 
     kernelg = np.ones((4,4), np.uint8)
@@ -34,9 +36,13 @@ def etchaSketch_detect(img):
         perim = cv2.arcLength(current, True)
         #print 'this is perim'
         #print perim
-        if perim > 2000 and perim < 3800:
+        if perim > 1000 and perim < 2000:
             cv2.drawContours(img, [current], 0, (0, 255, 0), 10)
-            eas.append(current)
+            #if we get a smaller value in the range we give it
+            #we want the contour with the smaller perimeter
+            #may swtich it to be larger area to be sure
+            #testing will tell
+            eas.insert(0, current)
             print 'this is good perim'
             print perim
 
@@ -56,18 +62,19 @@ def etchaSketch_detect(img):
         # draw the outer circle
             temppoint = (i[0], i[1])
             tempans = cv2.pointPolygonTest(points, temppoint, False)
-            if tempans >= 0 and i[2] > 54 and i[2] < 65:
+            if tempans >= 0 and i[2] > 20 and i[2] < 45:
                 print 'this is good cricle'
                 print i
-                cv2.circle(img,(i[0],i[1]),i[2],(0,255,0),2)
+                cv2.circle(img, (i[0], i[1]), i[2], (0, 255, 0), 2)
                 # draw the center of the circle
-                cv2.circle(img,(i[0],i[1]),2,(0,0,255),3)
+                cv2.circle(img, (i[0], i[1]), 2, (0, 0, 255), 3)
                 buttons.append(temppoint)
-            else:
-                print "You screwed up"
 
-    print 'this is buttons'
-    print buttons
+    x, y = buttons[0]
+    x2, y2 = buttons[1]
+
+    cx_coord = [x, x2]
+    cy_coord = [y, y2]
 
     ####START DISPLAY METHODS####
     #small = cv2.resize(image, (300, 250))
@@ -77,7 +84,7 @@ def etchaSketch_detect(img):
 
     return cx_coord, cy_coord
 
-img = cv2.imread('Images/eas/etch1.jpg')
+img = cv2.imread('heights/18cmeas.jpg')
 etchaSketch_detect(img)
 
 
