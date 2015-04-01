@@ -1,26 +1,29 @@
 import cv2
-import getMidPoints
+import ss_get_axis_points
 import math
 import numpy as np
-import ss_getLitUpButton as litButton
+import ss_get_lit_Button
 
+
+#now we don't care about what color the button is
+#just care about location of bright center relative to major axis
 def ss_find_button(img, detectedBright):
+	#testing
 	cv2.circle(img, detectedBright, 2, (255, 255, 255), 20)
 
-	angle, dst, x, y, p1CentMajor, p2CentMajor, p1CentMinor, p2CentMinor, quarterMin1, quarterMin2, quarterMaj1, quarterMaj2 = getMidPoints.getAxisPoints(img)
+	#get the lines of major and minor + angle or orientation for adjustments
+	angle, dst, x, y, p1CentMajor, p2CentMajor, p1CentMinor, p2CentMinor, quarterMin1, quarterMin2, quarterMaj1, quarterMaj2 = ss_get_axis_points.get_axis_points(img)
 
 	cv2.line(img, p1CentMinor, p2CentMinor, (0, 0, 0), 5)
 
-	print 'this is angle'
-	print angle
-
+	#formating for testing
 	temppoint = (x, y)
 
 	cv2.line(img, temppoint, detectedBright, (0, 0, 0), 5)
 
+	#get the angle from 0-360 that the point lies, counting minor axis as x axis
 	calcAngle = math.atan2((detectedBright[1] - y), (detectedBright[0] - x))
-	print calcAngle
-	calcAngle %= 2*np.pi
+	calcAngle %= 2 * np.pi
 	degs = math.degrees(calcAngle)
 	degs = int(360 - degs + angle)
 	print degs
@@ -51,5 +54,5 @@ def ss_find_button(img, detectedBright):
 	return color
 
 img = cv2.imread('Images/Set3/snorm9.JPG')
-img = cv2.resize(img, (0,0), fx=0.2, fy=0.2)
-findButton(img, (300, 100))
+img = cv2.resize(img, (0, 0), fx=0.2, fy=0.2)
+ss_find_button(img, (300, 100))
