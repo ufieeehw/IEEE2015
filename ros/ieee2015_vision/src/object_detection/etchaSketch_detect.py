@@ -76,13 +76,14 @@ def etchaSketch_detect(img):
     cx_coord = [x, x2]
     cy_coord = [y, y2]
 
+    angle = boxpoints[2]    
     ####START DISPLAY METHODS####
     #small = cv2.resize(image, (300, 250))
     cv2.imshow('detected circles', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-    return cx_coord, cy_coord
+    return cx_coord, cy_coord, angle
 
 img = cv2.imread('heights/18cmeas.jpg')
 etchaSketch_detect(img)
