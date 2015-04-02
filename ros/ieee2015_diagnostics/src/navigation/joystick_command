@@ -2,8 +2,8 @@
 '''Author: Khaled Hassan, Forrest Voight'''
 from __future__ import division
 
-import roslib
-roslib.load_manifest('joystick_command')
+# import roslib
+# roslib.load_manifest('joystick_command')
 
 import rospy
 
@@ -32,7 +32,7 @@ def got_joy_msg(joy_msg):
     
     twist_stamped_msg.twist.angular.x = 0
     twist_stamped_msg.twist.angular.y = 0
-    twist_stamped_msg.twist.angular.z = angular_z
+    twist_stamped_msg.twist.angular.z = angular_z * 0.3
 
     twist_stamped_msg.header.seq = seq
     twist_stamped_msg.header.frame_id = '/robot'
@@ -43,7 +43,7 @@ def got_joy_msg(joy_msg):
 max_linear_velocity = 1 # rospy.get_param('max_linear_velocity')
 max_angular_velocity = 4 # rospy.get_param('max_angular_velocity')
 
-rospy.Subscriber('joy', Joy, got_joy_msg)
+rospy.Subscriber('/joy', Joy, got_joy_msg)
 
 rospy.spin()    
 

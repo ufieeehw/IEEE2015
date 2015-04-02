@@ -30,11 +30,13 @@ class Controller(object):
         self.left_inverse = (mecanum_matrix.T * mecanum_matrix).I * mecanum_matrix.T
 
         # Twist subscriber
-        self.twist_sub = rospy.Subscriber('/twist', TwistStamped, self.got_twist)
+        self.twist_sub = rospy.Subscriber('twist', TwistStamped, self.got_twist)
         # We do not currently use the Mecanum publisher, instead only the service is called
-        self.mecanum_pub = rospy.Publisher('/mecanum_speeds', Mecanum, queue_size=1)
-        rospy.loginfo("Attempting to find set_wheel_speeds service")
-        self.wheel_speed_proxy = rospy.ServiceProxy('/xmega_connector/set_wheel_speeds', SetWheelSpeeds)
+        self.mecanum_pub = rospy.Publisher('mecanum_speeds', Mecanum, queue_size=1)
+        rospy.loginfo("----------Attempting to find set_wheel_speeds service-------------")
+        rospy.wait_for_service('/robot/xmega_connector/set_wheel_speeds')
+        rospy.loginfo("----------Wheel speed service found--------------")
+        self.wheel_speed_proxy = rospy.ServiceProxy('/robot/xmega_connector/set_wheel_speeds', SetWheelSpeeds)
 
     def got_twist(self, twist_stamped_msg):
         twist_msg = twist_stamped_msg.twist
@@ -95,8 +97,8 @@ class Controller(object):
 
         '''
         v_target = np.matrix(desired_action).T
-        mecanum_speeds = self.left_inverse * v_target 
-        wheel_speeds = [mecanum_speeds[0], mecanum_speeds[1], mecanum_speeds[2], mecanum_speeds[3]]
+        mecanum_speeds = (self.left_inverse * v_target).A1 * 10
+        wheel_speeds = [mecanum_speeds[0], -mecanum_speeds[1], -mecanum_speeds[2], mecanum_speeds[3]]
         print wheel_speeds
         self.wheel_speed_proxy(*wheel_speeds)
 
