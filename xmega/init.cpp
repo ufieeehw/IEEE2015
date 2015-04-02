@@ -3,8 +3,9 @@
 #include <avr/interrupt.h>
 #include "hwlib/uart.h"
 #include "hwlib/pid.h"
-#include "hwlib/motor.h"
 #include "hwlib/clock.h"
+#include "hwlib/twi.h"
+#include "hwlib/tcs34725.h"
 
 void init() {
 	init_clocks();
@@ -21,4 +22,5 @@ void init_interrupts() {
 void init_modules() {
 	uart_init();
 	pid_init();
+	twi_init_master();
 }
