@@ -3,5 +3,5 @@ geometry_msgs/Point point2 #featured point (x,y,h) h=hight of feature in meters
 
 
 ---
-geometry_msgs/Point dist
+geometry_msgs/PointStamped dist
 
