@@ -4,7 +4,6 @@ import cv2
 import cv
 import math
 
-
 #give the function a filename as an argument
 #returns the center and angle (point and float) or none
 def find_rubix(src, height):
@@ -16,7 +15,7 @@ def find_rubix(src, height):
   #blur_img = cv2.medianBlur(filter_imgFinal, 5) #blur the image
   
   #cv2.imshow('contos', blur_img);
-  #cv2.waitKey(0);
+  # cv2.waitKey(0);
 
   kernelg = np.ones((8,8), np.uint8)
   kernelD = np.ones((2, 2), np.uint8)
@@ -27,7 +26,7 @@ def find_rubix(src, height):
   gray = cv2.erode(gray, kernelg)
   #gray = cv2.dilate(gray, kernelD)
   cv2.imshow('adaptive thresh', gray)
-  cv2.waitKey(0)
+  # cv2.waitKey(0)
 
   contours2, hierarchy2 = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -58,7 +57,7 @@ def find_rubix(src, height):
     cv2.drawContours(src,[cnt],0,(0,255,0),1)
 
   cv2.imshow('contos', src);
-  cv2.waitKey(0);
+  # cv2.waitKey(0);
 
   #squares = [] #goodContours[0] # create list of the tile squares
   #for c in goodContours:
@@ -87,7 +86,7 @@ def find_rubix(src, height):
   cv2.drawContours(src, [points], 0, (0, 0, 255), 1)
 
   cv2.imshow('contos', src);
-  cv2.waitKey(0);
+  # cv2.waitKey(0);
 
   angle = boxpoints[2]
   #average the points
@@ -105,5 +104,6 @@ def find_rubix(src, height):
   print angle
   return {'center':(centerX, centerY), 'angle': angle}
 
-img = cv2.imread('heights/rubix23.jpg')
-find_rubix(img, .23)
+
+# img = cv2.imread('heights/rubix23.jpg')
+# find_rubix(img, .23)

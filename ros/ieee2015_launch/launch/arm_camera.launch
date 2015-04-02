@@ -26,6 +26,8 @@
         <param name="auto_exposure" value="3"/> <!-- use aperture_priority auto exposure -->
         <param name="auto_white_balance" value="false"/>
       </node>
+      <node name="proc" pkg="image_proc" type="image_proc" respawn="true"/>
+
     </group>
   </group>
 </launch>
