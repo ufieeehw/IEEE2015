@@ -31,14 +31,16 @@ def etchaSketch_detect(img):
     #4th parameter seems to be very important
     contours, hierarchy = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
+    approx_perim = (-3431 * height) + 1877
+    sigma = 200
     eas = []
     for current in contours:
         perim = cv2.arcLength(current, True)
         #print 'this is perim'
         #print perim
-        if perim > 1000 and perim < 2000:
+        if perim > (approx_perim - sigma)  and perim < (approx_perim + sigma):
             cv2.drawContours(img, [current], 0, (0, 255, 0), 10)
-            #if we get a smaller value in the range we give it
+            #if we get a sm- aller value in the range we give it
             #we want the contour with the smaller perimeter
             #may swtich it to be larger area to be sure
             #testing will tell
