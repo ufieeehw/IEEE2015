@@ -96,10 +96,6 @@ void pid_init() {
 	pid_setTunings(constP, constI, constD, WHEEL_RR);	
 	pid_setTunings(constP, constI, constD, WHEEL_LF);
 	pid_setTunings(constP, constI, constD, WHEEL_LR);
-
-	
-	////TEST code for setting a default speed, remove when done
-	for(int i = 0; i < 4; i++) pid_setSpeed(500, (wheelNum)i);
 	
 }
 

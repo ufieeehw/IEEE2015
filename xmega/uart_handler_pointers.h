@@ -11,11 +11,7 @@
 
 #include "uart.h"
 #include "pid.h"
-#include "motor.h"
 #include "clock.h"
-//#include "twi.h"
-#include "mpu6050.h"
-#include "tcs34725.h"
 
 
 typedef void (*HandlerPointer)(char*, uint8_t);

@@ -72,10 +72,6 @@ void pololu_set_velocity(pololu_high_t *high, float velocity){
 		high->PORT->OUTCLR = 0x40; //Set INA to 0
 		high->PORT->OUTSET = 0x20; //Set INB to 1
 	}
-	//else if (velocity = 0){
-		//high->PORT->OUTSET = 0x40; //Set both to 0 to brake
-		//high->PORT->OUTSET = 0x20;
-	//}
 	//Clockwise
 	else{
 		high->PORT->OUTSET = 0x40; //Set INA to 1
@@ -92,11 +88,6 @@ void pololu_set_velocity(pololu_low_t *low, float velocity){
 		low->PORT->OUTCLR = 0x04; //Set INA to 0
 		low->PORT->OUTSET = 0x02; //Set INB to 1
 	}
-	//Brake
-	//else if (velocity = 0){
-		//low->PORT->OUTSET = 0x04; //Set both to 0 to brake
-		//low->PORT->OUTSET = 0x02;
-	//}
 	//Clockwise
 	else{
 		low->PORT->OUTSET = 0x04; //Set INA to 1
