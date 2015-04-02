@@ -1,0 +1,18 @@
+<!-- -*- mode: XML -*- -->
+<launch>
+    <group ns="robot">
+        <node name="joystick_listener" pkg="joy" type="joy_node" 
+            output="screen" />        
+        <node name="joystick_control" pkg="ieee2015_diagnostics" type="joystick_command" 
+            output="screen" />
+        <node name="mecanum_control" pkg="ieee2015_controller" type="mecanum_controller.py" 
+            output="screen" />
+        <node name="xmega_connector" pkg="xmega_connector" type="xmega_connector_publisher.py" 
+            respawn="true" output="screen" >
+            <rosparam>
+                port: /dev/xmega_tty
+            </rosparam>
+        </node>
+    </group>
+</launch>
+
