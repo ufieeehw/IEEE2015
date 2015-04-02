@@ -38,7 +38,7 @@ generate_messages(
 
 catkin_package(
   LIBRARIES ieee2015_msgs
-  CATKIN_DEPENDS message_runtime std_msgs rospy
+  CATKIN_DEPENDS message_runtime std_msgs geometry_msgs rospy
 )
 
 ## Build ##
