@@ -1,0 +1,32 @@
+<launch>
+  <!-- Note: We have control over auto-focus, auto-white-balance, etc. We should use these -->
+  <group ns="robot">
+    <group ns="base_camera">
+      <node pkg="libuvc_camera" type="camera_node" name="base_camera">
+        <!-- Parameters used to find the camera -->
+        <!-- Find these using dmesg -->
+        <param name="vendor" value="0x046d"/>
+        <param name="product" value="0x082d"/>
+        <param name="serial" value="6D880EAF"/>
+        <!-- If the above parameters aren't unique, choose the first match: -->
+        <param name="index" value="0"/>
+
+        <!-- Image size and type -->
+        <param name="width" value="640"/>
+        <param name="height" value="480"/>
+        <!-- choose whichever uncompressed format the camera supports: -->
+        <param name="video_mode" value="uncompressed"/> <!-- or yuyv/nv12/jpeg -->
+        <param name="frame_rate" value="15"/>
+
+        <param name="timestamp_method" value="start"/> <!-- start of frame -->
+        <!-- This is the calibration for the c920 with the tape near the USB connector, use this only for that camera -->
+        <!-- (PLACEHOLDER UNTIL WE CALIBRATE) -->
+        <param name="camera_info_url" value="file://$(find ieee2015_launch)/launch/arm_camera.yaml"/>
+        <param name="frame_id" value="base_servo"/>
+
+        <param name="auto_exposure" value="3"/> <!-- use aperture_priority auto exposure -->
+        <param name="auto_white_balance" value="false"/>
+      </node>
+    </group>
+  </group>
+</launch>
