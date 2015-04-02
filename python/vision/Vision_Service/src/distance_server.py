@@ -26,21 +26,19 @@ def handle_two_points(req):
 
 
 def compute_distance_server():
-    rospy.init_node('compute_distance_server')
+    #rospy.init_node('compute_distance_server')
     s = rospy.Service('compute_distance', ComputeDistance, handle_two_points)
     print "Ready to compute distance."
-    rospy.spin()
+    #rospy.spin()
 
 if __name__== "__main__":
+    compute_distance_server()
     rospy.init_node('tf_ieee2015')
-
     listener = tf.TransformListener()
-
-
     rate = rospy.Rate(10.0)
     while not rospy.is_shutdown():
         try:
-            (trans,rot) = listener.lookupTransform('/course','/wrist_joint', rospy.Time(0))
+            (trans,rot) = listener.lookupTransform('/wrist_joint','/course', rospy.Time(0))
 
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             continue
@@ -50,7 +48,7 @@ if __name__== "__main__":
 
         rate.sleep()
 
-    compute_distance_server()
+    
 
 
 #Meaningless Change

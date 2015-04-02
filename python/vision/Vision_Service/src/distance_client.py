@@ -16,7 +16,7 @@ def compute_distance_client(point1, point2):
     try:
         handle_two_points = rospy.ServiceProxy('compute_distance', ComputeDistance)
         #end_camera_height=4.0
-        resp1 = handle_two_points(point1, point2, 0.0 )
+        resp1 = handle_two_points(point1, point2)
         return resp1
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e
@@ -31,10 +31,9 @@ def usage():
 if __name__ == "__main__":
     point =  [randint(2,9), randint(2,9), 0]
     pointa =  [randint(200,409), randint(222,409), random.random()]
-    if len(point) == 3:
-        point1 = Point(*point)
-        point2 = Point(*pointa)
-    else:
+    point1 = Point(*point)
+    point2 = Point(*pointa)
+    if len(point) != 3:
         print usage()
         sys.exit(1)
     print "Requesting %s ----> %s"%(point1, point2)
