@@ -30,7 +30,7 @@ def usage():
 
 if __name__ == "__main__":
     point =  [randint(2,9), randint(2,9), 0]
-    pointa =  [randint(200,409), randint(222,409), random.random()]
+    pointa =  [randint(200,409), randint(222,409), random.random()/4]
     point1 = Point(*point)
     point2 = Point(*pointa)
     if len(point) != 3:
