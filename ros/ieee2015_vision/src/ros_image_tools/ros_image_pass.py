@@ -9,7 +9,7 @@ This is a module that has an image publisher and an image reciever object that d
 
 
 class Image_Publisher(object):
-    def __init__(self, topic="Camera", queue_size=5):
+    def __init__(self, topic="camera", queue_size=5):
         '''Image Publisher -> Image_Publisher('/camera')'''
         self.im_pub = rospy.Publisher(topic, Image, queue_size=queue_size)
         self.bridge = CvBridge()    
@@ -23,7 +23,7 @@ class Image_Publisher(object):
 
 
 class Image_Subscriber(object):
-    def __init__(self, topic="Camera", callback=None, queue_size=5):
+    def __init__(self, topic="camera", callback=None, queue_size=5):
         '''Image_Subscriber('/camera', callback_function)
         Will call `callback_function` on each image every time a new image is published on `topic`
         Assumes topic of type "sensor_msgs/Image"'''

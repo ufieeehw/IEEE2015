@@ -38,7 +38,13 @@ Add a "match-quality" metric for testing output
 
 Use match-quality to assess certainty. If too low (or we think we've moved very far), start scanning the image
 
-Keep a history of images (just a few) incase everything goes wrong, and we fail to get a good match
+Keep a history of images (just a few) incase everything goes wrong, and we fail to get a good match. (Keyframe chain)
+
+Track transforms only along the keyframe tree
+
+Be able to jump along the key-frame tree
+
+Dismiss sudden massive changes
 
 
 Add a perspective transform based on angle of camera, without requiring someone to input 4 points. This should not be hard to do, but will require some serious math
@@ -52,3 +58,9 @@ Benchmarks:
     (250 x 250) -> 0.29 sec
 
 Where (Y x Y) is the image size
+
+
+# ISSUES
+
+- We stop generating new seed images if we lose track of the map
+- Doesn't handle scale

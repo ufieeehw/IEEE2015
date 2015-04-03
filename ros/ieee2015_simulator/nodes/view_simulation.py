@@ -70,7 +70,7 @@ class Canvas(app.Canvas):
         app.Canvas.__init__(self, title='Framebuffer post-processing',
                             keys='interactive', size=(640, 640))
         rospy.init_node('simulated_view')
-        self.img_pub = Image_Publisher('camera')
+        self.img_pub = Image_Publisher('arm_camera/image_raw')
 
     def on_initialize(self, event):
         # Build cube data
