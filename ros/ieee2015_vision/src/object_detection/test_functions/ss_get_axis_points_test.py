@@ -134,5 +134,3 @@ def get_axis_points(img, height):
     cv2.waitKey(0)
 
     return angle, points, goodcircle#x, y, p1CentMajor, p2CentMajor, p1CentMinor, p2CentMinor, quarterMin1, quarterMin2, quarterMaj1, quarterMaj2
-img = cv2.imread('heights/23cmss.jpg')
-returns = get_axis_points(img, .23)

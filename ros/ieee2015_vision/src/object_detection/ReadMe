@@ -18,7 +18,18 @@ for the cards, works identical to rubix cube solver but with different ratio for
 
 simon says solver:
 most complicated because of constant input from environment. Main methods of interest are ss_get_axis_points. this method calculates and subdivides the simon says into quadrants based of a detected center point. then everything is oreiented from their in terms of angles and the minor axis is considered the x axis with degrees ragning from 0 - 360. Right now everything seems to be set up and working. testing is needed but method seems to be in order. Color is disregarded in this approach, instead buttons are considered as up, down, left, and right, all with respect to major and minor axis.
-
+	Method BreakDown:
+		ss_get_lit_button:
+			given an image, it locates the brightest area of the lit up button and 
+			returns coordinates of detected lit up area
+		ss_find_button:
+			using the coordinate of the center point and the coordinate of the detected bright spot, calculates the angle between them and 
+			based off the angle determines which button it is: up, down, left, or right
+		ss_get_center_circle:
+			detects the center of the center button, returns center points to be used for reference point in other methods
+		ss_get_axis_points:
+			determines angle, and major and minor axis in order to determine orientation and the button we need to push
+			(base method)
 	areas the could imporve:
 		roation is sometimes faulty, but still robust enough with angles and center points of lit up buttons to work.
 		perim vs area again
