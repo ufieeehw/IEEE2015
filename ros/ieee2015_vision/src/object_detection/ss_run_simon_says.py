@@ -18,14 +18,14 @@ colors_played = []
 #this array hold the current coordinates that need to be pushed for each button
 #changes based of current image/if toy moves
 push_array = []
-
+angle = 0
 #following variable define the coordinates for where the robot must push
 up_button = (0, 0)
 left_button = (0, 0)
 right_button = (0, 0)
 down_button = (0, 0)
 
-def get_std_coordinates(img):
+def get_std_fields(img):
 	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 	#anything with Cent in variable name is the midpoint
@@ -34,7 +34,7 @@ def get_std_coordinates(img):
 	#dst is rotated Image
 	#x, y is the center point of object
 	#angle is the angle of the object's orientation
-	angle, points, x, y, p1CentMajor, p2CentMajor, p1CentMinor, p2CentMinor, quarterMin1, quarterMin2, quarterMaj1, quarterMaj2 = ss_get_axis_points.get_axis_points(img)
+	angle, points, center_of_button = ss_get_axis_points.get_axis_points(img)
 
 
 #call this when it lights up
@@ -52,7 +52,6 @@ def add_color(img):
 	push_array.append(tempPoint)
 
 
-def set_button_locations(img):
 	###THis needs to find places to push buttons, using center circle i guess
 
 img = cv2.imread('Images/Set3/snorm9.JPG')

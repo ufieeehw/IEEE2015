@@ -105,5 +105,5 @@ def find_rubix(src, height):
   print angle
   return {'center':(centerX, centerY), 'angle': angle}
 
-img = cv2.imread('heights/rubix23.jpg')
-find_rubix(img, .23)
+img = cv2.imread('heights/18cmrubix.jpg')
+find_rubix(img, .18)
