@@ -7,8 +7,10 @@ from skfmm import distance
 from matplotlib import pyplot
 
 def plan_path(start_position, goal_position, image):
-    tic = time()
     image = cv2.resize(image, (250, 250))
+    
+    # pyplot.imshow(image)
+    # pyplot.show()
 
     # Make an image of ones
     img_ones = np.ones_like(image[:, :, 2])
@@ -46,8 +48,8 @@ def plan_path(start_position, goal_position, image):
     _next = current
     while(not np.allclose(_next, np.array(goal_position))):
         current = _next
-        if best_cost == prev_cost:
-            return None # Failed to find path
+        #if best_cost == prev_cost:
+        #    return None # Failed to find path
             
         prev_cost = best_cost
         for x in [-1, 0, 1]:
@@ -71,10 +73,32 @@ def plan_path(start_position, goal_position, image):
     pyplot.imshow(image, interpolation = 'nearest')
     pyplot.show()
 
-    toc = time() - tic
-    print '{} secs'.format(toc)
-
     return path
+
+def simplify_path(path):
+    corners_all = []
+    for i in range(len(path)-2):  
+        if (slope(path[i], path[i+1]) != slope(path[i+1], path[i+2])):            
+            corners_all.append(path[i])
+    print "ALL CORNERS:"
+    print corners_all
+    
+    corners_simplified = []
+    for i in range(len(corners_all)):
+    	c1 = np.array(corners_all[i-1])
+    	c2 = np.array(corners_all[i])
+        if ((np.abs(c1[0] - c2[0]) < 2)  and (np.abs(c1[1] - c2[1]) > 5) or 
+            (np.abs(c1[0] - c2[0]) > 5)  and (np.abs(c1[1] - c2[1]) < 2) or
+            (np.abs(c1[0] - c2[0]) > 1)  and (np.abs(c1[1] - c2[1]) > 1)):
+                corners_simplified.append(corners_all[i])
+    print "NECESSARY CORNERS:"
+    print corners_simplified
+    
+def slope((x1, y1), (x2, y2)):
+    if (x1 == x2):
+    	return 2
+    else:
+    	return (y2 - y1) / (x2 - x1)
 
 def main():
     # define path to image
@@ -87,8 +111,12 @@ def main():
     # define goal position (y, x) 
     goal = (108, 178)
     
+    tic = time()
     planned_path = plan_path(start, goal, img)
-    print planned_path
+    simplify_path(planned_path)
+    toc = time() - tic   
+    print '{} secs'.format(toc)
+    
     
 if __name__ == "__main__":
     main()
