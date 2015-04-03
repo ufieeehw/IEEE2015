@@ -18,8 +18,8 @@ from geometry_msgs.msg import Point
 
 def handle_two_points(req):
     
-    xcomp1=(1.0/84000)*(end_camera_height-req.point2.z)*(req.point1.x - req.point2.x)
-    ycomp1=(1.0/84000)*(end_camera_height-req.point2.z)*(req.point1.y - req.point2.y)
+    xcomp1=(end_camera_x)+(1.0/84000)*(end_camera_height+0.21658-req.point2.z)*(req.point1.x - req.point2.x)
+    ycomp1=(end_camera_y)+(1.0/84000)*(end_camera_height+0.21658-req.point2.z)*(req.point1.y - req.point2.y)
     dist1 = (xcomp1, ycomp1, 0)
     dist2 = Point(*dist1)
     #print "dist", dist
@@ -49,8 +49,11 @@ if __name__== "__main__":
     rate = rospy.Rate(10.0)
     while not rospy.is_shutdown():
         try:
-            (trans,rot) = listener.lookupTransform('/wrist_joint','/course', rospy.Time(0))
+            (trans,rot) = listener.lookupTransform('/wrist_joint','/robot', rospy.Time(0))
+            end_camera_x=trans[0]
+            end_camera_y=trans[1]
             end_camera_height = trans[2]
+            
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             continue
         
