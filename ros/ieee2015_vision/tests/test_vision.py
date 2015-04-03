@@ -14,6 +14,7 @@ Remove: waitKey(0) --> Blocking
 Remove: Prints, use rospy.loginfo or rospy.logwarn
 Remove: Things that run when imported
 Remove: Extraneous imshow
+Remove: Uses of cv instead of cv2 (dependency issue)
 
 '''
 

@@ -1,7 +1,7 @@
 # algorithm to detect the rubix cube
 import numpy as np
 import cv2
-import cv
+# import cv
 import math
 
 #give the function a filename as an argument
