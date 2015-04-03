@@ -4,6 +4,7 @@ import rospy
 import geometry_msgs.msg
 import math
 from ieee2015_msgs.srv import ComputeDistance
+from geometry_msgs.msg import PointStamped
 from geometry_msgs.msg import Point
 
 
@@ -16,12 +17,21 @@ from geometry_msgs.msg import Point
 
 
 def handle_two_points(req):
+    
     xcomp1=(1.0/84000)*(end_camera_height-req.point2.z)*(req.point1.x - req.point2.x)
     ycomp1=(1.0/84000)*(end_camera_height-req.point2.z)*(req.point1.y - req.point2.y)
     dist1 = (xcomp1, ycomp1, 0)
-    dist = Point(*dist1)
+    dist2 = Point(*dist1)
     #print "dist", dist
     #print "Returning vector components [%s , %s to %s , %s = %s]"%(req.point1.x, req.point1.y, req.point2.x, req.point2.y, (dist))
+    
+    
+    dist = PointStamped()
+    dist.header.stamp = rospy.Time.now()
+    dist.header.frame_id = '/robot'
+    
+    dist.point = dist2
+    #dist = (header.frame_id, header.stamp, point)
     return (dist)
 
 
@@ -32,6 +42,7 @@ def compute_distance_server():
     #rospy.spin()
 
 if __name__== "__main__":
+    global end_camera_height
     compute_distance_server()
     rospy.init_node('tf_ieee2015')
     listener = tf.TransformListener()
@@ -39,11 +50,10 @@ if __name__== "__main__":
     while not rospy.is_shutdown():
         try:
             (trans,rot) = listener.lookupTransform('/wrist_joint','/course', rospy.Time(0))
-
+            end_camera_height = trans[2]
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             continue
-        global end_camera_height
-        end_camera_height = trans[2]
+        
         #print end_camera_height
 
         rate.sleep()
