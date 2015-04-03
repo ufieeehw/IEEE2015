@@ -9,7 +9,7 @@ from tf import transformations as tf_trans
 import rospy
 ## Ros msgs
 from std_msgs.msg import Header
-from geometry_msgs.msg import Pose, PoseStamped, Twist, TwistStamped, Vector3
+from geometry_msgs.msg import Pose, PoseStamped, Twist, TwistStamped, Vector3, Pose2D
 from ieee2015_msgs.msg import Mecanum
 from xmega_connector.srv import * #Echo, EchoRequest, EchoResponse, SetWheelSpeeds
 
@@ -19,32 +19,49 @@ class Controller(object):
         rospy.init_node('mecanum_controller')
     
         # Create the 4x4 mecanum transformation matrix
-        mecanum_matrix = np.matrix([
+        self.mecanum_matrix = np.matrix([
             [+1, +1, +1, +1],  # Unitless! Shooting for rad/s
             [+1, -1, +1, -1],  # Unitless! Shooting for rad/s
             [+1, +1, -1, -1],  # Unitless! Shooting for rad/s
-            [+1, -1, -1, +1],  # This is the error row (May not be necessary)
         ], dtype=np.float32) / 4.0  # All of the rows are divided by 4
-
-        # Compute the left-inverse once
-        self.left_inverse = (mecanum_matrix.T * mecanum_matrix).I * mecanum_matrix.T
 
         # Twist subscriber
         self.twist_sub = rospy.Subscriber('twist', TwistStamped, self.got_twist)
-        # We do not currently use the Mecanum publisher, instead only the service is called
-        self.mecanum_pub = rospy.Publisher('mecanum_speeds', Mecanum, queue_size=1)
+
+        self.pose = np.array([0.0, 0.0, 0.0])
+        self.odom_pub = rospy.Publisher('odom', Pose2D, queue_size=1)
+
         rospy.loginfo("----------Attempting to find set_wheel_speeds service-------------")
         rospy.wait_for_service('/robot/xmega_connector/set_wheel_speeds')
         rospy.loginfo("----------Wheel speed service found--------------")
         self.wheel_speed_proxy = rospy.ServiceProxy('/robot/xmega_connector/set_wheel_speeds', SetWheelSpeeds)
 
+        rospy.loginfo("----------Attempting to find odometry service-------------")
+        rospy.wait_for_service('/robot/xmega_connector/get_odometry')
+        rospy.loginfo("----------Odometry service found--------------")
+
+        self.odometry_proxy = rospy.ServiceProxy('/robot/xmega_connector/get_odometry', GetOdometry)
+
+        self.get_odom()
+
     def got_twist(self, twist_stamped_msg):
         twist_msg = twist_stamped_msg.twist
-        desired_action = np.array([twist_msg.linear.x, twist_msg.linear.y, twist_msg.angular.z, 0.0], dtype=np.float32)
+        desired_action = np.array([
+            twist_msg.linear.x,
+            twist_msg.linear.y,
+            twist_msg.angular.z,
+        ],
+            dtype=np.float32)
         self.send_mecanum(desired_action)
 
     def send_mecanum(self, desired_action):
         '''Convert a desired linear and angular velocity vector into a wheel speed solution
+
+        Wheel Orientations:
+        (+) Means positive spin pushes robot toward the NUC's "THIS WAY UP" sticker
+        (-) Means it pushes in the opposite direction
+            Wheel_4 (+)  ...........  Wheel_3 (-)
+            Wheel_1 (+)  ...........  Wheel_2 (-)
 
         Equations from [1]
         V_y = (V_0 + V_1 + V_2 + V_3) / 4
@@ -81,26 +98,41 @@ class Controller(object):
                 For those keeping track at home, (A.T * A).I * A.T is the Moore-Penrose Left Psuedo-inverse of A
             Q.E.D.
 
+
         Notes:
             This approach is a slight departure from Forrest and Khaled's method from last year
-
-        FAQ:
-            Q: Why did we not just use Numpy's least squares implementation? (numpy.linalg.lstsq)?
-            A:  We precomputed the left-inverse instead of using the numpy least-squares function because
-                numpy's least squares must compute the cholesky decomposition each time it is called, and 
-                then solve. This way, we still have to do an expensive inversion, but only once.
-                In my opinion (Jacob) this is better suited to the real-time application at hand.
-                And moreover, one that we understand
 
         Bibliography:
             [1] http://www2.informatik.uni-freiburg.de/~grisetti/teaching/ls-slam/lectures/pdf/ls-slam-03-hardware.pdf
 
         '''
-        v_target = np.matrix(desired_action).T
-        mecanum_speeds = (self.left_inverse * v_target).A1 * 10
-        wheel_speeds = [mecanum_speeds[0], -mecanum_speeds[1], -mecanum_speeds[2], mecanum_speeds[3]]
-        print wheel_speeds
+        # I am sorry to do this, I couldn't get y-twist to go in the right direction
+        v_target = np.array([desired_action[0], -desired_action[1], desired_action[2]])
+        mecanum_speeds = np.linalg.lstsq(self.mecanum_matrix, v_target)[0]
+
+        # These wheels are pointed backwards!
+        wheel_speeds = [
+            mecanum_speeds[0], 
+            -mecanum_speeds[1], 
+            -mecanum_speeds[2], 
+            mecanum_speeds[3]
+        ]
         self.wheel_speed_proxy(*wheel_speeds)
+
+    def get_odom(self):
+        r = rospy.Rate(10) # 10hz
+        while not rospy.is_shutdown():
+            odom_msg = self.odometry_proxy()
+            wheel_odom = np.array([
+                odom_msg.wheel1,
+                -odom_msg.wheel2,
+                -odom_msg.wheel3,
+                odom_msg.wheel4,
+            ])
+            odom = np.dot(self.mecanum_matrix, wheel_odom).A1
+            self.pose += odom
+            self.odom_pub.publish(Pose2D(*self.pose))
+            r.sleep()
 
 
 if __name__=='__main__':

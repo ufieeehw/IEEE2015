@@ -26,13 +26,13 @@ def got_joy_msg(joy_msg):
     twist_stamped_msg.twist.linear = Vector3()
     twist_stamped_msg.twist.angular = Vector3()
 
-    twist_stamped_msg.twist.linear.x = linear_x
-    twist_stamped_msg.twist.linear.y = linear_y
+    twist_stamped_msg.twist.linear.x = linear_x * 10
+    twist_stamped_msg.twist.linear.y = linear_y * 10
     twist_stamped_msg.twist.linear.z = 0
     
     twist_stamped_msg.twist.angular.x = 0
     twist_stamped_msg.twist.angular.y = 0
-    twist_stamped_msg.twist.angular.z = angular_z * 0.3
+    twist_stamped_msg.twist.angular.z = angular_z * 3
 
     twist_stamped_msg.header.seq = seq
     twist_stamped_msg.header.frame_id = '/robot'

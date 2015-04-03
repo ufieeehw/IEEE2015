@@ -97,7 +97,6 @@ class Visualizer(object):
     @thread_lock
     def draw(self, i):
         # x = np.array(self.times) - self.start_time.to_time()
-        print 'attempting to draw'
         x = np.array(self.plot_dict['x'], np.float64)
         if len(x) < 10:
             return
@@ -107,7 +106,6 @@ class Visualizer(object):
             # y = np.array(item_queue)
             # self.ax.plot(x, y, '-', label=item_name)
         y = np.array(self.plot_dict['y'], np.float64)
-        print y
         self.ax.plot(x, y, '-', label='Position')
         self.ax.set_autoscale_on(False)
         self.ax.axis([-200, 200, -200, 200])

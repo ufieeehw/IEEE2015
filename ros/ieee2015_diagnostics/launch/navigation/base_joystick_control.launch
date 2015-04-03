@@ -1,4 +1,5 @@
 <!-- -*- mode: XML -*- -->
+<!-- To use this, you will have to manually do: rosrun joy joy_node -->
 <launch>
     <group ns="robot">
         <node name="joystick_listener" pkg="joy" type="joy_node" 
@@ -13,6 +14,10 @@
                 port: /dev/xmega_tty
             </rosparam>
         </node>
+
+        <node name="navigation_state_visualization" pkg="ieee2015_diagnostics" type="visualize_motion" 
+            args="--topic odom --name NavigationViz"
+            output="screen" />
     </group>
 </launch>
 
