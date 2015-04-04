@@ -15,7 +15,7 @@ def find_card(img, height):
 
     contours, hierarchy = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-    approx_height = (-486526 * height) + 163108
+    approx_height = (-838900 * height) + 239926
     sigma = 3000
      #using grayscale thresh
     goodContours = []
