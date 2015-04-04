@@ -18,6 +18,18 @@ class Transform(object):
     )
     distCoeffs = np.array([0.169985, -0.40105, 0.005058, -0.000463, 0.0])
 
+    views = {
+        # Degrees
+        20: {
+            'view_points': np.float32([
+                (620, 220),
+                (482, 147),
+                (175, 146),
+                (58, 220),
+            ])
+        }
+    }
+
     cam_x = 640
     cam_y = 480
 
@@ -131,13 +143,18 @@ if __name__ == '__main__':
     # height = 0.086 # meters
     # height = height - 0.014 # Height of chess
     height = 0.085 # meters
-    height = height - 0.007 # Height of chess
+    # height = height - 0.007 # Height of chess
 
     # angle = -0.0
-    angle = 0.2
-    view_points = Transform.get_view_points(angle, height)
+    # angle = np.radians(20)
+    angle = -0.4
+    # view_points = Transform.get_view_points(angle, height)
 
     # map_coordinates = np.float32([[650, 650], [650, 350], [350, 350], [350, 650]])
+
+    ''' Using our dict of known calibrations'''
+
+
     sq_size = 50
     map_coordinates = np.float32([
         [320 + sq_size, 240 + sq_size],
@@ -145,6 +162,9 @@ if __name__ == '__main__':
         [320 - sq_size, 240 - sq_size],
         [320 - sq_size, 240 + sq_size],
     ])
+
+    view_points = Transform.views[20]['view_points']
+    print view_points
     Transform._get_perspective_matrix(view_points, map_coordinates)
     (bird_dims) = Transform._get_bird_dims()
 
@@ -167,7 +187,7 @@ if __name__ == '__main__':
         rected = Transform.rectify_image(frame)
         # cv2.imshow("Rectified", rected)
 
-        xformed = cv2.resize(Transform.transform_image(rected, (800, 800)), (500, 500))
+        xformed = cv2.resize(Transform.transform_image(rected, (800, 500)), (500, 500))
         toc = time() - tic
         print 'Rectification took {} seconds'.format(toc)
 

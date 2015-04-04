@@ -19,6 +19,7 @@ max_angular_vel = 2 # rad/s
 max_angular_acc = max_angular_vel # rad/s^2 
 # (Jason says this is just called angular acceleration, # I call it angcelleration)
 
+
 def print_in(f):
     '''Shitty decorator for printing function business'''
     print("Defining " + f.func_name)
@@ -80,7 +81,6 @@ class Controller(object):
                 )
             )
         )
-
 
     def norm_angle_diff(self, ang_1, ang_2):
         '''norm_angle_diff(ang_1, ang_2)
@@ -163,7 +163,7 @@ class Controller(object):
             # Send the raw x, y, w desired velocity vector
             # Alone, this line does nothing
             self.send_twist((x_vel, y_vel), desired_angvel) 
-            
+
     def got_desired_pose(self, msg):
         '''Recieved desired pose message
         Figure out how to do this in a separate thread
@@ -173,6 +173,7 @@ class Controller(object):
         '''
         self.des_position = np.array([msg.pose.position.x, msg.pose.position.y])
         self.des_yaw = tf_trans.euler_from_quaternion(xyzw_array(msg.pose.orientation))[2]
+
 
 if __name__ == '__main__':
     controller = Controller()
