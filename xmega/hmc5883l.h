@@ -63,3 +63,4 @@
 #define HMC5883L_STATUS_READY_BIT 0
 
 #endif /* _HMC5883L_H_ */
+
