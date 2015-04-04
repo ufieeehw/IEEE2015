@@ -6,11 +6,15 @@
 #include "hwlib/clock.h"
 #include "hwlib/twi.h"
 #include "hwlib/tcs34725.h"
+#include "hwlib/mpu6050.h"
+#include "hwlib/hmc5883l.h"
 
 void init() {
 	init_clocks();
 	init_modules();
 	init_interrupts();
+	mpu_init();
+	tcs_init();
 }
 
 void init_interrupts() {
