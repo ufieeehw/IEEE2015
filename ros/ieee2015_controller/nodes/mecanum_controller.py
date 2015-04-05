@@ -25,12 +25,9 @@ class Controller(object):
         # Create the 4x4 mecanum transformation matrix
         self.mecanum_matrix = self.wheel_radius * np.matrix([
             [+1, +1, +1, +1],  # Unitless! Shooting for rad/s
-            [+1, -1, +1, -1],  # Unitless! Shooting for rad/s
+            [+1, -1, -1, +1],  # Unitless! Shooting for rad/s
             [ang_scale * +1, ang_scale * +1, ang_scale * -1, ang_scale * -1],  # Unitless! Shooting for rad/s
         ], dtype=np.float32) / 4.0  # All of the rows are divided by 4
-
-        # Twist subscriber
-        self.twist_sub = rospy.Subscriber('twist', TwistStamped, self.got_twist)
 
         self.pose = np.array([0.0, 0.0, 0.0])
         self.odom_pub = rospy.Publisher('odom', Pose2D, queue_size=1)
@@ -39,6 +36,11 @@ class Controller(object):
         rospy.wait_for_service('/robot/xmega_connector/set_wheel_speeds')
         rospy.loginfo("----------Wheel speed service found--------------")
         self.wheel_speed_proxy = rospy.ServiceProxy('/robot/xmega_connector/set_wheel_speeds', SetWheelSpeeds)
+        
+        # Twist subscriber
+        self.twist_sub = rospy.Subscriber('twist', TwistStamped, self.got_twist)
+
+        
 
         rospy.loginfo("----------Attempting to find odometry service-------------")
         rospy.wait_for_service('/robot/xmega_connector/get_odometry')
@@ -114,6 +116,7 @@ class Controller(object):
         v_target = np.array([desired_action[0], -desired_action[1], desired_action[2]])
         mecanum_speeds = np.linalg.lstsq(self.mecanum_matrix, v_target)[0]
 
+        print mecanum_speeds
         # These wheels are pointed backwards!
         wheel_speeds = [
             mecanum_speeds[0], 
