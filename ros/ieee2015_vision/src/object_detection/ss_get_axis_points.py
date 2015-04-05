@@ -32,10 +32,9 @@ def get_axis_points(img, height):
     wholeToy = []
     for bae2 in contours:
         area = cv2.contourArea(bae2)
-        #if area > (approx_area - sig) and area < (approx_area + sig):
         if area > (approx_area - sigma) and area < (approx_area + sigma):
             wholeToy.append(bae2)
-            #cv2.drawContours(img2, [bae2], 0, (0, 255, 0), 10)
+
     #first element should be only one and be the toy contour
     toyCnt = wholeToy[0]
 
@@ -52,10 +51,6 @@ def get_axis_points(img, height):
 
     ma = int(ma)
     MA = int(MA)
-
-    #angle = angle * -1
-    #cv2.circle(img2, (goodcircle[0], goodcircle[1]), 2, (0, 0, 255), 30)
-
 
     #gives us the dimensions so that we can form rotation matrix
     #rows, cols, pages = img2.shape
