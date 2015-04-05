@@ -34,6 +34,7 @@ def etchaSketch_detect(img, height):
         area = cv2.contourArea(current)
         if area > (approx_area - sigma) and area < (approx_area + sigma): 
             eas.append(current)
+            cv2.drawContours(img, [current], 0, (0, 255, 0), 10)
 
     #gives us bounding rectangle to reference for points in and out
     #if problems arise we can use distances from contour
@@ -61,82 +62,3 @@ def etchaSketch_detect(img, height):
     angle = boxpoints[2]    
 
     return (cx_coord, cy_coord), angle
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-'''
-
-threshold_img = cv2.adaptiveThreshold(grayscale,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-            cv2.THRESH_BINARY,11,2)
-
-height, width = threshold_img.shape
-
-
-
-
-
-
-
-new_thresh = cv2.resize(threshold_img, (300, 250))
-
-cv2.imshow('hello', new_thresh)
-cv2.waitKey(0)
-cv2.destroyAllWindows
-#extracted_white = cv2.inRange(hsveye, lower_white, upper_white)
-
-kernel = np.ones((3,3), np.uint8) #square of 2x2 pixels to use for dilating
-kernel2 = np.ones((2,2), np.uint8) #square of 1x1 pixels to use for eroding
-eroded_image = cv2.erode(threshold_img,kernel2,iterations = 1)
-cv2.imshow("cleaned up image", eroded_image)
-cv2.waitKey(0)
-
-dilated_image = cv2.dilate(eroded_image, kernel, iterations = 1)
-cv2.imshow("dilated image", dilated_image)
-cv2.waitKey(0)
-
-#cv2.imshow("dilated course", course_image_binary)
-#cv2.waitKey(0)
-#cv2.destroyAllWindows
-#finds countours of threshold image 
-
-contours,h = cv2.findContours(threshold_img,1,2)
-cnt = contours[0]
-
-
-
-ellipse = cv2.fitEllipse(cnt)
-cv2.ellipse(image,ellipse,(0,255,0),2)
-cv2.imshow = ('ellipse', ellipse)
-cv2.waitKey(0)
-cv2.destroyAllWindows
-
-#Goes through the contours image and draws green pixels where it finds rectangles
-#on top of the original color image
-
-#rectanglecounter = 0
-for cnt in contours:
-    approx = cv2.approxPolyDP(cnt,0.01*cv2.arcLength(cnt,True),True)
-    
-    if len(approx)==4:
-        cv2.drawContours(image,[cnt],0,(0,255,0),-1)
-
-
-
-
-
-#Creates an image called threshold, which is the threshold of the grayscale image
-
-#finds countours of threshold image 
-
-'''

@@ -5,7 +5,7 @@ import numpy as np
 def get_lit_button(img):
     #img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
     #below ranges should work for all of the lights on ranges
-    lower_on = np.array([26, 180, 215])
+    lower_on = np.array([0, 80, 140])
     upper_on = np.array([255, 255, 255])
 
     bright_button = cv2.inRange(img, lower_on, upper_on)
@@ -21,7 +21,8 @@ def get_lit_button(img):
     eroded = cv2.erode(bright_button, kernel2)
     dilated = cv2.dilate(eroded, kernel3)
     closing = cv2.morphologyEx(dilated, cv2.MORPH_CLOSE, kernel, iterations=10)
-
+    cv2.imshow('closing', closing)
+    cv2.waitKey(0)
     #to be used later
     #cont_img = closing.copy()
 
@@ -30,14 +31,9 @@ def get_lit_button(img):
     contours, hierarchy = cv2.findContours(closing, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     #filtering contours to find the green and blue button
-    best_ctn = []
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
-        if area > 8000:
-            best_ctn.append(cnt)
-
+  
     #best_ctn should ideally be length of one at this point
-    lit_button = best_ctn[0]
+    lit_button = contours[0]
 
     leftmost = tuple(lit_button[lit_button[:, :, 0].argmin()][0])
 
@@ -62,8 +58,9 @@ def get_lit_button(img):
     mean_rows = int((topmost[1] + bottommost[1]) / 2)
    
     return mean_cols, mean_rows, closing
-#img = cv2.imread('Images/Set3/snorm8.JPG')
-#img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-
+img = cv2.imread('ti/ss3.JPG')
+img = cv2.resize(img,None,fx=.2, fy=.2,)
+img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+get_lit_button(img)
 #mc, mr, clsing = get_lit_button(img)
 #print mc, mr

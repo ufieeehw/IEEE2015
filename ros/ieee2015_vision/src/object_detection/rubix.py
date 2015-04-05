@@ -49,4 +49,3 @@ def find_rubix(src, height):
   angle = boxpoints[2]
 
   return (centerX, centerY), angle
-

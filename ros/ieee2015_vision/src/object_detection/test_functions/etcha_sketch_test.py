@@ -6,6 +6,9 @@ import cv2.cv as cv
 #return value of function is cx_coord and cy_coord containing list of x and y coord
 #of center points of knobs
 def etchaSketch_detect(img, height):
+    cv2.imshow('original', img)
+    cv2.waitKey(0)
+    #grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     ###FOLLOWING IS FOR GRAYSCALE ATTEMPT###= 
     kernelg = np.ones((4,4), np.uint8)
     #seems to be extremely less effective, just grouping old code together
@@ -22,7 +25,10 @@ def etchaSketch_detect(img, height):
    
     #this is pretty
     gray = cv2.adaptiveThreshold(grayscale,255,cv2.ADAPTIVE_THRESH_MEAN_C,\
-            cv2.THRESH_BINARY,37,7)
+            cv2.THRESH_BINARY,33,12)
+    #cv2.THRESH_BINARY,33,15)
+    kernel = np.ones((8, 8), np.uint8)
+    gray = cv2.erode(gray, kernel)
 
     cv2.imshow('gray', gray)
     cv2.waitKey(0)
@@ -31,23 +37,28 @@ def etchaSketch_detect(img, height):
     #4th parameter seems to be very important
     contours, hierarchy = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-    approx_perim = (-3431 * height) + 1877
-    sigma = 200
+    print 'this is len of contr'
+    print len(contours)
+    approx_area = (-800112 * height) + 243989
+    print 'this is approx_area'
+    print approx_area
+    sigma = 6000
     eas = []
     for current in contours:
-        perim = cv2.arcLength(current, True)
-        #print 'this is perim'
-        #print perim
-        if perim > (approx_perim - sigma)  and perim < (approx_perim + sigma):
+        area = cv2.contourArea(current)
+        print area
+        if area > (approx_area - sigma) and area < (approx_area + sigma): # and perim < 2302:
             cv2.drawContours(img, [current], 0, (0, 255, 0), 10)
             #if we get a sm- aller value in the range we give it
             #we want the contour with the smaller perimeter
             #may swtich it to be larger area to be sure
             #testing will tell
             eas.insert(0, current)
-            print 'this is good perim'
-            print perim
+          #  print 'this is good perim'
+          #  print perim
 
+    cv2.imshow('img',img)
+    cv2.waitKey(0)
     #gives us bounding rectangle to reference for points in and out
     #if problems arise we can use distances from contour
     boxpoints = cv2.minAreaRect(eas[0])
@@ -56,22 +67,17 @@ def etchaSketch_detect(img, height):
 
     cv2.imshow('img',img)
     cv2.waitKey(0)
-    circles = cv2.HoughCircles(thresh4, cv2.cv.CV_HOUGH_GRADIENT, 10, 200, 100, 550, 10, 5)
-    
+    circles = cv2.HoughCircles(thresh4, cv2.cv.CV_HOUGH_GRADIENT, 1, 200, 100, 550, 10, 5)
     buttons = []
-    approx_radius = (-144.59 * height) + 63.175
-    print approx_radius
-    sigma_r = 4
     if circles is not None:
         circles = np.uint16(np.around(circles))
         for i in circles[0, :]:
         # draw the outer circle
             temppoint = (i[0], i[1])
-            print circles
             tempans = cv2.pointPolygonTest(points, temppoint, False)
-            if tempans >= 0 and i[2] > (approx_radius - sigma_r) and i[2] < (approx_radius + sigma_r):
+            if tempans >= 0:# and i[2] == 38 and i[2] == 39:
                 print 'this is good cricle'
-                print i
+                print i[2]
                 cv2.circle(img, (i[0], i[1]), i[2], (0, 255, 0), 2)
                 # draw the center of the circle
                 cv2.circle(img, (i[0], i[1]), 2, (0, 0, 255), 3)
@@ -92,8 +98,8 @@ def etchaSketch_detect(img, height):
 
     return cx_coord, cy_coord, angle
 
-img = cv2.imread('heights/18cmeas.jpg')
-etchaSketch_detect(img, .18)
+img = cv2.imread('ti/21he.jpg')
+etchaSketch_detect(img, .215)
 
 
 

@@ -43,16 +43,17 @@ def find_rubix(src, height):
      #       goodContours.append(current)
 
   #using height for reference
-  approx_area = (-415485 * height) + 139438
+  approx_area = (-955284 * height) + 259205
+  sigma = 30000
   #using 6000 as standard dev
   #using grayscale thresh
   goodContours2 = []
   for current in contours2:
         area = cv2.contourArea(current)
-        print 'this is area'
-        print area
-        if area > (approx_area - 6000) and area < (approx_area + 6000): #will need to be adjusted !!!!!
-            goodContours2.append(current)
+        if area > approx_area - sigma and area < approx_area + 30000: #will need to be adjusted !!!!!
+          goodContours2.append(current)
+          print 'this is area'
+          print area
 
   for cnt in goodContours2:
     cv2.drawContours(src,[cnt],0,(0,255,0),1)
@@ -105,5 +106,5 @@ def find_rubix(src, height):
   print angle
   return {'center':(centerX, centerY), 'angle': angle}
 
-img = cv2.imread('heights/18cmrubix.jpg')
-find_rubix(img, .18)
+img = cv2.imread('ti/18.5r.jpg')
+find_rubix(img, .185)
