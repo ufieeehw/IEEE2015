@@ -28,7 +28,7 @@ def etchaSketch_detect(img, height):
     contours, hierarchy = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
     approx_area = (-800112 * height) + 243989
-    sigma = 1000
+    sigma = 7000
     eas = []
     for current in contours:
         area = cv2.contourArea(current)
