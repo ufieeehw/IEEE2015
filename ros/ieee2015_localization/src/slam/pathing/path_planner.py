@@ -46,6 +46,9 @@ def plan_path(start_position, goal_position, image):
     _next = current
     while(not np.allclose(_next, np.array(goal_position))):
         current = _next
+        if best_cost == prev_cost:
+            return None # Failed to find path
+            
         prev_cost = best_cost
         for x in [-1, 0, 1]:
             for y in [-1, 0, 1]:
