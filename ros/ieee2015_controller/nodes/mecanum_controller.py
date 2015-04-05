@@ -18,11 +18,15 @@ class Controller(object):
         '''Initialize Controller Object'''
         rospy.init_node('mecanum_controller')
     
+        wheel_diameter = 54e-3 # 54 mm
+        self.wheel_radius = wheel_diameter / 2.0
+
+        ang_scale = 5.172
         # Create the 4x4 mecanum transformation matrix
-        self.mecanum_matrix = np.matrix([
+        self.mecanum_matrix = self.wheel_radius * np.matrix([
             [+1, +1, +1, +1],  # Unitless! Shooting for rad/s
             [+1, -1, +1, -1],  # Unitless! Shooting for rad/s
-            [+1, +1, -1, -1],  # Unitless! Shooting for rad/s
+            [ang_scale * +1, ang_scale * +1, ang_scale * -1, ang_scale * -1],  # Unitless! Shooting for rad/s
         ], dtype=np.float32) / 4.0  # All of the rows are divided by 4
 
         # Twist subscriber
@@ -130,6 +134,7 @@ class Controller(object):
                 odom_msg.wheel4,
             ])
             odom = np.dot(self.mecanum_matrix, wheel_odom).A1
+            odom[1] *= -1
             self.pose += odom
             self.odom_pub.publish(Pose2D(*self.pose))
             r.sleep()
