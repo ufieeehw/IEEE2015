@@ -11,8 +11,6 @@ def get_lit_button(img):
 
     bright_button = cv2.inRange(hsv_img, lower_on, upper_on)
 
-    cv2.imshow('img', bright_button)
-
     kernel = np.ones((8, 8), np.uint8)
     #kernel for eroding
     kernel2 = np.ones((8, 8), np.uint8)
@@ -58,9 +56,9 @@ def get_lit_button(img):
     cv2.circle(img, (mean_cols, mean_rows), 2, (0, 0, 0), 10)
 
     cv2.imshow('points', img)
+    #cv2.waitKey(0)
 
-    return mean_cols, mean_rows, closing
-
+    return (mean_cols, mean_rows)
 #img = cv2.imread('ti/ss3.JPG')
 #mg = cv2.resize(img,None,fx=.2, fy=.2,)
 #get_lit_button(img)

@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
-import ss_get_mid_quarter_points
-import ss_get_center_circle
+import ss_get_center_circle_test
 
 
 #read in the image, resize is just so that I can see on screen
@@ -13,9 +12,9 @@ def get_axis_points(img, height):
                     cv2.THRESH_BINARY, 37, 8)
 
     #anytime we show an image copy it then show it
-    #fakeThresh = thresh.copy()
-    #cv2.imshow('using adaptiveThreshold', fakeThresh)
-    #cv2.waitKey(0)
+    fakeThresh = thresh.copy()
+    cv2.imshow('using adaptiveThreshold', fakeThresh)
+    cv2.waitKey(0)
 
     #flip black and white pixels
     thresh = (255 - thresh)
@@ -36,16 +35,21 @@ def get_axis_points(img, height):
     print 'this is length of contours'
     print len(contours)
 
-    approx_area = (-541758 * height) + 160220
-    sig = 6000
+    approx_area = (-649593 * height) + 180070
+    sigma = 14000
+
+    print 'this is approx_area'
+    print approx_area
     #finding contour for the toy
     wholeToy = []
     for bae2 in contours:
         area = cv2.contourArea(bae2)
-        if area > (approx_area - sig) and area < (approx_area + sig):
+        print 'this is all area'
+        print area
+        if area > (approx_area - sigma) and area < (approx_area + sigma):
             print 'this is area'
             print area
-            #cv2.drawContours(img, [bae2], 0, (0, 255, 0), 10)
+            cv2.drawContours(img, [bae2], 0, (0, 255, 0), 10)
             wholeToy.append(bae2)
 
     #test img
@@ -67,7 +71,7 @@ def get_axis_points(img, height):
     #cv2.imshow('detected box', img)
     #cv2.waitKey(0)
 
-    goodcircle = ss_get_center_circle.get_center_circle(img, points)
+    goodcircle = ss_get_center_circle_test.get_center_circle(img, points)
     #PLOTS THE 4 CORNER POINTS OF THE RECTANGLE
     #Testing
     cv2.circle(img, (points[0][0], points[0][1]), 2, (0, 0, 255), 10)
@@ -133,4 +137,5 @@ def get_axis_points(img, height):
     cv2.imshow('finla img', img)
     cv2.waitKey(0)
 
-    return angle, points, goodcircle#x, y, p1CentMajor, p2CentMajor, p1CentMinor, p2CentMinor, quarterMin1, quarterMin2, quarterMaj1, quarterMaj2
+    return angle, points, goodcircle
+
