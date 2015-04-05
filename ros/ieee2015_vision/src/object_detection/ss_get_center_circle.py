@@ -14,13 +14,15 @@ def get_center_circle(img, points):
     circles = cv2.HoughCircles(thresh3, cv2.cv.CV_HOUGH_GRADIENT, 1, 200, 100, 100, 100, 50)
     #circles = cv2.HoughCircles(thresh3, cv2.cv.CV_HOUGH_GRADIENT, 1, 200, 100, 100, 100, 50)
     goodcircle = []
+    radius_center = (-482 * height) + 197
+    sigma = 8
     if circles is not None:
         circles = np.uint16(np.around(circles))
         for i in circles[0,:]:
             temppoint = (i[0], i[1])
             tempans = cv2.pointPolygonTest(points, temppoint, False)
             # draw the outer circle
-            if tempans >= 0:
+            if tempans >= 0 and i[2] > radius_center - sigma and i[2] < radius_center + sigma:
                 goodcircle.append(i[0])
                 goodcircle.append(i[1])
     else:

@@ -36,7 +36,6 @@ def get_axis_points(img, height):
         if area > (approx_area - sigma) and area < (approx_area + sigma):
             wholeToy.append(bae2)
             #cv2.drawContours(img2, [bae2], 0, (0, 255, 0), 10)
-
     #first element should be only one and be the toy contour
     toyCnt = wholeToy[0]
 
@@ -67,5 +66,5 @@ def get_axis_points(img, height):
 
     return angle, points, goodcircle#x, y, p1CentMajor, p2CentMajor, p1CentMinor, p2CentMinor, quarterMin1, quarterMin2, quarterMaj1, quarterMaj2
 
-img = cv2.imread('test_functions/ti/25hss.jpg')
-get_axis_points(img, .255)
+#img = cv2.imread('test_functions/ti/25hss.jpg')
+#get_axis_points(img, .255)
