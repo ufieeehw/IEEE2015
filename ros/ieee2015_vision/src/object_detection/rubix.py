@@ -20,12 +20,12 @@ def find_rubix(src, height):
 
   #using height for reference
   approx_area = (-955284 * height) + 259205
-  #using 6000 as standard dev
+  sigma = 30000
   #using grayscale thresh
   goodContours2 = []
   for current in contours2:
         area = cv2.contourArea(current)
-        if area > 10000: #will need to be adjusted !!!!!
+        if area > approx_area - sigma and area < approx_area + sigma: #will need to be adjusted !!!!!
           goodContours2.append(current)
 
   boxpoints = cv2.minAreaRect(goodContours2[0])
