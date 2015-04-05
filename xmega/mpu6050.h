@@ -377,8 +377,7 @@ void mpu_get_motion_six_dof(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, 
 #define MPU60X0_DMP_MEMORY_BANK_SIZE    256
 #define MPU60X0_DMP_MEMORY_CHUNK_SIZE   16
 
-
-
+void mpu_get_motion_six_handler(char* message, uint8_t len);
 
 
 #endif /* MPU6050_H_ */

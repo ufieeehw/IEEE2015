@@ -12,10 +12,12 @@
 #include "uart.h"
 #include "pid.h"
 #include "clock.h"
+#include "hmc5883l.h"
+#include "mpu6050.h"
 
 
 typedef void (*HandlerPointer)(char*, uint8_t);
-HandlerPointer HandlerPointers[10] = {
+HandlerPointer HandlerPointers[15] = {
 	NULL,						// 0x00 AckValid
 	NULL,						// 0x01 AckInvalid
 	uart_echo_request,			// 0x02
@@ -26,6 +28,8 @@ HandlerPointer HandlerPointers[10] = {
 	pid_get_speed_multiplier_handler, // 0x07
 	pid_get_speed_handler,		// 0x08
 	pid_set_tuning_handler,		//0x09
+	imu_get_heading_handler,	//0x0A
+	mpu_get_motion_six_handler,	//0x0B
 };
 
 

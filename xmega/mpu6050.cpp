@@ -8,6 +8,8 @@
 #include <avr/io.h>
 #include "mpu6050.h"
 #include "twi.h"
+#include "../init.h"
+#include "uart.h"
 
 static inline void mpu_setI2CMasterModeEnabled(bool enabled) {
 	twi_write_bit(MPU60X0_DEFAULT_ADDRESS, MPU60X0_RA_USER_CTRL, MPU60X0_USERCTRL_I2C_MST_EN_BIT, enabled);
@@ -82,15 +84,14 @@ bool mpu_test_connection() {
  * @see getRotation()
  * @see MPU60X0_RA_ACCEL_XOUT_H
  */
-void mpu_get_motion_six_dof(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz) {
-	uint8_t buffer[14] = {0};
-	for(uint8_t i = 0; i < 14; i++)
+void mpu_get_motion_six_dof(char (&buffer)[12]) {
+	
+	for(uint8_t i = 0; i < 12; i++)
 		buffer[i] = twi_read_byte(MPU60X0_DEFAULT_ADDRESS, MPU60X0_RA_ACCEL_XOUT_H + i);
+}
 
-	*ax = (((int16_t)buffer[0]) << 8) | buffer[1];
-	*ay = (((int16_t)buffer[2]) << 8) | buffer[3];
-	*az = (((int16_t)buffer[4]) << 8) | buffer[5];
-	*gx = (((int16_t)buffer[8]) << 8) | buffer[9];
-	*gy = (((int16_t)buffer[10]) << 8) | buffer[11];
-	*gz = (((int16_t)buffer[12]) << 8) | buffer[13];
+void mpu_get_motion_six_handler(char* message, uint8_t len){
+	char buffer[12] = {0};
+	mpu_get_motion_six_dof(buffer);
+	uart_send_msg_block(MPUgetMotion, buffer, 13);
 }

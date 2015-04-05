@@ -41,7 +41,9 @@ typedef enum MessageTypes_enum {
 	PIDsetMultiplier = 0x06,
 	PIDgetMultiplier = 0x07,
 	PIDgetSpeed = 0x08,
-	TCSGetRawData = 0x09
+	TCSGetRawData = 0x09,
+	IMUgetHeading = 0x0A,
+	MPUgetMotion = 0x0B
 
 }MessageTypes_t;
 

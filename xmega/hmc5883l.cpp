@@ -7,6 +7,8 @@
 #include <avr/io.h>
 #include "hmc5883l.h"
 #include "twi.h"
+#include "../init.h"
+#include "uart.h"
 
 static uint8_t mode = HMC5883L_MODE_SINGLE;
 
@@ -38,15 +40,16 @@ void imu_init(){
 	imu_setMode(HMC5883L_MODE_SINGLE);
 }
 
-//Each value ranges fom -2048 to 2047
-/*
-void imu_getHeading(int16_t *x, int16_t *y, int16_t *z) {
-	//I2Cdev::readBytes(HMC5883L_DEFAULT_ADDRESS, HMC5883L_RA_DATAX_H, 6, buffer);
+//Each value ranges from -2048 to 2047
+void imu_getHeading(char (&buffer)[6]) {
+	for (uint8_t i = 0; i < 7; i++)
+		buffer[i] = twi_read_byte(HMC5883L_DEFAULT_ADDRESS, HMC5883L_RA_DATAX_H + i);
 	if (mode == HMC5883L_MODE_SINGLE) 
 		twi_write_byte(HMC5883L_DEFAULT_ADDRESS, HMC5883L_RA_MODE, HMC5883L_MODE_SINGLE << (HMC5883L_MODEREG_BIT - HMC5883L_MODEREG_LENGTH + 1));
-	*x = (((int16_t)buffer[0]) << 8) | buffer[1];
-	*y = (((int16_t)buffer[4]) << 8) | buffer[5];
-	*z = (((int16_t)buffer[2]) << 8) | buffer[3];
 }
-*/
 
+void imu_get_heading_handler(char* message, uint8_t len){
+	char buffer[6] = {0};
+	imu_getHeading(buffer);
+	uart_send_msg_block(IMUgetHeading, buffer, 7);
+}

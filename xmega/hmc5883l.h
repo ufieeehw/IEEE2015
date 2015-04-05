@@ -62,5 +62,6 @@
 #define HMC5883L_STATUS_LOCK_BIT 1
 #define HMC5883L_STATUS_READY_BIT 0
 
-#endif /* _HMC5883L_H_ */
+void imu_get_heading_handler(char* message, uint8_t len);
 
+#endif /* _HMC5883L_H_ */
