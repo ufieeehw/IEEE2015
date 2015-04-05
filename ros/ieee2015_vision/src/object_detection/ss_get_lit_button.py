@@ -45,4 +45,4 @@ def get_lit_button(img):
 
     mean_rows = int((topmost[1] + bottommost[1]) / 2)
    
-    return mean_cols, mean_rows, closing
+    return (mean_cols, mean_rows), closing
