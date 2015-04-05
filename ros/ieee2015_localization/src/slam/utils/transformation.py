@@ -9,34 +9,58 @@ from copy import deepcopy
 
 class Transform(object):
 
-    # Camera Matrix (Intrinsic Parameters)
-    c920_cam = np.array([
-        [631.58, 0.0, 300.169], 
-        [0.0, 648.15, 259.594], 
-        [0.0, 0.0, 1.0]], 
-        dtype=np.float32
-    )
-    distCoeffs = np.array([0.169985, -0.40105, 0.005058, -0.000463, 0.0])
-
     views = {
-        # Degrees
-        20: {
+        '20_8.5': { # Degrees_height in cm
             'view_points': np.float32([
                 (620, 220),
                 (482, 147),
                 (175, 146),
-                (58, 220),
+                (58,  220),
             ])
+        },
+        '20_27': {
+            'view_points': np.float32([
+                (502, 428),
+                (430, 288),
+                (177, 288),
+                (100, 430),
+            ]),
+            'bounds': 600,
+            'frame': {
+                # (98, 0),
+                # (458, 0),
+                # (98, 258),
+                # (458, 258),
+
+                # x
+                # 'x': (98, 458),
+                'x': (118, 538),
+                # 'y': (0, 260),
+                'y': (0, 320),
+
+            }
+
         }
     }
-
     cam_x = 640
     cam_y = 480
 
+    def __init__(self, view, sq_size=50):
+        
+        map_coordinates = np.float32([
+            [320 + sq_size, 240 + sq_size],
+            [320 + sq_size, 240 - sq_size],
+            [320 - sq_size, 240 - sq_size],
+            [320 - sq_size, 240 + sq_size],
+        ])
+
+        view_points = view['view_points']
+        self._perspective_matrix = self._get_perspective_matrix(view_points, map_coordinates)
+        # self.bird_dims = self._get_bird_dims()
+        self.crop = view['frame']
+
     @classmethod
     def get_view_points(self, angle, height):
-
-
         width = 0.3
         z_offset = -0.2
 
@@ -70,7 +94,6 @@ class Transform(object):
             view_coordinates.append(img_point[0][0])
         return np.float32(view_coordinates)
 
-
     @classmethod
     def _get_bird_dims(self):
         # Get bird_x from calculating where top-right corner maps to
@@ -89,7 +112,6 @@ class Transform(object):
              [self.cam_y],
              [1]]
          )
-
         # Extract the new corner location by dividing by homogeneous coord
         bird_y = corner[1] / corner[2]
         return (bird_x, bird_y)
@@ -98,45 +120,30 @@ class Transform(object):
     def _get_perspective_matrix(self, orig, guess):
         # Scale and move image around so that your location is equal to what
         # you defined in _robot_coordinates
-        # new = self._tune_output_square(.5, [-285.7, -368], guess)
         new = guess
         # Calculate the actual 3x3 matrix
         self._perspective_matrix = cv2.getPerspectiveTransform(orig, new)
         return self._perspective_matrix
 
-    @classmethod
     def transform_image(self, image, (bird_x, bird_y)): 
         #remap original image by applying transform matrix
-        print "Bird's Eye Coords ({} {})".format(bird_x, bird_y)
+        # print "Bird's Eye Coords ({} {})".format(bird_x, bird_y)
         imgx = cv2.warpPerspective(image, self._perspective_matrix,
                                    (bird_x, bird_y), flags=1, 
                                    borderMode=0, borderValue=(0, 0, 0))
-        return imgx
 
-    @classmethod
-    def _tune_output_square(self, scale, translate, points):
-        '''TO BLAME FOR WEIRD THINGS?'''
-        newpoints = deepcopy(points)
-        avg_x = (points[0][0] + points[1][0] + points[2][0] + points[3][0]) / 4
-        avg_y = (points[0][1] + points[1][1] + points[2][1] + points[3][1]) / 4
 
-        for n in range(0, 4):
-            newpoints[n][0] = avg_x - (avg_x - points[n][0]) * scale + translate[0]
-            newpoints[n][1] = avg_y - (avg_y - points[n][1]) * scale + translate[1]
-        return newpoints
+        crop = self.crop
+        # return imgx
+        new_img = imgx[crop['y'][0]: crop['y'][1], crop['x'][0]: crop['x'][1]]
+        return new_img
 
-    @classmethod
-    def rectify_image(self, image):
-
-        rected = cv2.undistort(image, self.c920_cam, self.distCoeffs)
-        return rected
 
 if __name__ == '__main__':
     import os
     from matplotlib import pyplot
     from time import time
     fpath = os.path.dirname(os.path.realpath(__file__))
-
 
 
     # Rubik's test
@@ -184,7 +191,8 @@ if __name__ == '__main__':
             pyplot.show()
 
         tic = time()
-        rected = Transform.rectify_image(frame)
+        rected = frame
+        # rected = Transform.rectify_image(frame)
         # cv2.imshow("Rectified", rected)
 
         xformed = cv2.resize(Transform.transform_image(rected, (800, 500)), (500, 500))
