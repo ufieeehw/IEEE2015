@@ -12,13 +12,15 @@
 #include "communications.h"
 #include "ieee2015_end_effector_servos/Num.h"
 
-#define LARGE_SERVO 4
 #define SMALL_SERVO 3
+#define LARGE_SERVO 4
 #define SIDE_ONE    5
 #define SIDE_TWO    6
 
 bool is_testing = false;
 int last_control = 2;
+int large_control = 1;
+int small_control = 1;
 bool moving = 0;
 uint16_t position;
 uint16_t m_pos_l = 0;
@@ -33,21 +35,14 @@ void init(int dxl_id){
 
 void blink_LED(){
 
-  for (int i = 4; i < 8; i++){
+  for (int i = 1; i < 8; i++){
 
     SetLED(LARGE_SERVO,0);
     SetLED(SMALL_SERVO,0);
     SetLED(SIDE_ONE,0);
     SetLED(SIDE_TWO,0);
 
-    usleep(40000);
-
-    SetLED(LARGE_SERVO,i);
-    SetLED(SMALL_SERVO,i);
-    SetLED(SIDE_ONE,i);
-    SetLED(SIDE_TWO,i);
-
-    usleep(40000);
+    usleep(100000);
 
   }
 }
@@ -133,6 +128,46 @@ void PAYLOAD(int dxl_id, int wheel_or_angle){
   }
 }
 
+void close_large_servo(){
+  uint16_t c_load;
+
+  PAYLOAD(LARGE_SERVO,2);
+  SetVelocity(LARGE_SERVO, 500);
+  SetLED(LARGE_SERVO,1);
+
+  ReadCurrentLoad(LARGE_SERVO, &c_load);
+  c_load = 1000;
+
+  while(c_load != 1554){
+    ReadCurrentLoad(LARGE_SERVO, &c_load);
+  }
+
+  
+  SetVelocity(LARGE_SERVO, 0);
+  SetLED(LARGE_SERVO, 5);
+  PAYLOAD(LARGE_SERVO,2);
+}
+
+void close_small_servo(){
+  uint16_t c_load;
+
+  PAYLOAD(SMALL_SERVO,2);
+  SetVelocity(SMALL_SERVO, 500);
+  SetLED(SMALL_SERVO,1);
+
+  ReadCurrentLoad(SMALL_SERVO, &c_load);
+  c_load = 1000;
+
+  while(c_load != 1554){
+    ReadCurrentLoad(SMALL_SERVO, &c_load);
+  }
+
+  SetVelocity(SMALL_SERVO, 0);
+
+  SetLED(SMALL_SERVO, 5);
+  PAYLOAD(SMALL_SERVO,2);
+}
+
 void calibrate_large_servo(){
 
   uint16_t c_load;
@@ -142,31 +177,93 @@ void calibrate_large_servo(){
   SetLED(LARGE_SERVO,1);
 
   ReadCurrentLoad(LARGE_SERVO, &c_load);
-  usleep(1000000);
   c_load = 1000;
 
   while(c_load != 1554){
     ReadCurrentLoad(LARGE_SERVO, &c_load);
   }
 
+  
   SetVelocity(LARGE_SERVO, 0);
   SetLED(LARGE_SERVO, 5);
-  sleep(1);
+  PAYLOAD(LARGE_SERVO,2);
   SetVelocity(LARGE_SERVO, 2047);
-  usleep(3500000);
+  usleep(3000000);
+  SetVelocity(LARGE_SERVO,0);
+  SetLED(LARGE_SERVO,1);
+}
+
+void calibrate_small_servo(){
+
+  uint16_t c_load;
+
+  PAYLOAD(SMALL_SERVO,2);
+  SetVelocity(SMALL_SERVO, 500);
+  SetLED(SMALL_SERVO,1);
+
+  ReadCurrentLoad(SMALL_SERVO, &c_load);
+  c_load = 1000;
+
+  while(c_load != 1554){
+    ReadCurrentLoad(SMALL_SERVO, &c_load);
+  }
+
+  SetVelocity(SMALL_SERVO, 0);
+
+  SetLED(SMALL_SERVO, 5);
+  PAYLOAD(SMALL_SERVO,2);
+  SetVelocity(SMALL_SERVO, 1500);
+  sleep(2);
+  SetVelocity(SMALL_SERVO,0);
+  SetLED(SMALL_SERVO,1); 
+}
+
+void open_large_servo(){
+  PAYLOAD(LARGE_SERVO,2);
+  SetLED(LARGE_SERVO,1);
+  SetVelocity(LARGE_SERVO, 2000);
+  usleep(200000);
   SetVelocity(LARGE_SERVO, 0);
+  SetLED(LARGE_SERVO, 5);
+  PAYLOAD(LARGE_SERVO,2);
+  calibrate_large_servo();
+}
+
+void open_small_servo(){
+  PAYLOAD(SMALL_SERVO,2);
+  SetLED(SMALL_SERVO,1);
+  SetVelocity(SMALL_SERVO, 2000);
+  usleep(200000);
+  SetVelocity(SMALL_SERVO, 0);
+  SetLED(SMALL_SERVO, 5);
+  PAYLOAD(SMALL_SERVO,2);
+  calibrate_small_servo();
 }
 
 void calibrate_sides_DOWN(){
 
   uint16_t c_load_r;
   uint16_t c_load_l;
+  bool moving;
 
   SetLED(SIDE_TWO,3);
   SetLED(SIDE_ONE,3);
 
   SetVelocity(SIDE_ONE, 500);
-  SetVelocity(SIDE_TWO, 500);
+  ReadMovingStatus(SIDE_ONE, &moving);
+
+  if (moving == true)
+    {
+      SetVelocity(SIDE_TWO, 500);
+      ReadMovingStatus(SIDE_TWO, &moving);
+      usleep(200);
+      if (moving != true)
+      {
+        SetVelocity(SIDE_TWO,0);
+        SetVelocity(SIDE_ONE,0);
+        calibrate_sides_DOWN();
+      }
+    }
   
 
   ReadCurrentLoad(SIDE_ONE, &c_load_r);
@@ -177,7 +274,7 @@ void calibrate_sides_DOWN(){
   c_load_r = 1000;
   usleep(500000);
 
-  while((c_load_r > 450) ){
+  while((c_load_r > 500) || (c_load_r > 500)){
     ReadCurrentLoad(SIDE_ONE, &c_load_r);
     ReadCurrentLoad(SIDE_ONE, &c_load_l);
   }
@@ -195,9 +292,17 @@ void sides_UP(){
 
   int count = 0;
 
-  while(count <= 6)
+  while(count <= 5)
   {
-    SetVelocity(SIDE_ONE, 1520);
+    if (count == 0)
+    {
+      SetVelocity(SIDE_ONE, 1600);
+      SetVelocity(SIDE_TWO, 1600);
+    }
+    else{
+      SetVelocity(SIDE_ONE, 1520);
+      SetVelocity(SIDE_TWO, 1520);
+    }
     ReadMovingStatus(SIDE_ONE, &moving);
     usleep(200);
 
@@ -281,7 +386,7 @@ void mode_DOWN(){
 
   SetLED(SIDE_ONE,7);
   SetLED(SIDE_TWO,7);
-  calibrate_sides_DOWN();
+  sides_DOWN();
 
   SetVelocity(SIDE_ONE, 0);
   SetVelocity(SIDE_TWO, 0);
@@ -316,6 +421,7 @@ void mode_UP(){
 
 void chatterCallback(const ieee2015_end_effector_servos::Num::ConstPtr &num){
   int contol_mode = num->control;
+  int large_mode = num->grab_large;
 
   if(last_control != contol_mode){
 
@@ -330,12 +436,18 @@ void chatterCallback(const ieee2015_end_effector_servos::Num::ConstPtr &num){
     }
 
   }
+  if (last_control != large_mode)
+  {
+    if (large_mode == 2)
+    {
+      close_large_servo();
+    }
+  }
   SetPosition(LARGE_SERVO, num->position_one);
   SetPosition(SMALL_SERVO, num->position_two);
 
   last_control = num->control;
 }
-
 
 int main(int argc, char **argv){
 
@@ -347,11 +459,10 @@ int main(int argc, char **argv){
 
   if (is_testing == true)
   {
-    /*
+    
     InitDXL(1,3);
-    SetID(1,4);
-    SetLED(4,1);
-    */
+    SetID(1,3);
+    SetLED(3,1);
 
   }
 
@@ -364,19 +475,32 @@ int main(int argc, char **argv){
     init(SIDE_TWO);
     PAYLOAD(SIDE_TWO, 2);
 
-    calibrate_sides_DOWN();
-    calibrate_large_servo();
-
+    init(LARGE_SERVO);
     PAYLOAD(LARGE_SERVO, 1);
 
     init(SMALL_SERVO);
     PAYLOAD(SMALL_SERVO, 1);
 
-    SetVelocity(SIDE_ONE, 0);
-    SetVelocity(SIDE_TWO, 0);
-
     blink_LED();
 
+    calibrate_sides_DOWN();
+    sides_UP();
+    
+    calibrate_large_servo();
+    calibrate_small_servo();   
+
+    //close_small_servo();
+    //close_large_servo();
+
+    //sides_DOWN();
+    
+
+
+
+
+    
+
+  
     ros::spin();
 
     return 0;
