@@ -6,9 +6,13 @@ from ros_image_tools import Image_Subscriber
 import cv2
 from geometry_msgs.msg import PointStamped
 '''How to use this:
+Make sure it is in the correct name space sim or robot
+roslaunch ieee2015_launch arm_sim.launch or roslaunch actual arm controller
 
-roslaunch ieee2015_launch base_camera.launch
-rosrun ieee2015_vision test_vision.py
+
+roslaunch ieee2015_launch arm_camera.launch
+rosrun ieee2015_vision distance_server.py
+rosrun ieee2015_vision visual_servoing_publisher.py
 
 
 Remove: waitKey(0) --> Blocking
@@ -38,7 +42,7 @@ def image_reader(image):
 if __name__ == '__main__':
     rospy.init_node('test_vision')
     
-    des_pose = rospy.Publisher('/robot/arm_des_pose', PointStamped, queue_size=1)
+    des_pose = rospy.Publisher('/sim/arm_des_pose', PointStamped, queue_size=1)
 
     image = Image_Subscriber('/robot/arm_camera/image_raw', image_reader)
     
