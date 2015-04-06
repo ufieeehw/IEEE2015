@@ -1,0 +1,7 @@
+---
+int16 xAccelData
+int16 yAccelData
+int16 zAccelData
+int16 xGyroData
+int16 yGyroData
+int16 zGyroData

@@ -13,9 +13,8 @@ from xmega_connector.msg import XMEGAPacket
 from xmega_connector.srv import * # Echo, EchoRequest, EchoResponse
 from geometry_msgs.msg import TwistStamped, Twist, Vector3, PoseStamped, Pose, Point, Quaternion
 from tf import transformations
-import xmega_connector.srv
-print dir(xmega_connector.srv)
-rospy.init_node('xmega_connector', log_level=rospy.DEBUG)
+
+rospy.init_node('xmega_connector') #, log_level=rospy.DEBUG)
 
 class XMEGAConnector(object):
 
@@ -141,7 +140,6 @@ def set_pid_tuning_service(pid_req):
 	print( 'lock released')
 	return SetPIDResponse()
 
-motor_pub = rospy.Publisher('motor', Float64)
 
 def get_odometry_service(odo_req):
 	xmega_lock.acquire(True)
@@ -160,11 +158,9 @@ def get_odometry_service(odo_req):
 	service_response.wheel2 = wheel2 / 1000.
 	service_response.wheel3 = wheel3 / 1000.
 	service_response.wheel4 = wheel4 / 1000.
-	motor_pub.publish(wheel3/1000.)
 	xmega_lock.release()
 
 	return service_response
-
 
 INCH = 25.4e-3
 width =  9.345*INCH
@@ -179,6 +175,49 @@ wheels = [
 
 wheel_diameter = 54e-3 # 54 mm
 wheel_radius = wheel_diameter / 2
+
+def get_heading_service(head_req):
+	xmega_lock.acquire(True)
+	packet = XMEGAPacket()
+	packet.msg_type = 0x0A
+	packet.msg_length = 7
+
+	connector_object.send_packet(packet)
+
+	response_packet = connector_object.read_packet()
+	xData, zData, yData = struct.unpack("<hhh", response_packet.msg_body)
+	connector_object.send_ack()
+
+	service_response = GetHeadingResponse()
+	service_response.xData = xData
+	service_response.zData = zData
+	service_response.yData = yData
+
+	return service_response
+
+def get_motion_service(m_req):
+	xmega_lock.acquire(True)
+	packet = XMEGAPacket()
+	packet.msg_type = 0x0B
+	packet.msg_length = 13
+
+	connector_object.send_packet(packet)
+
+	response_packet = connector_object.read_packet()
+ 	xAccelData, yAccelData, zAccelData, xGyroData, yGyroData, zGyroData = struct.unpack("<hhhhhh", response_packet.msg_body)
+	connector_object.send_ack()
+
+	service_response = GetHeadingResponse()
+	service_response.xAccelData = xAccelData
+	service_response.yAccelData = yAccelData
+	service_response.zAccelData = zAccelData
+	service_response.xGyroData = xGyroData
+	service_response.yGyroData = yGyroData
+	service_response.zGyroData = zGyroData
+
+	return service_response
+
+
 
 xyz_array = lambda o: numpy.array([o.x, o.y, o.z])
 
@@ -199,14 +238,12 @@ rospy.Service('~echo', Echo, echo_service)
 rospy.Service('~set_wheel_speeds', SetWheelSpeeds, set_wheel_speed_service)
 rospy.Service('~get_odometry', GetOdometry, get_odometry_service)
 rospy.Service('~set_PID', SetPID, set_pid_tuning_service)
+rospy.Service('~get_heading', GetHeading, get_heading_service)
+rospy.Service('~get_motion', GetMotion, get_motion_service)
 
 rospy.Subscriber('/twist', TwistStamped, trajectory_to_wheel_speeds)
-<<<<<<< HEAD
-# odom_pub = rospy.Publisher('odom', PoseStamped)
-=======
 
-odom_pub = rospy.Publisher('odom', PoseStamped)
->>>>>>> Xmega_connector: Adding IMU message type
+# odom_pub = rospy.Publisher('odom', PoseStamped)
 
 
 def drive_mat(omega, dt):
