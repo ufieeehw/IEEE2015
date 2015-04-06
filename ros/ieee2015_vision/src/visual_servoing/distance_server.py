@@ -25,7 +25,7 @@ def handle_two_points(req):
     distance_camera_to_object = end_camera_height(in robot frame)+ 0.21658(vertical translation from course to robot)-req.point2.z(height of object)
     '''
     xcomp1=((end_camera_x)+(1.0/840)*(end_camera_height+0.21658-req.point2.z)*(req.point2.x - req.point1.x))
-    ycomp1=((end_camera_y-0.02073)+(1.0/840)*(end_camera_height+0.21658-req.point2.z)*(req.point2.y - req.point1.y))
+    ycomp1=((end_camera_y)+(1.0/840)*(end_camera_height+0.21658-req.point2.z)*(req.point2.y - req.point1.y))
     dist1 = (xcomp1, ycomp1, 0.12) 
     dist2 = Point(*dist1)           #convert from list to Point msg
     #print "dist", dist
@@ -49,6 +49,9 @@ def compute_distance_server():
 
 if __name__== "__main__":
     #global end_camera_height
+    #global end_camera_x
+    #global end_camera_y
+
     compute_distance_server()
     rospy.init_node('ieee2015_tf_broadcaster2')#I think this is wrong
     
