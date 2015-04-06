@@ -10,14 +10,14 @@ def get_center_circle(img, points, draw):
     thresh = cv2.adaptiveThreshold(thresh3, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
                     cv2.THRESH_BINARY, 23, 3)
 
-    if draw == true:
+    if draw == True:
         cv2.imshow('thresh', thresh)
     
     #seems to be good for circles
     circles = cv2.HoughCircles(thresh3, cv2.cv.CV_HOUGH_GRADIENT, 10, 200, 100, 100, 100, 50)
     #circles = cv2.HoughCircles(thresh3, cv2.cv.CV_HOUGH_GRADIENT, 1, 200, 100, 100, 100, 50)
 
-    if draw == true:
+    if draw == True:
         cv2.imshow('circles', img)
         cv2.waitKey(0)
 
@@ -29,7 +29,7 @@ def get_center_circle(img, points, draw):
             tempans = cv2.pointPolygonTest(points, temppoint, False)
             # draw the outer circle
             if tempans >= 0 :
-                if draw == true:
+                if draw == True:
                     print 'this is circle radius'
                     print i[2]
                     cv2.circle(img, (i[0], i[1]), i[2], (0, 255, 0), 2)

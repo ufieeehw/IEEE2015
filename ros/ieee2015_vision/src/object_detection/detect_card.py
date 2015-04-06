@@ -11,19 +11,23 @@ def find_card(img, height, draw):
     gray = cv2.erode(gray, kernelg)
     #gray = cv2.dilate(gray, kernelD)
     
-    if draw == true:
+    if draw == True:
         cv2.imshow('adaptive thresh', gray)
     
     contours, hierarchy = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-    approx_height = (-486526 * height) + 163108
-    sigma = 3000
+    approx_area = (-838900 * height) + 239926
+    sigma = 20000
+    low_bound = approx_area - sigma
+    up_bound = approx_area + sigma
      #using grayscale thresh
     goodContours = []
     for current in contours:
         area = cv2.contourArea(current)
-        if area > 30000: #will need to be adjusted !!!!!
-            if draw == true:
+        if area > low_bound and area < up_bound: #will need to be adjusted !!!!!
+            if draw == True:
+                print 'this is approx_area'
+                print approx_area
                 print 'this is area'
                 print area
                 cv2.drawContours(img,[current],0,(0,255,0),1)
@@ -39,6 +43,8 @@ def find_card(img, height, draw):
       #for c in goodContours:
         #squares.extend(c)
         #squares.append(cv2.minAreaRect(c)) #get a rectangle around the contour
+    if len(goodContours) == 0:
+        return -1
 
     boxpoints = cv2.minAreaRect(goodContours[0])
              # rect = ((center_x,center_y),(width,height),angle)
@@ -59,7 +65,7 @@ def find_card(img, height, draw):
     centerX = (maxX + minX)/2
     centerY = (maxY + minY)/2
 
-    if draw == true:
+    if draw == True:
         cv2.drawContours(img, [points], 0, (0, 0, 255), 1)
         cv2.imshow('contos', img);
 

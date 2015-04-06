@@ -15,7 +15,7 @@ def etchaSketch_detect(img, height, draw):
     #ret,thresh3 = cv2.threshold(thresh3,247,255,cv2.THRESH_TRUNC)
     ret,thresh4 = cv2.threshold(thresh3, 80, 255, cv2.THRESH_TOZERO)
      
-    if draw == true:  
+    if draw == True:  
         cv2.imshow('thresh3', thresh3)
         cv2.imshow('mask', thresh4)
 
@@ -27,7 +27,7 @@ def etchaSketch_detect(img, height, draw):
     kernel = np.ones((8, 8), np.uint8)
     gray = cv2.erode(gray, kernel)
 
-    if draw == true:
+    if draw == True:
         cv2.imshow('gray', gray)
     ##################USE DISTANCE FROM SQUARE TO DETERMINE A GOOD CIRCLE
     #keep 1, 2, 2nd to last, last)
@@ -37,7 +37,7 @@ def etchaSketch_detect(img, height, draw):
     approx_area = (-800112 * height) + 243989
     sigma = 6000
 
-    if draw == true
+    if draw == True:
         print 'this is len of contr'
         print len(contours)
         print 'this is approx_area'
@@ -46,10 +46,10 @@ def etchaSketch_detect(img, height, draw):
     eas = []
     for current in contours:
         area = cv2.contourArea(current)
-        if draw == true:
+        if draw == True:
             print area
         if area > (approx_area - sigma) and area < (approx_area + sigma): # and perim < 2302:
-            if draw == true:
+            if draw == True:
                 cv2.drawContours(img, [current], 0, (0, 255, 0), 10)
             #if we get a sm- aller value in the range we give it
             #we want the contour with the smaller perimeter
@@ -59,7 +59,7 @@ def etchaSketch_detect(img, height, draw):
           #  print 'this is good perim'
           #  print perim
 
-    if draw == true:
+    if draw == True:
         cv2.imshow('img',img)
     #gives us bounding rectangle to reference for points in and out
     #if problems arise we can use distances from contour
@@ -67,7 +67,7 @@ def etchaSketch_detect(img, height, draw):
     points = cv2.cv.BoxPoints(boxpoints)         
     points = np.int0(np.around(points)) 
 
-    if draw == true:
+    if draw == True:
         cv2.imshow('img',img)
     circles = cv2.HoughCircles(thresh4, cv2.cv.CV_HOUGH_GRADIENT, 1, 200, 100, 550, 10, 5)
     buttons = []
@@ -78,7 +78,7 @@ def etchaSketch_detect(img, height, draw):
             temppoint = (i[0], i[1])
             tempans = cv2.pointPolygonTest(points, temppoint, False)
             if tempans >= 0:# and i[2] == 38 and i[2] == 39:
-                if draw == true:
+                if draw == True:
                     print 'this is good cricle'
                     print i[2]
                     cv2.circle(img, (i[0], i[1]), i[2], (0, 255, 0), 2)
@@ -95,12 +95,14 @@ def etchaSketch_detect(img, height, draw):
     angle = boxpoints[2]    
     ####START DISPLAY METHODS####
     #small = cv2.resize(image, (300, 250))
-    if draw == true:
+    if draw == True:
         cv2.imshow('detected circles', img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
+    print 'angle'
+    print angle
     return cx_coord, cy_coord, angle
 
-#img = cv2.imread('ti/21he.jpg')
-#etchaSketch_detect(img, .215)
+img = cv2.imread('etchTest.jpg')
+etchaSketch_detect(img, .22, True)
