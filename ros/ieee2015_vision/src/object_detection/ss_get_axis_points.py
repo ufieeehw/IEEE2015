@@ -63,8 +63,8 @@ def get_axis_points(img, height, draw):
     toyCnt = wholeToy[0]
 
     #gives us the angle of rotation and minor and jmajor axis lengths
-    (x, y), (MA, ma), angle = cv2.minAreaRect(toyCnt)
-    boxpoints = cv2.minAreaRect(toyCnt)
+    (x, y), (MA, ma), angle = cv2.fitEllipse(toyCnt)
+    boxpoints = cv2.fitEllipse(toyCnt)
     points = cv2.cv.BoxPoints(boxpoints)         # Find four vertices of rectangle from above rect
     points = np.int0(np.around(points))
 
@@ -73,7 +73,7 @@ def get_axis_points(img, height, draw):
         cv2.imshow('detected box', img)
     #cv2.waitKey(0)
 
-    goodcircle = ss_get_center_circle_test.get_center_circle(img, points)
+    goodcircle = ss_get_center_circle.get_center_circle(img, points, True)
     #PLOTS THE 4 CORNER POINTS OF THE RECTANGLE
     #Testing
     if draw == True:
@@ -115,3 +115,5 @@ def get_axis_points(img, height, draw):
 
     return angle, points, goodcircle
 
+img = cv2.imread('ti/17hss.jpg')
+get_axis_points(img, .17, True)
