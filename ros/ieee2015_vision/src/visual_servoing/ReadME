@@ -1,0 +1,31 @@
+ReadME
+(1)The visual servo publisher takes in images from /robot/arm_camera/image_raw
+	it calls the distance_client on this image
+
+(2)the distance client calls getColor on the image to find the centerpoint of 
+	the largest concentration of color in the image and makes this point2
+	point1 is the center of the camera view
+	These are both from geometry_msgs.msg import Point
+	these points are passed to the server function 
+
+(3)server function  uses tf and a camera knowlege to create a PointStamped in the /robot frame 
+	that is published to the arm controller by the visual servo publisher 
+
+
+'''How to use this:
+Make sure it is in the correct name space sim or robot
+roslaunch ieee2015_launch arm_sim.launch or roslaunch actual arm controller
+
+
+roslaunch ieee2015_launch arm_camera.launch
+rosrun ieee2015_vision distance_server.py
+rosrun ieee2015_vision visual_servoing_publisher.py
+
+
+Remove: waitKey(0) --> Blocking
+Remove: Prints, use rospy.loginfo or rospy.logwarn
+Remove: Things that run when imported
+Remove: Extraneous imshow
+Remove: Uses of cv instead of cv2 (dependency issue)
+
+'''
