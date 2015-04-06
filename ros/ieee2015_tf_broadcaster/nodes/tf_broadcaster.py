@@ -87,8 +87,49 @@ def read_wrist_servo(msg):
     time = rospy.Time.now() 
 
     tf_broad.sendTransform(translation, rotation, time, "/wrist_servo", "/wrist_joint")
+'''
+def read_end_effector_center(msg): 
+    translation = () #it will be a slight vertical(z) shift down
+    rotation = () #joint value(z)
+    time = rospy.Time.now()
+   
+    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
+'''
 
+'''
+def read_end_effector_card_picker(msg): 
+    translation = () 
+    rotation = () 
+    time = rospy.Time.now()
+   
+    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
+'''
 
+'''
+def read_end_effector_simon_poker(msg): 
+    translation = () 
+    rotation = () 
+    time = rospy.Time.now()
+   
+    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
+'''
+
+'''
+def read_end_effector_large_pincher(msg): 
+    translation = () 
+    rotation = ()
+    time = rospy.Time.now()
+   
+    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
+'''
+'''
+def read_end_effector_small_pincher(msg): 
+    translation = () 
+    rotation = () 
+    time = rospy.Time.now()
+   
+    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
+'''
 def read_end_camera(msg):
     translation = (0.0625, 0, 0.0034) #constant offset 
     rotation = tf.transformations.quaternion_from_euler(0, 0, 0) #follows joint conventions constant rotation of wrist joint always points straight down
@@ -96,14 +137,41 @@ def read_end_camera(msg):
 
     tf_broad.sendTransform(translation, rotation, time, "/arm_camera", "/wrist_servo")
 
+''' Toys are pubished from computer vision '''
+'''
+def read_toy_etch(msg): 
+    translation = () 
+    rotation = () 
+    time = rospy.Time.now()
+   
+    tf_broad.sendTransform(translation, rotation, time, "/toy_etch", "/arm_camera")
+'''
 
 '''
-def read_end_effector(msg): 
-	translation = () #it will be a slight vertical(z) shift down
-	rotation = () #joint value(z)
-	time = rospy.Time.now()
+def read_toy_cards(msg): 
+    translation = () 
+    rotation = () 
+    time = rospy.Time.now()
    
-    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
+    tf_broad.sendTransform(translation, rotation, time, "/toy_cards", "/arm_camera")
+'''
+
+'''
+def read_toy_rubix(msg): 
+    translation = () 
+    rotation = () 
+    time = rospy.Time.now()
+   
+    tf_broad.sendTransform(translation, rotation, time, "/toy_rubix", "/arm_camera")
+'''
+
+'''
+def read_toy_simon(msg): 
+    translation = () 
+    rotation = () 
+    time = rospy.Time.now()
+   
+    tf_broad.sendTransform(translation, rotation, time, "/toy_simon", "/arm_camera")
 '''
 
 if __name__ == '__main__':
