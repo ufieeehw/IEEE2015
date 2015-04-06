@@ -14,7 +14,7 @@ def etchaSketch_detect(img, height, draw):
     ret,thresh3 = cv2.threshold(equ, 247, 255, cv2.THRESH_TRUNC)
     #ret,thresh3 = cv2.threshold(thresh3,247,255,cv2.THRESH_TRUNC)
     ret,thresh4 = cv2.threshold(thresh3, 80, 255, cv2.THRESH_TOZERO)
-     
+
     if draw == True:  
         cv2.imshow('thresh3', thresh3)
         cv2.imshow('mask', thresh4)
@@ -35,7 +35,7 @@ def etchaSketch_detect(img, height, draw):
     contours, hierarchy = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
     approx_area = (-800112 * height) + 243989
-    sigma = 6000
+    sigma = 60000
 
     if draw == True:
         print 'this is len of contr'
@@ -63,6 +63,9 @@ def etchaSketch_detect(img, height, draw):
         cv2.imshow('img',img)
     #gives us bounding rectangle to reference for points in and out
     #if problems arise we can use distances from contour
+    if len(eas) == 0:
+        return -1
+
     boxpoints = cv2.minAreaRect(eas[0])
     points = cv2.cv.BoxPoints(boxpoints)         
     points = np.int0(np.around(points)) 
@@ -97,12 +100,11 @@ def etchaSketch_detect(img, height, draw):
     #small = cv2.resize(image, (300, 250))
     if draw == True:
         cv2.imshow('detected circles', img)
-        cv2.waitKey(0)
         cv2.destroyAllWindows()
 
     print 'angle'
     print angle
     return cx_coord, cy_coord, angle
 
-img = cv2.imread('etchTest.jpg')
-etchaSketch_detect(img, .22, True)
+#img = cv2.imread('etchTest2.jpg')
+#etchaSketch_detect(img, .18, False)
