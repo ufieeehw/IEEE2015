@@ -8,7 +8,7 @@ import ss_get_lit_button
 #now we don't care about what color the button is
 #just care about location of bright center relative to major axis
 def find_button(img, mean_cols, mean_rows, draw):
-	if draw == true:
+	if draw == True:
 		cv2.circle(img, (mean_cols, mean_rows), 2, (255, 255, 255), 20)	
 		imgf = img.copy()
 		cv2.imshow('img',imgf)
@@ -23,7 +23,7 @@ def find_button(img, mean_cols, mean_rows, draw):
 	#formating for testing
 	temp_point = (x, y)
 
-	if draw == true:
+	if draw == True:
 		cv2.line(img, temp_point, (mean_cols, mean_rows), (0, 0, 0), 5)
 
 	#get the angle from 0-360 that the point lies, counting minor axis as x axis
@@ -40,23 +40,23 @@ def find_button(img, mean_cols, mean_rows, draw):
 	#3 is green/left
 	#4 is yellow/down
 	if (degs > 0 and degs < 50) or degs > 315:
-		if draw == true:
+		if draw == True:
 			print "we have a blue thing"
 		color =  1
 	elif degs >= 50 and degs <= 130:
 		color = 2
-		if draw == true:
+		if draw == True:
 			print "we have a red thing"
 	elif degs >130 and degs <= 225:
 		color = 3
-		if draw == true:
+		if draw == True:
 			print "we have a green thing"
 	elif degs > 225 and degs <= 315:
 		color = 4
-		if draw == true:
+		if draw == True:
 			print "we have a yellow thing"
 
-	if draw == true:
+	if draw == True:
 		imgg = img.copy()
 		#imgg = cv2.resize(imgg, (0, 0), fx=0.2, fy=0.2)
 		cv2.imshow('final image for real', imgg)
