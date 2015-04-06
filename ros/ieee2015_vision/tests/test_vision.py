@@ -1,6 +1,10 @@
 #!/usr/bin/python
 import rospy
-from object_detection import find_rubix
+from object_detection import rubix
+from object_detection import detect_card
+from object_detection import etchaSketch_detect
+from object_detection import ss_get_axis_points
+from object_detection import ss_get_lit_button
 from ros_image_tools import Image_Subscriber
 import cv2
 
