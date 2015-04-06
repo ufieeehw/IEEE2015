@@ -1,33 +1,75 @@
 etchasketch solver:
+TO RUN USE FILE -> etchaSketch_detect.py
 for etchasketch identification, etchaSketch_detect.py is the sole file. 
 Image input needs to be normal rgb, but will be processed as grayscale
 utilized information about the perimeter length and creates minimum bounding rectangle around toy. circles are then detected and filtered out by radius and if it lies within the bounding box contour
+	***********************************************************
+	cx_coord, cy_coord, angle = etchaSketch_detect(img, height, draw)
+		Inputs: img, current height of the camera published by ros, and draw is boolean (true draws contours and points, false is ready to run, display free code)
+		Outputs: list of x, y coords of the detected buttons, angle of orientation
+	************************************************************
 	Areas that could improve runtime:
 		minimize for loop iterations
 		use area instead of perimeter?
 
 
 rubix cube solver:
+TO RUN USE FILE -> rubix.py
 for rubix identification, works very similar to etchasketch, without the use of hough circles. identifies the cube using adaptive thresholds and creates a minimum bounding rectangle. since the cube itself is rectangular then we are good. we find orientation and center point of cube. what is considered an acceptable contour is determined by contour area, which varies relative to heigh of end effector camera. 
+	**********************************************************
+	(centerX, centerY), angle = find_rubix(src, height, draw)
+		Inputs: src = img, height of camera published by ros, and draw is boolean (true draws contours and points, false is ready to run, display free code)
+		Outputs: center point of the rubix cube, angle of orientation
+	**********************************************************
 	areas that could improve:
 		preciseness of ratio between height and area
 		use perim instead of area? (runtime questionable)
 
-card solver:
+card solver: 
+TO RUN USE FILE -> detect_card.py
 for the cards, works identical to rubix cube solver but with different ratio for height to area.
+	***********************************************************
+	(centerX, centerY), angle = find_card(img, height, draw)
+		Inputs: img, height of camera published by ros, and draw is boolean (true draws contours and points, false is ready to run, display free code)
+		Outputs: returns center point of cards and angle of orientation
 
 simon says solver:
+TO RUN, THERE ARE MULTIPLE FILES:
+TO FIND THE LIT UP BUTTON -> ss_get_lit_button.py
+TO FIND THE ANGLE OF ORIENTATION, CENTER BUTTON COORDS -> ss_get_axis_points.py
 most complicated because of constant input from environment. Main methods of interest are ss_get_axis_points. this method calculates and subdivides the simon says into quadrants based of a detected center point. then everything is oreiented from their in terms of angles and the minor axis is considered the x axis with degrees ragning from 0 - 360. Right now everything seems to be set up and working. testing is needed but method seems to be in order. Color is disregarded in this approach, instead buttons are considered as up, down, left, and right, all with respect to major and minor axis.
 	Method BreakDown:
 		ss_get_lit_button:
+			Inputs:
+			img, draw (boolean: true for drawing functions, false for robot code)
+			Outputs:
+			mean_cols, mean_rows -> center point of bright area
 			given an image, it locates the brightest area of the lit up button and 
 			returns coordinates of detected lit up area
 		ss_find_button:
+			Inputs:
+			img, mean_cols - x of bright spot, mean_rows - y of bright spot, draw (boolean: true = draw functions, false = robo ready code)
+			Outputs:
+			color, value of which button lit up
+				1 is right
+				2 is up
+				3 is left
+				4 is down
+				**** This method may not be needed, mean cols and mean rows could just be stored *****
 			using the coordinate of the center point and the coordinate of the detected bright spot, calculates the angle between them and 
 			based off the angle determines which button it is: up, down, left, or right
 		ss_get_center_circle:
+			****Not called solo, called from within ss_get_axis_points.py***
+			Inputs:
+			img, points (you get from ss_get_axis_points), draw (boolean: true, draw stuff. false, robo ready code)
+			Outputs:
+			goodcircle = center point of the middle button/start button
 			detects the center of the center button, returns center points to be used for reference point in other methods
 		ss_get_axis_points:
+			Inputs: 
+			img, height (current height of arm), draw(boolean function for drawing)
+			Outputs:
+			angle, points (corner points), goodcircle (center of middle button)
 			determines angle, and major and minor axis in order to determine orientation and the button we need to push
 			(base method)
 	areas the could imporve:
