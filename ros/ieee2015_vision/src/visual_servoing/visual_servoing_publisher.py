@@ -20,7 +20,7 @@ Remove: Uses of cv instead of cv2 (dependency issue)
 '''
 
 
-def image_callback(image):
+def image_reader(image):
     cv2.imshow("Input Image", image)
     # find_rubix(image, 0.3)
     distance_result = distance_client.main(image)
@@ -40,6 +40,6 @@ if __name__ == '__main__':
     
     des_pose = rospy.Publisher('/robot/arm_des_pose', PointStamped, queue_size=1)
 
-    image = Image_Subscriber('/robot/arm_camera/image_raw', image_callback)
+    image = Image_Subscriber('/robot/arm_camera/image_raw', image_reader)
     
     rospy.spin()
