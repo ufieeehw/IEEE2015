@@ -44,7 +44,7 @@ def thread_lock(function_to_lock):
 
 
 class Visualizer(object):
-    _storage_length = 500
+    _storage_length = 1000
     def __init__(self, topic, name='Plot Visualization', plot_items=None):
         node = rospy.init_node('position_visualizer', anonymous=True)
 
@@ -108,7 +108,7 @@ class Visualizer(object):
         y = np.array(self.plot_dict['y'], np.float64)
         self.ax.plot(x, y, '-', label='Position')
         self.ax.set_autoscale_on(False)
-        self.ax.axis([-10, 10, -10, 10])
+        self.ax.axis([-3, 3, -3, 3])
         # self.ax.legend()
         plt.title(self.name)
 
