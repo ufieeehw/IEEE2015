@@ -10,12 +10,25 @@ import rospy
 from sensor_msgs.msg import Joy
 from geometry_msgs.msg import Twist, TwistStamped, Vector3
 from std_msgs.msg import String
+from ieee2015_msgs.srv import StopMecanum
 
 rospy.init_node('joystick_command')
 
 pub = rospy.Publisher('twist', TwistStamped)
 
+rospy.loginfo("------- Waiting for mecanum stop service ------")
+rospy.wait_for_service('/robot/mecanum/stop')
+stop_proxy = rospy.ServiceProxy('/robot/mecanum/stop', StopMecanum)
+
+
 def got_joy_msg(joy_msg):
+    # 6 start, 7 stop
+    if joy_msg.buttons[6]:
+        stop_proxy(True)
+    else:
+        if joy_msg.buttons[7]:
+            stop_proxy(False)
+
     linear_x = joy_msg.axes[1] * max_linear_velocity
     linear_y = joy_msg.axes[0] * max_linear_velocity
     angular_z = joy_msg.axes[3] * max_angular_velocity

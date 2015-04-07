@@ -19,7 +19,7 @@ add_message_files(
  add_service_files(
    FILES
    ComputeDistance.srv
-#   Service2.srv
+   StopMecanum.srv
 )
 
 ## Generate actions in the 'action' folder
