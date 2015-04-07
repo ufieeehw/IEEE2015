@@ -16,12 +16,14 @@ from dynamixel_msgs.msg import JointState
 
 to_radians_one = 512
 to_radians_two = 512
-control_one = 1
-close_large = 1
-close_large = 1
+
+side_control = 1
+large_control = 1
+small_control = 1
 
 past_location_one = 0
 past_location_two = 0
+
 
 SCREEN_DIM = (750, 750)
 ORIGIN = np.array([SCREEN_DIM[0]/2.0, SCREEN_DIM[1]/2.0])
@@ -86,7 +88,9 @@ class END(object):
         self.point = (msg.point.x, msg.point.y)
         global to_radians_one
 
-        to_radians_one = math.atan2(msg.point.y, msg.point.x) * (180/np.pi) + 60
+        to_radians_one = math.atan2(msg.point.y, msg.point.x)
+
+        print to_radians_one
 
         degrees_one = to_degrees(to_radians_one)
         xl_format = check_size(degrees_one, 1)
@@ -98,7 +102,7 @@ class END(object):
         print "LARGE SERVO POSITION: ", xl_format
 
         base_pub = rospy.Publisher('/ieee2015_end_effector_servos', Num, queue_size=1)
-        base_pub.publish(control_one, to_radians_one, to_radians_two, close_large, close_small)
+        base_pub.publish(side_control, to_radians_one, to_radians_two, large_control, small_control)
 
     def got_des_pose_two(self, msg):
         '''Recieved desired arm pose'''
@@ -117,7 +121,7 @@ class END(object):
         print "SMALL SERVO POSITION: ", xl_format
 
         base_pub = rospy.Publisher('/ieee2015_end_effector_servos', Num, queue_size=1)
-        base_pub.publish(control_one, to_radians_one, to_radians_two, close_large, close_small)
+        base_pub.publish(side_control, to_radians_one, to_radians_two, large_control, small_control)
 
     def draw(self, display, new_base=(0, 0)):
         '''Draw the whole arm'''
@@ -136,15 +140,14 @@ def main():
     '''In principle, we can support an arbitrary number of servos in simulation'''
     end_one = [END()]
 
-    global control_one
-    global control_two
+    global side_control
+    global large_control
+    global small_control
 
     display = pygame.display.set_mode(SCREEN_DIM)
 
     des_pose_pub_end = rospy.Publisher('/end_des_pose', PointStamped, queue_size=1)
     des_pose_pub_end_two = rospy.Publisher('/end_des_pose_two', PointStamped, queue_size=1)
-
-    solenoid_out = rospy.Publisher('/end_effector_solenoids', Int64, queue_size=1)
 
 
 
@@ -195,24 +198,24 @@ def main():
                     publish_des_pos_two(unround_point(pt))
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_z:
-                    control_one = 1
+                    side_control = 1
                     print "CONTROL MODE: Wheel"
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_x:
-                    control_one = 2
+                    side_control = 2
                     print "CONTROL MODE: Angle"
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_q:
-                    close_large = 1
+                    large_control = 1
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_w:
-                    close_large = 2
-             if event.type == pygame.KEYDOWN:
+                    large_control = 2
+            if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_e:
-                    close_small = 1
+                    small_control = 1
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
-                    close_small = 2
+                    small_control = 2
 
         t = time.time()
 
