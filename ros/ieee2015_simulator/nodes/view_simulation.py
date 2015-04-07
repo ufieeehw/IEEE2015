@@ -56,6 +56,13 @@ varying vec2 v_texcoord;
 void main()
 {
     gl_FragColor = texture2D(texture, v_texcoord).bgra;
+    if (abs(v_texcoord.x / v_texcoord.y) < 0.3) {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+    if (abs((1 - v_texcoord.x) / (v_texcoord.y)) < 0.3) {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
 }
 """
 
@@ -70,7 +77,7 @@ class Canvas(app.Canvas):
         app.Canvas.__init__(self, title='Framebuffer post-processing',
                             keys='interactive', size=(640, 640))
         rospy.init_node('simulated_view')
-        self.img_pub = Image_Publisher('arm_camera/image_raw')
+        self.img_pub = Image_Publisher('/robot/base_camera/down_view', encoding='8UC1')
 
     def on_initialize(self, event):
         # Build cube data
@@ -97,7 +104,7 @@ class Canvas(app.Canvas):
         # 4640 x 2256
         imtex = cv2.imread(os.path.join(img_path, 'stage.jpg')) 
         self.cube['texcoord'] = texcoord
-        self.cube["texture"] = np.uint8(np.clip(imtex + np.random.randint(-60, 20, size=imtex.shape), 0, 255))
+        self.cube["texture"] = np.uint8(np.clip(imtex + np.random.randint(-60, 20, size=imtex.shape), 0, 255)) + 5
         self.cube["texture"].interpolation = 'linear'
         self.cube['model'] = model
         self.cube['view'] = view
@@ -108,7 +115,9 @@ class Canvas(app.Canvas):
 
         self.quad = Program(quad_vertex, quad_fragment)
         self.quad['texcoord'] = [(0, 0), (0, 1), (1, 0), (1, 1)]
+
         self.quad['position'] = [(-1, -1), (-1, +1), (+1, -1), (+1, +1)]
+
         self.quad['texture'] = color
 
         self.objects = [self.cube]
@@ -122,7 +131,8 @@ class Canvas(app.Canvas):
 
     def send_ros_img(self, event):
         # Read frame buffer, get rid of alpha channel
-        self.img_pub.publish(self.framebuffer.read()[:, :, 0:3])
+        img = self.framebuffer.read()[:, :, 2]
+        self.img_pub.publish(img)
 
     def on_draw(self, event):
 
@@ -132,7 +142,6 @@ class Canvas(app.Canvas):
             clear(color=True, depth=True)
             set_state(depth_test=True)
             self.cube.draw('triangle_strip')
-
 
         set_clear_color('pink')
         clear(color=True)
