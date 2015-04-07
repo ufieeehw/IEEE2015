@@ -4,7 +4,7 @@ import numpy as np
 
 def get_lit_button(img, draw):
     hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-   
+
     lower_on = np.array([0, 80, 140])
     upper_on = np.array([255, 255, 255])
 
@@ -18,8 +18,8 @@ def get_lit_button(img, draw):
     eroded = cv2.erode(bright_button, kernel2)
     dilated = cv2.dilate(eroded, kernel3)
     closing = cv2.morphologyEx(dilated, cv2.MORPH_CLOSE, kernel, iterations=10)
-    
-    if draw == True:
+
+    if draw is True:
         cv2.imshow('closing', closing)
 
     ############################################Start of Contour Manipulation######################
@@ -40,18 +40,17 @@ def get_lit_button(img, draw):
     bottommost = tuple(lit_button[lit_button[:, :, 1].argmax()][0])
 
     #Testing
-    if draw == True:
+    if draw is True:
         cv2.circle(img, (leftmost), 2, (0, 0, 255), 10)
         cv2.circle(img, (rightmost), 2, (0, 0, 255), 10)
         cv2.circle(img, (topmost), 2, (0, 0, 255), 10)
         cv2.circle(img, (bottommost), 2, (0, 0, 255), 10)
-    
 
     mean_cols = int((leftmost[0] + rightmost[0]) / 2)
 
     mean_rows = int((topmost[1] + bottommost[1]) / 2)
-   
-    if draw == True:
+
+    if draw is True:
         cv2.circle(img, (mean_cols, mean_rows), 2, (0, 0, 0), 10)
         cv2.imshow('points', img)
 
