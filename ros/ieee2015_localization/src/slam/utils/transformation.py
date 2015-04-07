@@ -18,28 +18,67 @@ class Transform(object):
                 (58,  220),
             ])
         },
+        '20_half_max': {
+            'view_points': np.float32([
+                (366, 193),
+                (360, 176),
+                (279, 176),
+                (273, 193),
+            ]),
+            'frame': {
+                'x': (122, 517),
+                'y': (0, 342),
+            }
+        },
+        '20_default_base': { # This is ~13cm
+            'view_points': np.float32([
+                # (455, 136),
+                # (417, 110),
+                # (219, 110),
+                # (178, 136),
+                (455, 136),
+                (417, 110),
+                (216, 110),
+                (178, 136),
+            ]),
+            'frame': {
+                'x': (95, 557),
+                'y': (0, 484),
+            }
+        },
         '20_27': {
             'view_points': np.float32([
-                (502, 428),
-                (430, 288),
-                (177, 288),
-                (100, 430),
+                # (502, 428),
+                # (430, 288),
+                # (177, 288),
+                # (100, 430),
+                (477, 296),
+                (424, 220),
+                (214, 220),
+                (169, 296)
+
+
+
             ]),
             'bounds': 600,
+            # 'frame': {
+            #     'x': (118, 538),
+            #     'y': (0, 320),
+
+            # }
+
+        },
+        '20_alum_brick': {
+            'view_points': np.float32([
+                (420, 186),
+                (389, 133),
+                (220, 133),
+                (194, 186),
+            ]),
             'frame': {
-                # (98, 0),
-                # (458, 0),
-                # (98, 258),
-                # (458, 258),
-
-                # x
-                # 'x': (98, 458),
-                'x': (118, 538),
-                # 'y': (0, 260),
-                'y': (0, 320),
-
+                'x': (55, 615),
+                'y': (0, 465),
             }
-
         }
     }
     cam_x = 640
@@ -57,7 +96,7 @@ class Transform(object):
         view_points = view['view_points']
         self._perspective_matrix = self._get_perspective_matrix(view_points, map_coordinates)
         # self.bird_dims = self._get_bird_dims()
-        self.crop = view['frame']
+        self.crop = view.get('frame')
 
     @classmethod
     def get_view_points(self, angle, height):
@@ -133,9 +172,12 @@ class Transform(object):
                                    borderMode=0, borderValue=(0, 0, 0))
 
 
-        crop = self.crop
-        # return imgx
-        new_img = imgx[crop['y'][0]: crop['y'][1], crop['x'][0]: crop['x'][1]]
+        if self.crop:
+            crop = self.crop
+            new_img = imgx[crop['y'][0]: crop['y'][1], crop['x'][0]: crop['x'][1]]
+        else:
+            return imgx
+
         return new_img
 
 
