@@ -16,7 +16,7 @@
         <param name="height" value="480"/>
         <!-- choose whichever uncompressed format the camera supports: -->
         <param name="video_mode" value="uncompressed"/> <!-- or yuyv/nv12/jpeg -->
-        <param name="frame_rate" value="15"/>
+        <param name="frame_rate" value="7"/>
 
         <param name="timestamp_method" value="start"/> <!-- start of frame -->
         <!-- This is the calibration for the c920 with the tape near the USB connector, use this only for that camera -->
