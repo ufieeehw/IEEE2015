@@ -42,8 +42,8 @@ def image_reader(image):
 if __name__ == '__main__':
     rospy.init_node('test_vision')
     
-    des_pose = rospy.Publisher('/sim/arm_des_pose', PointStamped, queue_size=1)
+    des_pose = rospy.Publisher('/robot/arm_des_pose', PointStamped, queue_size=1)
 
-    image = Image_Subscriber('/robot/arm_camera/image_raw', image_reader)
+    image = Image_Subscriber('/robot/arm_camera/image_rect', image_reader)
     
     rospy.spin()
