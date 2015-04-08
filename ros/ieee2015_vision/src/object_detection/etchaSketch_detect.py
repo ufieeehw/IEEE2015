@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import math
+import detect_concave_locations
 
 
 #return value of function is cx_coord and cy_coord containing list of x and y coord
@@ -61,6 +63,18 @@ def etchaSketch_detect(img, height, draw):
     if len(eas) == 0:
         return -1
 
+    far_points = detect_concave_locations.detect_concave_locations(eas[0], img, draw)
+
+    mid_point_between_buttons = ((far_points[0][0] + far_points[1][0])/2, (far_points[0][1] + far_points[1][1])/2)
+    
+    if draw is True:
+        print 'this is mid_point_between_buttons'
+        print mid_point_between_buttons
+        cv2.circle(img, mid_point_between_buttons, 2, (0, 0, 0), 10)
+        cv2.imshow('mid', img)
+
+    #calculating orientation
+
     boxpoints = cv2.minAreaRect(eas[0])
     points = cv2.cv.BoxPoints(boxpoints)
     points = np.int0(np.around(points))
@@ -77,8 +91,6 @@ def etchaSketch_detect(img, height, draw):
             tempans = cv2.pointPolygonTest(points, temppoint, False)
             if tempans >= 0:  # and i[2] == 38 and i[2] == 39:
                 if draw is True:
-                    print 'this is good cricle'
-                    print i[2]
                     cv2.circle(img, (i[0], i[1]), i[2], (0, 255, 0), 2)
                     # draw the center of the circle
                     cv2.circle(img, (i[0], i[1]), 2, (0, 0, 255), 3)
@@ -91,15 +103,20 @@ def etchaSketch_detect(img, height, draw):
     cy_coord = [y, y2]
 
     angle = boxpoints[2]
+    degs = int(angle * -1)
+    print 'this is degrees'
+    print degs
+    rads = math.radians(degs)
+    print 'this is radians'
+    print rads
+
     ####START DISPLAY METHODS####
     #small = cv2.resize(image, (300, 250))
     if draw is True:
         cv2.imshow('detected circles', img)
         cv2.destroyAllWindows()
-        print 'angle'
-        print angle
 
-    return cx_coord, cy_coord, angle
+    return cx_coord, cy_coord, rads
 
-#img = cv2.imread('etchTest2.jpg')
-#etchaSketch_detect(img, .18, False)
+img = cv2.imread('ti/17he.jpg')
+etchaSketch_detect(img, .17, True)
