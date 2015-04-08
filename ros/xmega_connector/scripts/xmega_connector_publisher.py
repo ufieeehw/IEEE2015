@@ -118,28 +118,6 @@ def set_wheel_speed_service(ws_req):
 	xmega_lock.release()
 	return SetWheelSpeedsResponse()
 
-def set_pid_tuning_service(pid_req):
-	
-	xmega_lock.acquire(True)
-	
-	packet = XMEGAPacket()
-	packet.msg_type = 0x09
-
-	pVal = int(pid_req.pVal)
-	iVal = int(pid_req.iVal)
-	dVal = int(pid_req.dVal * 1000)
-
-	packet.msg_body = struct.pack('<iil', pVal, iVal, dVal)
-	packet.msg_length = len(packet.msg_body) + 1
-
-	print( 'Sending wheels speed')
-	connector_object.send_packet(packet)
-	print( 'Packet sent')
-
-	xmega_lock.release()
-	print( 'lock released')
-	return SetPIDResponse()
-
 
 def get_odometry_service(odo_req):
 	xmega_lock.acquire(True)
@@ -241,7 +219,6 @@ def trajectory_to_wheel_speeds(msg):
 rospy.Service('~echo', Echo, echo_service)
 rospy.Service('~set_wheel_speeds', SetWheelSpeeds, set_wheel_speed_service)
 rospy.Service('~get_odometry', GetOdometry, get_odometry_service)
-rospy.Service('~set_PID', SetPID, set_pid_tuning_service)
 rospy.Service('~get_heading', GetHeading, get_heading_service)
 rospy.Service('~get_motion', GetMotion, get_motion_service)
 
