@@ -83,59 +83,54 @@ def read_wrist_servo(msg):
     global last_wrist_servo_position
     last_wrist_servo_position = msg.current_pos
     translation = (0, 0, 0.03442) #constant offset 
-    rotation = tf.transformations.quaternion_from_euler(0, 0, last_wrist_servo_position) #published by end servo
+    rotation = tf.transformations.quaternion_from_euler(last_wrist_servo_position,0 ,0) #published by end servo
     time = rospy.Time.now() 
 
     tf_broad.sendTransform(translation, rotation, time, "/wrist_servo", "/wrist_joint")
-'''
-def read_end_effector_center(msg): 
-    translation = () #it will be a slight vertical(z) shift down
-    rotation = () #joint value(z)
-    time = rospy.Time.now()
-   
-    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
-'''
 
-'''
-def read_end_effector_card_picker(msg): 
-    translation = () 
-    rotation = () 
+def read_end_effector_center(msg): 
+    translation = (-0.034,0,0) #it will be a slight vertical(z) shift down
+    rotation = (0,0,0) 
     time = rospy.Time.now()
    
-    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
-'''
+    tf_broad.sendTransform(translation, rotation, time, "/end_effector_center", "/wrist_servo")
+
+def read_end_effector_card_picker(msg): 
+    translation = (-0.09, 0, 0.05) 
+    rotation = (0,0,0) 
+    time = rospy.Time.now()
+   
+    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_effector_center")
 
 '''
 def read_end_effector_simon_poker(msg): 
-    translation = () 
+    translation = ( , , ) 
     rotation = () 
     time = rospy.Time.now()
    
-    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
+    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_effector_center")
 '''
 
-'''
 def read_end_effector_large_pincher(msg): 
-    translation = () 
+    translation = ( -0.07, -0.035, 0.01) 
     rotation = ()
     time = rospy.Time.now()
    
-    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
-'''
-'''
+    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_effector_center")
+
 def read_end_effector_small_pincher(msg): 
-    translation = () 
+    translation = ( -0.07, 0.035, 0.01) 
     rotation = () 
     time = rospy.Time.now()
    
-    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_joint")
-'''
+    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_effector_center")
+
 def read_end_camera(msg):
-    translation = (0.0625, 0, 0.0034) #constant offset 
+    translation = ( 0, -0.234, -0.065) #constant offset 
     rotation = tf.transformations.quaternion_from_euler(0, 0, 0) #follows joint conventions constant rotation of wrist joint always points straight down
     time = rospy.Time.now() 
 
-    tf_broad.sendTransform(translation, rotation, time, "/arm_camera", "/wrist_servo")
+    tf_broad.sendTransform(translation, rotation, time, "/arm_camera", "/end_effector_center")
 
 ''' Toys are pubished from computer vision '''
 '''
