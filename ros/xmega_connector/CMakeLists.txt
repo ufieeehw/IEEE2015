@@ -24,6 +24,8 @@ add_service_files(
   SetWheelSpeeds.srv
   GetOdometry.srv
   GetColor.srv
+  GetHeading.srv
+  GetMotion.srv
 )
 
 

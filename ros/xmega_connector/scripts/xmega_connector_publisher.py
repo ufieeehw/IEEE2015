@@ -14,7 +14,7 @@ from xmega_connector.srv import * # Echo, EchoRequest, EchoResponse
 from geometry_msgs.msg import TwistStamped, Twist, Vector3, PoseStamped, Pose, Point, Quaternion
 from tf import transformations
 
-rospy.init_node('xmega_connector') #, log_level=rospy.DEBUG)
+rospy.init_node('xmega_connector', log_level=rospy.DEBUG)
 
 class XMEGAConnector(object):
 
@@ -180,7 +180,7 @@ def get_heading_service(head_req):
 	xmega_lock.acquire(True)
 	packet = XMEGAPacket()
 	packet.msg_type = 0x0A
-	packet.msg_length = 7
+	packet.msg_length = 1
 
 	connector_object.send_packet(packet)
 
@@ -197,17 +197,20 @@ def get_heading_service(head_req):
 
 def get_motion_service(m_req):
 	xmega_lock.acquire(True)
+	print("Lock aquired")
 	packet = XMEGAPacket()
 	packet.msg_type = 0x0B
-	packet.msg_length = 13
+	packet.msg_length = 1
 
+	print("Sending message")
 	connector_object.send_packet(packet)
 
 	response_packet = connector_object.read_packet()
  	xAccelData, yAccelData, zAccelData, xGyroData, yGyroData, zGyroData = struct.unpack("<hhhhhh", response_packet.msg_body)
 	connector_object.send_ack()
 
-	service_response = GetHeadingResponse()
+	print( "Creating response")
+	service_response = GetMotionResponse()
 	service_response.xAccelData = xAccelData
 	service_response.yAccelData = yAccelData
 	service_response.zAccelData = zAccelData
@@ -215,6 +218,7 @@ def get_motion_service(m_req):
 	service_response.yGyroData = yGyroData
 	service_response.zGyroData = zGyroData
 
+	print( "Returning response")
 	return service_response
 
 
