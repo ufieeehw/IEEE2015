@@ -24,14 +24,15 @@ class Localization(object):
 
         self.image_sub = Image_Subscriber(
             '/robot/base_camera/down_view', 
-            self.image_cb, 
+            # self.image_cb, 
+            self.image_cb_matrix,
             encoding="8UC1",
         )
 
         self.pose_pub = rospy.Publisher('SLAM_pose', Pose2D, queue_size=3)
 
         # Size we shrink incoming images to (k x k)
-        self.shrink_size = 125
+        self.shrink_size = 300
         self.ones_mask = np.ones((self.shrink_size, self.shrink_size))
 
     def reset(self):
@@ -41,6 +42,8 @@ class Localization(object):
         self.keyframe_scale = 1.0
         self.keyframe_orientation = 0.0
         self.keyframe_position = (self.map_size // 2, self.map_size //2)
+
+        self.h_k2root = np.eye(3)
 
     def reset_map(self):
         self.full_map = np.zeros((self.map_size, self.map_size), np.uint8)
@@ -54,27 +57,42 @@ class Localization(object):
 
         scale_x = np.sign(a) * np.sqrt((a**2) + (b**2))
         scale_y = np.sign(d) * np.sqrt((c**2) + (d**2))
-        angle = np.arctan2(-b, a)
+        angle = -np.arctan2(-b, a)
         translation_x = matrix[0, 2]
         translation_y = matrix[1, 2]
         return angle, translation_x, translation_y, scale_x, scale_y
 
     def warp(self, image, matrix):
+        matrix = matrix[:2, :]
         return cv2.warpAffine(image, matrix, image.shape)
+
+    def make_homogeneous(self, matrix):
+        assert max(matrix.shape) == 3, "Matrix must have 3 columns!"
+        return np.vstack([matrix, [0, 0, 1]])
+
+    def make_2D_rotation(self, angle):
+        c, s = np.cos(angle), np.sin(angle)
+        mat = np.matrix([
+            [c,     -s],
+            [s,      c],
+        ],
+        dtype=np.float32)
+        return mat
 
     def rotate(self, image, angle, scale=1.0):
         rows, cols = image.shape
-        rot_M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, scale)
+        # rot_M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, scale)
+        rot_M = cv2.getRotationMatrix2D((0.0 / 2, 0.0 / 2), angle, scale)
         rotated = cv2.warpAffine(image, rot_M, (cols, rows))
         return rotated
 
     def translate(self, image, tx, ty, scale=1.0):
         rows, cols = image.shape
         trans_M = np.float32([
-            [1.0 / scale, 0.0, ty],
-            [0.0, 1.0 / scale, tx],
+            [1.0 / scale, 0.0, tx],
+            [0.0, 1.0 / scale, ty],
         ])
-        translated = cv2.warpAffine(image, trans_M, (cols + ty, rows + tx))
+        translated = cv2.warpAffine(image, trans_M, (cols, rows))
         return translated
 
     def publish_pose(self, tx, ty, angle):
@@ -86,59 +104,107 @@ class Localization(object):
             )
         )
 
-    def overlay(self, image, x_offset, y_offset, mask=None):
-        if mask is None:
-            greater = image > 1
-            # Image Blending
-            self.full_map[
-                x_offset: x_offset + image.shape[0],
-                y_offset: y_offset + image.shape[1],
-            ] *= np.ones(image.shape) - (greater * 0.5)
+    def overlay(self, image, x_offset, y_offset, other_image):
+        greater = image > 1
+        # Image Blending
+        other_image[
+            x_offset: x_offset + image.shape[0],
+            y_offset: y_offset + image.shape[1],
+        ] *= np.ones(image.shape) - (greater * 0.5)
 
-            self.full_map[
-                x_offset: x_offset + image.shape[0],
-                y_offset: y_offset + image.shape[1],
-            ] += image * 0.5
+        other_image[
+            x_offset: x_offset + image.shape[0],
+            y_offset: y_offset + image.shape[1],
+        ] += image * 0.5
 
-        else:
-            greater = (image > 1) & (mask < 1)
-            # cv2.imshow("SHOW", (np.uint8(greater)) * 255)
+    def stitch_matrix(self, new_image):
+        '''stitch_matrix(new_image)
+            h -> homogeneous
+            i -> image
+            k -> keyframe
+            root -> root
+        '''
+        im_to_keyframe = cv2.estimateRigidTransform(new_image, self.keyframe_image, False) 
+        h_im_to_keyframe = self.make_homogeneous(im_to_keyframe)
+        ang_i2k, dx_i2k, dy_i2k, sx, sy = self.motion_from_matrix(im_to_keyframe)
 
-            self.full_map[
-                x_offset: x_offset + image.shape[0],
-                y_offset: y_offset + image.shape[1],
+        h_i2root = np.dot(self.h_k2root, h_im_to_keyframe)
 
-            ] *= np.ones(image.shape) - (greater * 0.5)
+        ang_i2root, dx_i2root, dy_i2root, sx, sy = self.motion_from_matrix(h_i2root)
 
-            image[mask > 1] = 0
-            self.full_map[
-                x_offset: x_offset + image.shape[0],
-                y_offset: y_offset + image.shape[1],
-            ] += image * 0.5
-
-    def stitch(self, new_image, mask=None):
-        # scale, delta_angle = similarity_fast(self.keyframe_image, new_image)
-        matrix = cv2.estimateRigidTransform(new_image, self.keyframe_image, False)
-
-        warped = self.warp(new_image, matrix)
-        cv2.imshow("Rewarped", warped)
-
-        ang, dx, dy, sx, sy = self.motion_from_matrix(matrix)
-        print 'Angle: {}, dx: {}, dy: {}\n\t sx: {} sy: {}'.format(ang, dx, dy, sx, sy)
-        rotated = self.rotate(new_image, ang)
-        self.publish_pose(dx, dy, ang)
-
+        rotated = self.rotate(new_image, np.degrees(ang_i2root))
         cv2.imshow("Rotated", rotated)
 
         self.overlay(
-            warped, 
-            self.keyframe_position[0] + 0.0,
-            self.keyframe_position[1] + 0.0,
+            rotated, 
+            self.keyframe_position[0] + dy_i2root,
+            self.keyframe_position[1] + dx_i2root,
+            self.full_map
+        )
+
+        cv2.imshow("Map", self.full_map)
+
+        return h_im_to_keyframe
+
+    def image_cb_matrix(self, image_msg):
+        key_press = cv2.waitKey(1)
+        if key_press & 0xFF == ord('r'):
+            self.reset()
+        if key_press & 0xFF == ord('f'):
+            self.reset_map()
+
+        image_msg = np.squeeze(image_msg)
+        image_fixed = self.fix_size(image_msg, size=self.shrink_size)
+        # ret, image = cv2.threshold(image_fixed, 200, 255, cv2.THRESH_BINARY)
+        image = image_fixed
+        if self.keyframe_image is None:
+            self.keyframe_image = image
+            cv2.imshow("Original keyframe", image)
+            return
+
+        tic = time()
+        cv2.imshow("Input Image", image)
+        h_i2k = self.stitch_matrix(image)
+        ang_i2k, dx_i2k, dy_i2k, sx, sy = self.motion_from_matrix(h_i2k)
+
+        if (np.linalg.norm([dx_i2k, dy_i2k]) > 10 or
+            np.fabs(ang_i2k) > 0.1):
+            print "Keyframing-----"
+            self.keyframe_image = image
+            self.h_k2root = np.dot(self.h_k2root, h_i2k)
+            # This is correct, evidence:
+            cv2.imshow("warped", self.warp(image, self.h_k2root))
+            print self.h_k2root
+
+    def stitch(self, new_image, mask=None):
+        # Determine rotation
+        matrix = cv2.estimateRigidTransform(new_image, self.keyframe_image, False)
+
+        # warped = self.warp(new_image, matrix)
+        # cv2.imshow("Rewarped", warped)
+        ang, dx, dy, sx, sy = self.motion_from_matrix(matrix)
+        print 'dx: {}, dy: {} Angle: {}'.format(dx, dy, ang)
+        cv2.circle(new_image, (new_image.shape[0] // 2, new_image.shape[1] // 2), 5, (110), thickness=5)
+        rotated = self.rotate(new_image, np.degrees(ang - self.keyframe_orientation))
+
+        rot = self.make_2D_rotation(ang - self.keyframe_orientation)
+        true_dx, true_dy, = np.dot(rot, (dx, dy)).A1
+
+        translated = self.translate(rotated, dx, dy)
+        print '--------------------------------------'
+
+        cv2.imshow("Rotated", rotated)
+        cv2.imshow("translated", translated)
+
+        self.overlay(
+            rotated, 
+            self.keyframe_position[0] + dy,
+            self.keyframe_position[1] + dx,
+            self.full_map
         )
 
         cv2.imshow('Map', self.full_map)
 
-        cv2.waitKey(1)
         return dx, dy, ang
 
     def fix_size(self, image, size=200):
@@ -162,33 +228,45 @@ class Localization(object):
         3. Newframes always have a white background
 
         '''
+        key_press = cv2.waitKey(1)
+        if key_press & 0xFF == ord('r'):
+            self.reset()
+        if key_press & 0xFF == ord('f'):
+            self.reset_map()
 
         image_msg = np.squeeze(image_msg)
         image_fixed = self.fix_size(image_msg, size=self.shrink_size)
-        ret, image = cv2.threshold(image_fixed, 200, 255, cv2.THRESH_BINARY)
+        # ret, image = cv2.threshold(image_fixed, 200, 255, cv2.THRESH_BINARY)
+        image = image_fixed
 
         if self.keyframe_image is None:
             self.keyframe_image = image
+            cv2.imshow("Original keyframe", image)
             return
-
 
         tic = time()
         cv2.imshow("Input Image", image)
         dx, dy, ang = self.stitch(image)
         cv2.imshow("Keyframe", self.keyframe_image)
 
-        '''
+        print 'KForientation', self.keyframe_orientation
+        print 'ANg', ang
         if ((np.linalg.norm([dx, dy]) > 10) or
-            (np.fabs(ang - self.keyframe_orientation) > 20)):
+            (np.fabs(ang) > 0.1)):
+            return
+
+            print 'SWITCHING KEYFRAMES'
             # Keyframe
             self.keyframe_image = image
-            # Absolute Position
-            self.keyframe_position = (self.keyframe_position[0] + dx, self.keyframe_position[1] + dy)
-            # Absolute ang
-            self.keyframe_orientation = ang
-            print 'keyframe orientation {}'.format(ang)
-        '''
 
+            # Absolute ang
+            self.keyframe_orientation += ang
+            rot = self.make_2D_rotation(-self.keyframe_orientation - ang)
+            # true_dx, true_dy, = np.dot(rot, (dx, dy)).A1
+
+            true_dx, true_dy = dx, dy
+            # Absolute Position
+            self.keyframe_position = (self.keyframe_position[0] + true_dy, self.keyframe_position[1] + true_dx)        
 
         cv2.waitKey(1)
         toc = time() - tic

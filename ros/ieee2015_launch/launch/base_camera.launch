@@ -25,6 +25,10 @@
 
         <param name="auto_exposure" value="3"/> <!-- use aperture_priority auto exposure -->
         <param name="auto_white_balance" value="false"/>
+        <param name="auto_focus" value="false"/>
+        <param name="focus_absolute" value="5"/>
+
+
       </node>
       
       <node pkg="image_proc" type="image_proc" name="image_proc" />
