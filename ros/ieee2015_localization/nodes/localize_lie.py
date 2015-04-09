@@ -14,6 +14,18 @@ from slam.registration import similarity, translation, similarity_fast
 from time import time
 import math
 from matplotlib import pyplot
+from collections import deque
+
+'''To use this, do:
+rosrun ieee2015_simulator view_simulation
+rosrun ieee2015_localization locaalize_lie.py
+'''
+
+
+
+class Keyframe(object):
+    def __init__(self):
+        pass
 
 class Localization(object):
     def __init__(self):
@@ -24,7 +36,6 @@ class Localization(object):
 
         self.image_sub = Image_Subscriber(
             '/robot/base_camera/down_view', 
-            # self.image_cb, 
             self.image_cb_matrix,
             encoding="8UC1",
         )
@@ -32,7 +43,7 @@ class Localization(object):
         self.pose_pub = rospy.Publisher('SLAM_pose', Pose2D, queue_size=3)
 
         # Size we shrink incoming images to (k x k)
-        self.shrink_size = 300
+        self.shrink_size = 200
         self.ones_mask = np.ones((self.shrink_size, self.shrink_size))
 
     def reset(self):
@@ -155,8 +166,8 @@ class Localization(object):
 
         image_msg = np.squeeze(image_msg)
         image_fixed = self.fix_size(image_msg, size=self.shrink_size)
-        # ret, image = cv2.threshold(image_fixed, 200, 255, cv2.THRESH_BINARY)
-        image = image_fixed
+        ret, image = cv2.threshold(image_fixed, 200, 255, cv2.THRESH_BINARY)
+        # image = image_fixed
         if self.keyframe_image is None:
             self.keyframe_image = image
             cv2.imshow("Original keyframe", image)
@@ -167,45 +178,14 @@ class Localization(object):
         h_i2k = self.stitch_matrix(image)
         ang_i2k, dx_i2k, dy_i2k, sx, sy = self.motion_from_matrix(h_i2k)
 
-        if (np.linalg.norm([dx_i2k, dy_i2k]) > 10 or
-            np.fabs(ang_i2k) > 0.1):
+        if (np.linalg.norm([dx_i2k, dy_i2k]) > 4 or
+            np.fabs(ang_i2k) > 0.05):
             print "Keyframing-----"
             self.keyframe_image = image
             self.h_k2root = np.dot(self.h_k2root, h_i2k)
             # This is correct, evidence:
             cv2.imshow("warped", self.warp(image, self.h_k2root))
             print self.h_k2root
-
-    def stitch(self, new_image, mask=None):
-        # Determine rotation
-        matrix = cv2.estimateRigidTransform(new_image, self.keyframe_image, False)
-
-        # warped = self.warp(new_image, matrix)
-        # cv2.imshow("Rewarped", warped)
-        ang, dx, dy, sx, sy = self.motion_from_matrix(matrix)
-        print 'dx: {}, dy: {} Angle: {}'.format(dx, dy, ang)
-        cv2.circle(new_image, (new_image.shape[0] // 2, new_image.shape[1] // 2), 5, (110), thickness=5)
-        rotated = self.rotate(new_image, np.degrees(ang - self.keyframe_orientation))
-
-        rot = self.make_2D_rotation(ang - self.keyframe_orientation)
-        true_dx, true_dy, = np.dot(rot, (dx, dy)).A1
-
-        translated = self.translate(rotated, dx, dy)
-        print '--------------------------------------'
-
-        cv2.imshow("Rotated", rotated)
-        cv2.imshow("translated", translated)
-
-        self.overlay(
-            rotated, 
-            self.keyframe_position[0] + dy,
-            self.keyframe_position[1] + dx,
-            self.full_map
-        )
-
-        cv2.imshow('Map', self.full_map)
-
-        return dx, dy, ang
 
     def fix_size(self, image, size=200):
         '''Takes an image, makes it square, resizes it
@@ -219,58 +199,6 @@ class Localization(object):
         squared = image[center_x - half_shape:center_x + half_shape, center_y - half_shape:center_y + half_shape]
         sized = cv2.resize(squared, (size, size))
         return sized
-
-    def image_cb(self, image_msg):
-        '''Image callback, tolerates an image message
-
-        1. Get an image, if it is the first, make it a keyframe
-        2. Keyframes always have a black background
-        3. Newframes always have a white background
-
-        '''
-        key_press = cv2.waitKey(1)
-        if key_press & 0xFF == ord('r'):
-            self.reset()
-        if key_press & 0xFF == ord('f'):
-            self.reset_map()
-
-        image_msg = np.squeeze(image_msg)
-        image_fixed = self.fix_size(image_msg, size=self.shrink_size)
-        # ret, image = cv2.threshold(image_fixed, 200, 255, cv2.THRESH_BINARY)
-        image = image_fixed
-
-        if self.keyframe_image is None:
-            self.keyframe_image = image
-            cv2.imshow("Original keyframe", image)
-            return
-
-        tic = time()
-        cv2.imshow("Input Image", image)
-        dx, dy, ang = self.stitch(image)
-        cv2.imshow("Keyframe", self.keyframe_image)
-
-        print 'KForientation', self.keyframe_orientation
-        print 'ANg', ang
-        if ((np.linalg.norm([dx, dy]) > 10) or
-            (np.fabs(ang) > 0.1)):
-            return
-
-            print 'SWITCHING KEYFRAMES'
-            # Keyframe
-            self.keyframe_image = image
-
-            # Absolute ang
-            self.keyframe_orientation += ang
-            rot = self.make_2D_rotation(-self.keyframe_orientation - ang)
-            # true_dx, true_dy, = np.dot(rot, (dx, dy)).A1
-
-            true_dx, true_dy = dx, dy
-            # Absolute Position
-            self.keyframe_position = (self.keyframe_position[0] + true_dy, self.keyframe_position[1] + true_dx)        
-
-        cv2.waitKey(1)
-        toc = time() - tic
-        # print '--------Single loop took {}    --------'.format(toc)
 
 
 if __name__ == '__main__':
