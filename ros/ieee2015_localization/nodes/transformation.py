@@ -38,8 +38,9 @@ class Test_Transform(object):
         cv2.imshow("xformed", xformed)
         # fuct = xformed[310-(280 - 135):310, 135:280]
         # fuct = xformed[378 - (296 - 156):378, 156:296]
+        fuct = xformed[194:345, 100:290]
         
-        # cv2.imshow("fuct", fuct)
+        cv2.imshow("fuct", fuct)
 
         key_press = cv2.waitKey(1)
         if key_press & 0xFF == ord('q'):
