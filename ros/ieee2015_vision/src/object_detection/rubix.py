@@ -1,6 +1,7 @@
 # algorithm to detect the rubix cube
 import numpy as np
 import cv2
+import math
 
 
 #give the function a filename as an argument
@@ -26,9 +27,6 @@ def find_rubix(src, height, draw):
         area = cv2.contourArea(current)
         if area > approx_area - sigma and area < approx_area + 30000:  # will need to be adjusted !!!!!
             goodContours2.append(current)
-            if draw is True:
-                print 'this is area'
-                print area
 
     if draw is True:
         for cnt in goodContours2:
@@ -57,10 +55,16 @@ def find_rubix(src, height, draw):
     if draw is True:
         cv2.drawContours(src, [points], 0, (0, 0, 255), 1)
         cv2.imshow('contos', src)
+        cv2.waitKey(0)
 
     angle = boxpoints[2]
+    if angle < 0:
+        angle = angle * -1
 
-    return (centerX, centerY), angle
+    fin_angle = 90 - angle
+    radians = math.radians(fin_angle)
 
-    #img = cv2.imread('ti/18.5r.jpg')
-    #find_rubix(img, .185)
+    return (centerX, centerY), radians
+
+#img = cv2.imread('ti/18.5r.jpg')
+#find_rubix(img, .185, True)
