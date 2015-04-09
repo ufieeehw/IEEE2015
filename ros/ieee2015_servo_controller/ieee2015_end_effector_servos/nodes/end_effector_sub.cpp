@@ -11,6 +11,8 @@
 #include "high_level_commands.h"
 #include "communications.h"
 #include "ieee2015_end_effector_servos/Num.h"
+#include "ieee2015_end_effector_servos/EE.h"
+#include <math.h> 
 
 #define SMALL_SERVO 3
 #define LARGE_SERVO 4
@@ -28,6 +30,9 @@ uint16_t m_pos_l = 0;
 uint16_t m_pos_r = 0;
 uint16_t t_pos_l = 0;
 uint16_t t_pos_r = 0;
+
+float past_location_one = 0;
+float past_location_two = 0;
 
 void init(int dxl_id){
 
@@ -164,7 +169,7 @@ void calibrate_large_servo(){
     SetVelocity(LARGE_SERVO, 2047);
     ReadMovingStatus(LARGE_SERVO, &moving);
   }
-  usleep(3300000);
+  usleep(3000000);
   SetVelocity(LARGE_SERVO,0);
   SetLED(LARGE_SERVO,1);
   PAYLOAD(LARGE_SERVO,2);
@@ -173,6 +178,7 @@ void calibrate_large_servo(){
 void calibrate_small_servo(){
 
   uint16_t c_load;
+  bool moving;
 
   PAYLOAD(SMALL_SERVO,2);
   SetVelocity(SMALL_SERVO, 500);
@@ -190,12 +196,22 @@ void calibrate_small_servo(){
   SetLED(SMALL_SERVO, 5);
   PAYLOAD(SMALL_SERVO,2);
   SetVelocity(SMALL_SERVO, 1500);
+  usleep(500000);
+  ReadMovingStatus(SMALL_SERVO, &moving);
+
+  while(moving == false){
+    PAYLOAD(SMALL_SERVO,2);
+    SetVelocity(SMALL_SERVO, 2047);
+    ReadMovingStatus(SMALL_SERVO, &moving);
+  }
   sleep(2);
   SetVelocity(SMALL_SERVO,0);
   SetLED(SMALL_SERVO,1); 
 }
 
-void open_large_servo(){
+bool open_large_servo(ieee2015_end_effector_servos::EE::Request  &req,
+                      ieee2015_end_effector_servos::EE::Response &res)
+{
   PAYLOAD(LARGE_SERVO,2);
   SetLED(LARGE_SERVO,1);
   SetVelocity(LARGE_SERVO, 2047);
@@ -205,9 +221,12 @@ void open_large_servo(){
   PAYLOAD(LARGE_SERVO,2);
   sleep(1);
   calibrate_large_servo();
+  return true;
 }
 
-void open_small_servo(){
+bool open_small_servo(ieee2015_end_effector_servos::EE::Request  &req,
+                      ieee2015_end_effector_servos::EE::Response &res)
+{
   PAYLOAD(SMALL_SERVO,2);
   SetLED(SMALL_SERVO,1);
   SetVelocity(SMALL_SERVO, 2047);
@@ -217,9 +236,12 @@ void open_small_servo(){
   PAYLOAD(SMALL_SERVO,2);
   sleep(1);
   calibrate_small_servo();
+  return true;
 }
 
-void close_large_servo(){
+bool close_large_servo(ieee2015_end_effector_servos::EE::Request  &req,
+                       ieee2015_end_effector_servos::EE::Response &res)
+{
   uint16_t c_load;
 
   PAYLOAD(LARGE_SERVO,2);
@@ -237,9 +259,12 @@ void close_large_servo(){
   SetVelocity(LARGE_SERVO, 0);
   SetLED(LARGE_SERVO, 5);
   PAYLOAD(LARGE_SERVO,2);
+  return true;
 }
 
-void close_small_servo(){
+bool close_small_servo(ieee2015_end_effector_servos::EE::Request  &req,
+                       ieee2015_end_effector_servos::EE::Response &res)
+{
   uint16_t c_load;
 
   PAYLOAD(SMALL_SERVO,2);
@@ -257,9 +282,11 @@ void close_small_servo(){
 
   SetLED(SMALL_SERVO, 5);
   PAYLOAD(SMALL_SERVO,2);
+  return true;
 }
 
-void calibrate_sides_DOWN(){
+void calibrate_sides_DOWN()
+{
 
   uint16_t c_load_r;
   uint16_t c_load_l;
@@ -294,9 +321,58 @@ void calibrate_sides_DOWN(){
   c_load_r = 1000;
   usleep(500000);
 
-  while((c_load_r > 600) || (c_load_r > 600)){
+  while((c_load_r > 750) && (c_load_l >750)){
     ReadCurrentLoad(SIDE_ONE, &c_load_r);
-    ReadCurrentLoad(SIDE_ONE, &c_load_l);
+    ReadCurrentLoad(SIDE_TWO, &c_load_l);
+  }
+
+  SetVelocity(SIDE_ONE, 0);
+  SetVelocity(SIDE_TWO, 0);
+
+  ReadPosition(SIDE_ONE, &position);
+  m_pos_r = position;
+  ReadPosition(SIDE_TWO, &position);
+  m_pos_l = position;
+}
+
+void calibrate_sides_UP(){
+
+  uint16_t c_load_r;
+  uint16_t c_load_l;
+  bool moving;
+
+  SetLED(SIDE_TWO,3);
+  SetLED(SIDE_ONE,3);
+
+  SetVelocity(SIDE_ONE, 1400);
+  ReadMovingStatus(SIDE_ONE, &moving);
+  usleep(200);
+
+  if (moving == true)
+    {
+      SetVelocity(SIDE_TWO, 1400);
+      ReadMovingStatus(SIDE_TWO, &moving);
+      usleep(200);
+      if (moving != true)
+      {
+        SetVelocity(SIDE_TWO,0);
+        SetVelocity(SIDE_ONE,0);
+        calibrate_sides_UP();
+      }
+    }
+  
+
+  ReadCurrentLoad(SIDE_ONE, &c_load_r);
+  usleep(500);
+  ReadCurrentLoad(SIDE_TWO, &c_load_l);
+  usleep(500);
+  c_load_l = 1000;
+  c_load_r = 1000;
+  usleep(500000);
+
+  while((c_load_r > 1100) && (c_load_l > 1100)){
+    ReadCurrentLoad(SIDE_ONE, &c_load_r);
+    ReadCurrentLoad(SIDE_TWO, &c_load_l);
   }
 
   SetVelocity(SIDE_ONE, 0);
@@ -354,14 +430,15 @@ void sides_UP(){
     usleep(400000);
     PAYLOAD(SIDE_ONE, 2);
     PAYLOAD(SIDE_TWO, 2);
-  } 
+  }
+  calibrate_sides_UP(); 
 }
 
 void sides_DOWN(){
 
   int count = 0;
 
-  while (count <= 4)
+  while (count <= 3)
   {
     SetVelocity(SIDE_ONE, 470);
     ReadMovingStatus(SIDE_ONE, &moving);
@@ -399,7 +476,9 @@ void sides_DOWN(){
   calibrate_sides_DOWN();
 }
 
-void mode_DOWN(){
+bool mode_DOWN(ieee2015_end_effector_servos::EE::Request  &req,
+               ieee2015_end_effector_servos::EE::Response &res)
+{
 
   SetVelocity(SMALL_SERVO, 0);
   SetVelocity(LARGE_SERVO, 0);
@@ -417,15 +496,20 @@ void mode_DOWN(){
   SetLED(LARGE_SERVO,4);
   SetLED(SMALL_SERVO,4);
   SetLED(SIDE_ONE,4);
+  return true;
 }
 
-void mode_UP(){
-
+bool mode_UP(ieee2015_end_effector_servos::EE::Request  &req,
+             ieee2015_end_effector_servos::EE::Response &res)
+{
+  
   SetVelocity(SIDE_ONE, 0);
   SetVelocity(SIDE_TWO, 0);
 
   PAYLOAD(LARGE_SERVO, 2);
   PAYLOAD(SMALL_SERVO, 2);
+  sides_UP();
+
 
   //SetVelocity(SMALL_SERVO, 1000);
   //SetVelocity(LARGE_SERVO, 1000);
@@ -434,75 +518,43 @@ void mode_UP(){
   SetVelocity(LARGE_SERVO, 000);
 
   SetLED(LARGE_SERVO, 5);
-  SetLED(SMALL_SERVO, 5);
-  SetLED(SIDE_ONE,5);
-  SetLED(SIDE_TWO,5);   
+  SetLED(SIDE_TWO,5);  
+  return true;
+  
 }
 
+
+
 void chatterCallback(const ieee2015_end_effector_servos::Num::ConstPtr &num){
-
-  int control_mode = num->control;
-  int large_mode = num->grab_large;
-  int small_mode = num->grab_small;
-
-  if(side_control != control_mode){
-
-    if (control_mode == 2) // Set to angle mode
-    {
-      mode_DOWN();
-    }
-    if (control_mode == 1) // Set to continous mode
-    {
-      mode_UP();
-    }
-  }
-
-  if (large_control != large_mode)
-  {
-    if (large_mode == 2)
-    {
-      close_large_servo();
-    }
-    if (large_mode == 1)
-    {
-      open_large_servo();
-    }
-  }
-  if (small_control != small_mode)
-  {
-    if (small_mode == 2)
-    {
-      close_small_servo();
-    }
-    if (small_mode == 1)
-    {
-      open_small_servo();
-    }
-  }
 
   SetPosition(LARGE_SERVO, num->position_one);
   SetPosition(SMALL_SERVO, num->position_two);
 
-  side_control = control_mode;
-  large_control = num->grab_large;
-  small_control = num->grab_small;
 }
 
 int main(int argc, char **argv){
 
-  ros::init(argc, argv, "listener");
+  ros::init(argc, argv, "end_effector_service");
 
   ros::NodeHandle n;
 
-  ros::Subscriber sub = n.subscribe("ieee2015_end_effector_servos", 1000, chatterCallback);
+  ros::ServiceServer mode_up = n.advertiseService("mode_up", mode_UP);
+  ros::ServiceServer mode_down = n.advertiseService("mode_down", mode_DOWN);
+  ros::ServiceServer close_small = n.advertiseService("close_small_servo", close_small_servo);
+  ros::ServiceServer open_small = n.advertiseService("open_small_servo", open_small_servo);
+  ros::ServiceServer close_large = n.advertiseService("close_large_servo", close_large_servo);
+  ros::ServiceServer open_large = n.advertiseService("open_large_servo", open_large_servo);
 
+  ros::Subscriber sub = n.subscribe("ieee2015_end_effector_servos", 1000, chatterCallback);
+  
   if (is_testing == true)
   {
-    
+    ros::spin();
+    /*
     InitDXL(5,3);
     SetID(6,5);
     SetLED(5,1);
-
+    */
 
   }
 
@@ -522,12 +574,15 @@ int main(int argc, char **argv){
     PAYLOAD(SMALL_SERVO, 1);
 
     calibrate_sides_DOWN();
+    sleep(1);
+    calibrate_sides_DOWN();
 
     sides_UP();
     
     calibrate_large_servo();
 
-    calibrate_small_servo();  
+    calibrate_small_servo(); 
+    
 
     blink_LED(); 
 

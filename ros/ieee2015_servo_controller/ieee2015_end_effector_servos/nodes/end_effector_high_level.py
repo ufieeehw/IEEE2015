@@ -67,9 +67,6 @@ def get_some(msg):
 
     global to_radians_one
     global to_radians_two
-    global side_control 
-    global large_control
-    global small_control
 
     large_conv = msg.large_radians * (180/np.pi) + 60
     small_conv = msg.small_radians * (180/np.pi) + 60
@@ -82,20 +79,16 @@ def get_some(msg):
     to_radians_one = xl_format_one
     to_radians_two = xl_format_two
 
-    side_control = msg.level_mode
-    large_control = msg.grab_large
-    small_control = msg.grab_small
-
     print "LARGE SERVO POSITION: ", xl_format_one
     print "SMALL SERVO POSITION: ", xl_format_two
 
     master_sub = rospy.Publisher('ieee2015_end_effector_servos', Num, queue_size=1)
-    master_sub.publish(side_control, to_radians_one, to_radians_two, large_control, small_control)
+    master_sub.publish(to_radians_one, to_radians_two)
 
 def main():
 
     rospy.init_node('listener', anonymous=True)
-    master_sub = rospy.Subscriber('/end_efffector_master', high_level, get_some)
+    master_sub = rospy.Subscriber('/end_efffector_angles_sub', high_level, get_some)
 
     while not rospy.is_shutdown():
         rospy.spin()

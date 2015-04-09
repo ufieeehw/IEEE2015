@@ -14,6 +14,11 @@ add_message_files(
   high_level.msg
 )
 
+add_service_files(
+  FILES
+  EE.srv
+)
+
 generate_messages(
   DEPENDENCIES
   std_msgs
@@ -37,14 +42,11 @@ set(YOUR_LIB_SOURCES
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(end_effector_sub nodes/end_effector_sub.cpp)
-add_executable(end_effector_pub nodes/end_effector_pub.cpp)
 add_library(xl320_library ${YOUR_LIB_SOURCES})
 target_link_libraries(end_effector_sub ${catkin_LIBRARIES} xl320_library)
 
-target_link_libraries(end_effector_pub ${catkin_LIBRARIES} xl320_library)
 add_dependencies(end_effector_sub end_effector_servos_generate_messages_cpp)
 
-add_dependencies(end_effector_pub end_effector_servos_generate_messages_cpp)
 add_dependencies(end_effector_sub src/communications.cpp src/crc.cpp src/dxl_hal.cpp src/high_level_commands.cpp src/packet_utils.cpp)
 
 install(TARGETS xl320_library 
