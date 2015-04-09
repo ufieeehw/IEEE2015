@@ -24,12 +24,10 @@ def get_center_circle(img, points, draw):
         circles = np.uint16(np.around(circles))
         for i in circles[0, :]:
             temppoint = (i[0], i[1])
-            tempans = cv2.pointPolygonTest(points, temppoint, False)
+            tempans = cv2.pointPolygonTest(points, temppoint, True)
             # draw the outer circle
-            if tempans >= 0:
+            if tempans >= 80:  ###########NEED TO CHANGE THAT
                 if draw is True:
-                    print 'this is circle radius'
-                    print i[2]
                     cv2.circle(img, (i[0], i[1]), i[2], (0, 255, 0), 2)
                     cv2.circle(img, (i[0], i[1]), i[2], (0, 0, 255), 10)
                     cv2.circle(img, (i[0], i[1]), 2, (0, 0, 255), 10)
