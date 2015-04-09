@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+'''
+    Authors:
+    Brandon Peterson
+    Jacob Panikulam
+'''
 import cv2
 import numpy as np
 import math
