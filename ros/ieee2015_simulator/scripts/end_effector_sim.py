@@ -97,8 +97,8 @@ class END(object):
 
         to_radians_one = xl_format
 
-        #print "TARGETING POSITION:   ({}, {})".format(*self.point) 
-        #print "LARGE SERVO POSITION ", degrees_one, "radians"
+        print "TARGETING POSITION:   ({}, {})".format(*self.point) 
+        print "LARGE SERVO POSITION ", degrees_one, "radians"
         print "LARGE SERVO POSITION: ", xl_format
 
         base_pub = rospy.Publisher('/ieee2015_end_effector_servos', Num, queue_size=1)
@@ -116,12 +116,12 @@ class END(object):
 
         to_radians_two = xl_format
 
-        #print "TARGETING POSITION:   ({}, {})".format(*self.point) 
-        #print "SMALL SERVO moved to ", degrees_two, "radians"
+        print "TARGETING POSITION:   ({}, {})".format(*self.point) 
+        print "SMALL SERVO moved to ", degrees_two, "radians"
         print "SMALL SERVO POSITION: ", xl_format
 
         base_pub = rospy.Publisher('/ieee2015_end_effector_servos', Num, queue_size=1)
-        base_pub.publish(side_control, to_radians_one, to_radians_two, large_control, small_control)
+        base_pub.publish(side_control, to_radians_one)
 
     def draw(self, display, new_base=(0, 0)):
         '''Draw the whole arm'''
