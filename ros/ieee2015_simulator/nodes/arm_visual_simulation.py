@@ -186,14 +186,14 @@ class Canvas(app.Canvas):
             print(self.view)
 
         elif(event.text.lower() == 'd'):
-            self.translate[0] += 0.1
-        elif(event.text.lower() == 'a'):
             self.translate[0] += -0.1
+        elif(event.text.lower() == 'a'):
+            self.translate[0] += 0.1
 
         elif(event.text.lower() == 'w'):
-            self.translate[1] += 0.1
-        elif(event.text.lower() == 's'):
             self.translate[1] += -0.1
+        elif(event.text.lower() == 's'):
+            self.translate[1] += 0.1
 
         elif(event.text.lower() == 'q'):
             self.rotate[2] += -1
