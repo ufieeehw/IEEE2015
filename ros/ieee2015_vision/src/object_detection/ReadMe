@@ -6,7 +6,7 @@ utilized information about the perimeter length and creates minimum bounding rec
 	***********************************************************
 	cx_coord, cy_coord, angle = etchaSketch_detect(img, height, draw)
 		Inputs: img, current height of the camera published by ros, and draw is boolean (true draws contours and points, false is ready to run, display free code)
-		Outputs: list of x, y coords of the detected buttons, angle of orientation
+		Outputs: list of x, y coords of center of the etch a sketch, angle of orientation
 	************************************************************
 	Areas that could improve runtime:
 		minimize for loop iterations

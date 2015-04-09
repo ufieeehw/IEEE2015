@@ -36,12 +36,6 @@ def etchaSketch_detect(img, height, draw):
     approx_area = (-800112 * height) + 243989
     sigma = 60000
 
-    if draw is True:
-        print 'this is len of contr'
-        print len(contours)
-        print 'this is approx_area'
-        print approx_area
-
     eas = []
     for current in contours:
         area = cv2.contourArea(current)
@@ -50,73 +44,77 @@ def etchaSketch_detect(img, height, draw):
         if area > (approx_area - sigma) and area < (approx_area + sigma):
             if draw is True:
                 cv2.drawContours(img, [current], 0, (0, 255, 0), 10)
-            #if we get a sm- aller value in the range we give it
-            #we want the contour with the smaller perimeter
-            #may swtich it to be larger area to be sure
-            #testing will tell
             eas.insert(0, current)
 
     if draw is True:
         cv2.imshow('img', img)
-    #gives us bounding rectangle to reference for points in and out
-    #if problems arise we can use distances from contour
+   
     if len(eas) == 0:
         return -1
 
+    #get the detected points of concavity
     far_points = detect_concave_locations.detect_concave_locations(eas[0], img, draw)
 
+    #get mid points between the etcha sketch buttons
     mid_point_between_buttons = ((far_points[0][0] + far_points[1][0])/2, (far_points[0][1] + far_points[1][1])/2)
     
+    #mid x and y coordinates
+    mid_x = mid_point_between_buttons[0]
+    mid_y = mid_point_between_buttons[1]
+
+    #draw the midpoint
     if draw is True:
-        print 'this is mid_point_between_buttons'
-        print mid_point_between_buttons
         cv2.circle(img, mid_point_between_buttons, 2, (0, 0, 0), 10)
-        cv2.imshow('mid', img)
+
+    #calculates the bounding box for the etchasketch
+    boxpoints = cv2.minAreaRect(eas[0])
+    #points = cv2.cv.BoxPoints(boxpoints)
+    #points = np.int0(np.around(points))
+    
+    center = boxpoints[0]
+    
+    #get points to calculate angle or orientation
+    cent_x = center[0]
+    cent_y = center[1]
+    deltaY = mid_y - cent_y
+    deltaX = mid_x - cent_x
 
     #calculating orientation
-
-    boxpoints = cv2.minAreaRect(eas[0])
-    points = cv2.cv.BoxPoints(boxpoints)
-    points = np.int0(np.around(points))
+    angleInDegrees = math.atan2(deltaY, deltaX) * 180 / np.pi
+    radians = math.radians(angleInDegrees)
 
     if draw is True:
         cv2.imshow('img', img)
-    circles = cv2.HoughCircles(thresh4, cv2.cv.CV_HOUGH_GRADIENT, 1, 200, 100, 550, 10, 5)
-    buttons = []
-    if circles is not None:
-        circles = np.uint16(np.around(circles))
-        for i in circles[0, :]:
+    
+
+    ##################################FOLLOWING WAS AN ATTEMPT TO USE HOUGH CIRCLES##############
+    #circles = cv2.HoughCircles(thresh4, cv2.cv.CV_HOUGH_GRADIENT, 1, 200, 100, 550, 10, 5)
+    #buttons = []
+    #if circles is not None:
+    #    circles = np.uint16(np.around(circles))
+    #    for i in circles[0, :]:
         # draw the outer circle
-            temppoint = (i[0], i[1])
-            tempans = cv2.pointPolygonTest(points, temppoint, False)
-            if tempans >= 0:  # and i[2] == 38 and i[2] == 39:
-                if draw is True:
-                    cv2.circle(img, (i[0], i[1]), i[2], (0, 255, 0), 2)
+    #        temppoint = (i[0], i[1])
+     #       tempans = cv2.pointPolygonTest(points, temppoint, False)
+      #      if tempans >= 0:  # and i[2] == 38 and i[2] == 39:
+     #           if draw is True:
+    #                cv2.circle(img, (i[0], i[1]), i[2], (0, 255, 0), 2)
                     # draw the center of the circle
-                    cv2.circle(img, (i[0], i[1]), 2, (0, 0, 255), 3)
-                buttons.append(temppoint)
+     #               cv2.circle(img, (i[0], i[1]), 2, (0, 0, 255), 3)
+      #          buttons.append(temppoint)
 
-    x, y = buttons[0]
-    x2, y2 = buttons[1]
+    #x, y = buttons[0]
+    #x2, y2 = buttons[1]
 
-    cx_coord = [x, x2]
-    cy_coord = [y, y2]
-
-    angle = boxpoints[2]
-    degs = int(angle * -1)
-    print 'this is degrees'
-    print degs
-    rads = math.radians(degs)
-    print 'this is radians'
-    print rads
+    #cx_coord = [x, x2]
+    #cy_coord = [y, y2]
 
     ####START DISPLAY METHODS####
     #small = cv2.resize(image, (300, 250))
     if draw is True:
         cv2.imshow('detected circles', img)
-        cv2.destroyAllWindows()
 
-    return cx_coord, cy_coord, rads
+    return cent_x, cent_y, radians
 
-img = cv2.imread('ti/17he.jpg')
+img = cv2.imread('etchTest.jpg')
 etchaSketch_detect(img, .17, True)
