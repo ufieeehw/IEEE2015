@@ -16,6 +16,12 @@ from ros_image_tools import Image_Publisher
 import cv2
 import os
 
+import tf
+
+
+#pos, rot = tf.lookuptransform(/wristjoint, /robot)
+
+
 cube_vertex = """
 uniform mat4 model;
 uniform mat4 view;
@@ -79,6 +85,8 @@ class Canvas(app.Canvas):
         rospy.init_node('simulated_arm_view')
         self.img_pub = Image_Publisher('/sim/arm_camera/image_rect', encoding='8UC1')
 
+        self.listener = tf.TransformListener()
+
     def on_initialize(self, event):
         # Build cube data
         # --------------------------------------
@@ -88,15 +96,29 @@ class Canvas(app.Canvas):
 
         vertices = VertexBuffer(vertices)
 
+        #self.listener.waitForTransform("/robot", "/wrist_joint", rospy.Time(), rospy.Duration(4))
+
+        """while not rospy.is_shutdown():
+            try:
+                now = rospy.Time.now()
+                self.listener.waitForTransform("/wrist_joint", "/robot", rospy.Time(), rospy.Duration(4))
+                (trans,rot) = listener.lookupTransform("/wrist_joint", "/robot", rospy.Time(), rospy.Duration(4))
+        """
+
+        #pos, rot = self.listener.lookupTransform("/wrist_joint", "/robot", rospy.Time(0))
+
+        #print list(pos)
+        
         camera_pitch = 0.0 # Degrees
         self.rotate = [camera_pitch, 0, 0]
-        self.translate = [0, 0, -3]
+        #self.translate = list(pos)
+        self.translate = [0, 0, -5]
 
         # Build program
         # --------------------------------------
         view = np.eye(4, dtype=np.float32)
         model = np.eye(4, dtype=np.float32)
-        scale(model, 1, 1, 1)
+        scale(model, 10, 10, 10)
         self.phi = 0
 
         self.cube = Program(cube_vertex, cube_fragment)
@@ -169,7 +191,19 @@ class Canvas(app.Canvas):
         zrotate(self.view, self.rotate[2])
         translate(self.view, *self.translate)
 
+        self.listener.waitForTransform("/robot", "/wrist_joint", rospy.Time(), rospy.Duration(4))
+        
+        pos, rot = self.listener.lookupTransform("/robot", "/wrist_joint", rospy.Time(0))
+
+        print list(pos)
+        
+        self.translate[0] = -list(pos)[0] * 10
+        self.translate[1] = -list(pos)[1] * 10
+        self.translate[2] = -5
+
         self.cube['view'] = self.view
+
+
 
         self.update()
 
