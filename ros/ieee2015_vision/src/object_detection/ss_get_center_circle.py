@@ -36,6 +36,9 @@ def get_center_circle(img, points, draw):
                 good_circle.append(i[0])
                 good_circle.append(i[1])
 
+    if draw is True:
+        cv2.imshow('img', img)
+
     return good_circle
 
 #img = cv2.imread('ti/15hss.jpg')
