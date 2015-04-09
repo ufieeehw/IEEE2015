@@ -11,7 +11,7 @@ utilized information about the perimeter length and creates minimum bounding rec
 	Areas that could improve runtime:
 		minimize for loop iterations
 		use area instead of perimeter?
-
+	CRUCIAL INFORMATION!!!! If the angle returned is negative then that means the etcha sketch is oriented away from the robot and an adjustment needs to be made because it is out of reach!
 
 rubix cube solver:
 TO RUN USE FILE -> rubix.py
