@@ -20,6 +20,7 @@ add_message_files(
    FILES
    ComputeDistance.srv
    StopMecanum.srv
+   StopController.srv
 )
 
 ## Generate actions in the 'action' folder

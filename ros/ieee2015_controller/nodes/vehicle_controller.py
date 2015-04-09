@@ -11,8 +11,10 @@ import rospy
 from std_msgs.msg import Header
 from geometry_msgs.msg import Pose, PoseStamped, Twist, TwistStamped, Vector3
 from ieee2015_msgs.msg import Mecanum
+from ieee2015_msgs.srv import StopController, StopControllerResponse
 
-max_linear_vel = 1 # m/s
+# max_linear_vel = 1 # m/s
+max_linear_vel = 0.1
 max_linear_acc = max_linear_vel # m/s^2
 
 max_angular_vel = 2 # rad/s
@@ -54,7 +56,7 @@ class Controller(object):
         rospy.init_node('vehicle_controller')
 
         # Twist pub
-        self.twist_pub = rospy.Publisher('twist', Twist, queue_size=1) 
+        self.twist_pub = rospy.Publisher('twist', TwistStamped, queue_size=1) 
         
         # Initializations to avoid weird desynchronizations
         self.des_position = None
@@ -67,7 +69,18 @@ class Controller(object):
         self.pose_sub = rospy.Subscriber('pose', PoseStamped, self.got_pose)
         self.desired_pose_sub = rospy.Subscriber('desired_pose', PoseStamped, self.got_desired_pose)
 
-    def send_twist(self, (xvel,yvel), angvel):
+        self.on = True
+        rospy.Service('controller/stop', StopController, self.stop)
+
+    def stop(self, req):
+        self.on = not req.stop
+        if not self.on:
+            rospy.logwarn("DISABLING MECANUM CONTROLLER")
+        else:
+            rospy.logwarn("ENABLING MECANUM CONTROLLER")
+        return StopControllerResponse()
+
+    def send_twist(self, (xvel, yvel), angvel):
         '''Generate twist message'''
         self.twist_pub.publish(
             TwistStamped(
@@ -126,7 +139,7 @@ class Controller(object):
         Velocity calcluation should be done in a separate thread
          this thread should have an independent information "watchdog" timing method
         '''
-        if (self.des_position is None) or (self.des_yaw is None):
+        if (self.des_position is None) or (self.des_yaw is None) or (self.on is False):
             return
 
         # World frame position

@@ -131,7 +131,6 @@ class Controller(object):
         v_target = np.array([-desired_action[0], -desired_action[1], desired_action[2]])
         mecanum_speeds = np.linalg.lstsq(self.mecanum_matrix, v_target)[0]
 
-        print mecanum_speeds
         # These wheels are pointed backwards!
         wheel_speeds = [
             mecanum_speeds[0], 
@@ -140,6 +139,16 @@ class Controller(object):
             mecanum_speeds[3]
         ]
         self.wheel_speed_proxy(*wheel_speeds)
+
+
+    def make_2D_rotation(self, angle):
+        c, s = np.cos(angle), np.sin(angle)
+        mat = np.matrix([
+            [c,     -s],
+            [s,      c],
+        ],
+        dtype=np.float32)
+        return mat
 
     def get_odom(self):
         '''get_odom: at a rate of _freq_, compute the motion of the vehicle from wheel odometry
@@ -159,7 +168,9 @@ class Controller(object):
             vehicle_twist = np.dot(self.mecanum_matrix, wheel_odom).A1
             vehicle_twist[0] *= -1
             vehicle_twist[1] *= -1
-            self.pose += vehicle_twist
+            rot_mat = self.make_2D_rotation(self.pose[2])
+            x, y = np.dot(rot_mat, [vehicle_twist[0], vehicle_twist[1]]).A1
+            self.pose += [x, y, vehicle_twist[2]]
 
             orientation = tf_trans.quaternion_from_euler(0, 0, self.pose[2])
 

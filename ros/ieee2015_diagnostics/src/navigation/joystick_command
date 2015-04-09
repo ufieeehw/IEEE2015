@@ -10,7 +10,7 @@ import rospy
 from sensor_msgs.msg import Joy
 from geometry_msgs.msg import Twist, TwistStamped, Vector3
 from std_msgs.msg import String
-from ieee2015_msgs.srv import StopMecanum
+from ieee2015_msgs.srv import StopMecanum, StopController
 
 rospy.init_node('joystick_command')
 
@@ -28,6 +28,11 @@ def got_joy_msg(joy_msg):
     else:
         if joy_msg.buttons[7]:
             stop_proxy(False)
+
+    if joy_msg.buttons[1]:
+        controller_stop_proxy(True)
+    elif joy_msg.buttons[3]:
+        controller_stop_proxy(False)
 
     linear_x = joy_msg.axes[1] * max_linear_velocity
     linear_y = joy_msg.axes[0] * max_linear_velocity
@@ -57,6 +62,11 @@ max_linear_velocity = 1 # rospy.get_param('max_linear_velocity')
 max_angular_velocity = 4 # rospy.get_param('max_angular_velocity')
 
 rospy.Subscriber('/joy', Joy, got_joy_msg)
+
+rospy.wait_for_service('/robot/controller/stop')
+print '------Found controller stop service---------'
+controller_stop_proxy = rospy.ServiceProxy('/robot/controller/stop', StopController)
+
 
 rospy.spin()    
 
