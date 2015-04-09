@@ -14,7 +14,7 @@ from xmega_connector.srv import * # Echo, EchoRequest, EchoResponse
 from geometry_msgs.msg import TwistStamped, Twist, Vector3, PoseStamped, Pose, Point, Quaternion
 from tf import transformations
 
-rospy.init_node('xmega_connector', log_level=rospy.DEBUG)
+rospy.init_node('xmega_connector')#, log_level=rospy.DEBUG)
 
 class XMEGAConnector(object):
 
