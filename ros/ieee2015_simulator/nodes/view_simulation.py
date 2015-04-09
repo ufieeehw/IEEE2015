@@ -56,12 +56,15 @@ varying vec2 v_texcoord;
 void main()
 {
     gl_FragColor = texture2D(texture, v_texcoord).bgra;
+    /*
     if (abs(v_texcoord.x / v_texcoord.y) < 0.3) {
         gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
     }
     if (abs((1 - v_texcoord.x) / (v_texcoord.y)) < 0.3) {
         gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
     }
+    */
+    
 
 }
 """
