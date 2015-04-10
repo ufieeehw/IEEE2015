@@ -1,5 +1,7 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Float64.h"
+#include "dynamixel_msgs/JointState.h"
 #include <stdio.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -13,13 +15,15 @@
 #include "ieee2015_end_effector_servos/Num.h"
 #include "ieee2015_end_effector_servos/EE.h"
 #include <math.h> 
+#include "std_msgs/Float64.h"
 
+#define WRIST_SERVO 1
 #define SMALL_SERVO 3
 #define LARGE_SERVO 4
 #define SIDE_ONE    5
 #define SIDE_TWO    6
 
-bool is_testing = false;
+bool is_testing = true;
 int side_control = 1;
 int large_control = 1;
 int small_control = 1;
@@ -529,8 +533,10 @@ void chatterCallback(const ieee2015_end_effector_servos::Num::ConstPtr &num){
 
   SetPosition(LARGE_SERVO, num->position_one);
   SetPosition(SMALL_SERVO, num->position_two);
+  SetPosition(WRIST_SERVO, (num->wrist_pos)+210);
 
 }
+
 
 int main(int argc, char **argv){
 
@@ -549,6 +555,9 @@ int main(int argc, char **argv){
   
   if (is_testing == true)
   {
+    init(WRIST_SERVO);
+    PAYLOAD(WRIST_SERVO,1);
+    SetLED(WRIST_SERVO,7);
     ros::spin();
     /*
     InitDXL(5,3);

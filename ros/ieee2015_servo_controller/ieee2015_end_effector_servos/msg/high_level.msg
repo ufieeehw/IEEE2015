@@ -1,2 +1,3 @@
 float64 large_radians
 float64 small_radians
+float64 wrist_radians
