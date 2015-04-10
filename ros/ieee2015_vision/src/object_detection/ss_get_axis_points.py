@@ -31,20 +31,12 @@ def get_axis_points(img, height, draw):
     approx_area = (-649593 * height) + 180070
     sigma = 14000
 
-    if draw is True:
-        print 'this is approx_area'
-        print approx_area
     #finding contour for the toy
     wholeToy = []
     for bae2 in contours:
         area = cv2.contourArea(bae2)
-        if draw is True:
-            print 'this is all area'
-            print area
         if area > (approx_area - sigma) and area < (approx_area + sigma):
             if draw is True:
-                print 'this is area'
-                print area
                 cv2.drawContours(img, [bae2], 0, (0, 255, 0), 10)
             wholeToy.append(bae2)
 
@@ -105,8 +97,9 @@ def get_axis_points(img, height, draw):
 
     if draw is True:
         cv2.imshow('finla img', img)
+        cv2.waitKey(0)
 
     return angle, points, good_circle
 
-#img = cv2.imread('ti/17hss.jpg')
-#get_axis_points(img, .17, True)
+img = cv2.imread('ti/17hss.jpg')
+get_axis_points(img, .17, True)
