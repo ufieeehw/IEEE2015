@@ -44,6 +44,19 @@ static inline uint8_t mpu_get_device_ID() {
 	return temp;
 }
 
+static inline void setIntDataReadyEnabled(bool enabled) {
+	twi_write_bit(MPU60X0_DEFAULT_ADDRESS, MPU60X0_RA_INT_ENABLE, MPU60X0_INTERRUPT_DATA_RDY_BIT, enabled);
+}
+
+static inline bool getIntDataReadyStatus() {
+	return twi_read_bit(MPU60X0_DEFAULT_ADDRESS, MPU60X0_RA_INT_STATUS, MPU60X0_INTERRUPT_DATA_RDY_BIT);
+}
+
+static inline void setFullScaleGyroRange(uint8_t range) {
+	twi_write_bits(MPU60X0_DEFAULT_ADDRESS, MPU60X0_RA_GYRO_CONFIG, MPU60X0_GCONFIG_FS_SEL_BIT, MPU60X0_GCONFIG_FS_SEL_LENGTH, range);
+}
+
+
 /** Power on and prepare for general usage.
  * This will activate the device and take it out of sleep mode (which must be done
  * after start-up). This function also sets both the accelerometer and the gyroscope
@@ -61,7 +74,9 @@ void mpu_init() {
     mpu_set_clock_source(MPU60X0_CLOCK_PLL_XGYRO);
     mpu_set_gyro_full_scale_range(MPU60X0_GYRO_FS_250);
     mpu_set_accel_full_scale_range(MPU60X0_ACCEL_FS_2);
+	setIntDataReadyEnabled(true);
     mpu_set_sleep_enabled(false);
+	//setFullScaleGyroRange(2);
 }
 
 /** Verify the I2C connection.
@@ -84,10 +99,12 @@ bool mpu_test_connection() {
  * @see getRotation()
  * @see MPU60X0_RA_ACCEL_XOUT_H
  */
-void mpu_get_motion_six_dof(char (&buffer)[12]) {
-	
-	for(uint8_t i = 0; i < 12; i++)
+static inline void mpu_get_motion_six_dof(char (&buffer)[12]) {
+	//while(!getIntDataReadyStatus());
+	for(uint8_t i = 0; i < 12; i++){
+		while(!getIntDataReadyStatus());
 		buffer[i] = twi_read_byte(MPU60X0_DEFAULT_ADDRESS, MPU60X0_RA_ACCEL_XOUT_H + i);
+	}
 }
 
 void mpu_get_motion_six_handler(char* message, uint8_t len){

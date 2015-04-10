@@ -27,6 +27,18 @@ static inline void imu_setMode(uint8_t newMode) {
 	mode = newMode; // track to tell if we have to clear bit 7 after a read
 }
 
+static inline void imu_setSampleAveraging(uint8_t averaging) {
+	twi_write_bits(HMC5883L_DEFAULT_ADDRESS, HMC5883L_RA_CONFIG_A, HMC5883L_CRA_AVERAGE_BIT, HMC5883L_CRA_AVERAGE_LENGTH, averaging);
+}
+
+static inline void imu_setDataRate(uint8_t rate) {
+	twi_write_bits(HMC5883L_DEFAULT_ADDRESS, HMC5883L_RA_CONFIG_A, HMC5883L_CRA_RATE_BIT, HMC5883L_CRA_RATE_LENGTH, rate);
+}
+
+static inline void imu_setMeasurementBias(uint8_t bias) {
+	twi_write_bits(HMC5883L_DEFAULT_ADDRESS, HMC5883L_RA_CONFIG_A, HMC5883L_CRA_BIAS_BIT, HMC5883L_CRA_BIAS_LENGTH, bias);
+}
+
 void imu_init(){
 	// Let Jesus take the keyboard, because only God knows what these registers do.
 	// write CONFIG_A register
@@ -35,9 +47,15 @@ void imu_init(){
 	(HMC5883L_RATE_15 << (HMC5883L_CRA_RATE_BIT - HMC5883L_CRA_RATE_LENGTH + 1)) |
 	(HMC5883L_BIAS_NORMAL << (HMC5883L_CRA_BIAS_BIT - HMC5883L_CRA_BIAS_LENGTH + 1)));
 	// write CONFIG_B register
-	imu_setGain(HMC5883L_GAIN_1090);
+	imu_setGain(HMC5883L_GAIN_440);
 	// write MODE register
 	imu_setMode(HMC5883L_MODE_SINGLE);
+	
+	imu_setSampleAveraging(HMC5883L_AVERAGING_8);
+	
+	imu_setDataRate(HMC5883L_RATE_75);
+	
+	imu_setMeasurementBias(HMC5883L_BIAS_NORMAL);
 }
 
 //Each value ranges from -2048 to 2047

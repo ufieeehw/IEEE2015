@@ -9,6 +9,9 @@
 #ifndef _HMC5883L_H_
 #define _HMC5883L_H_
 
+void imu_init();
+void imu_get_heading_handler(char* message, uint8_t len);
+
 #define HMC5883L_ADDRESS 0x1E // this device only has one address
 #define HMC5883L_DEFAULT_ADDRESS 0x1E
 #define HMC5883L_RA_CONFIG_A 0x00

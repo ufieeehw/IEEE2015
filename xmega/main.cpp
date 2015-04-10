@@ -14,6 +14,9 @@
 #include "hwlib/uart.h"	
 #include "hwlib/uart_handler_pointers.h"
 
+#include "hwlib/mpu6050.h"
+#include "hwlib/twi.h"
+
 
 int main() {
 
@@ -26,7 +29,5 @@ int main() {
 			// message[0] is the length, message[1] is the type, and message[2] is the first part of the message.
 			HandlerPointers[(uint8_t)message[1]]((char*)&message[2], message[0]);
 		}
-		
-		
 	}
 }

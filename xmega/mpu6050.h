@@ -11,7 +11,7 @@
 
 void mpu_init(void);
 bool mpu_test_connection(void);
-void mpu_get_motion_six_dof(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int16_t* gy, int16_t* gz);
+void mpu_get_motion_six_handler(char* message, uint8_t len);
 
 #define MPU60X0_ADDRESS_AD0_LOW     0x68 // address pin low (GND), default for InvenSense evaluation board
 #define MPU60X0_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC)
@@ -377,7 +377,6 @@ void mpu_get_motion_six_dof(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, 
 #define MPU60X0_DMP_MEMORY_BANK_SIZE    256
 #define MPU60X0_DMP_MEMORY_CHUNK_SIZE   16
 
-void mpu_get_motion_six_handler(char* message, uint8_t len);
 
 
 #endif /* MPU6050_H_ */
