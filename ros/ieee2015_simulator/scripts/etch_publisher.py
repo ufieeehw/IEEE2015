@@ -10,8 +10,8 @@ rospy.init_node('pub-test', anonymous=True)
 pub = rospy.Publisher('end_efffector_angles_sub', high_level)
 
 pi = np.pi
-legs = 1
-body = .2
+legs = 1.03
+body = .5
 
 array = [[0,	   0],
 		[pi*3/4+legs,   0],#right
@@ -39,7 +39,7 @@ array = [[0,	   0],
 		[pi*3+legs,			0]]#END     ################
 
 for i in range(len(array)):
-	pub.publish(high_level(large_radians=array[i][0]/5, small_radians=array[i][1]/5))
+	pub.publish(high_level(large_radians=array[i][0]/2-1.04, small_radians=array[i][1]/2-1.04))
 	print array[i][0],array[i][1]
 	time.sleep(.5)
 
