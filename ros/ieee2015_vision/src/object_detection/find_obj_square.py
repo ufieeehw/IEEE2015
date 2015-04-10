@@ -19,7 +19,6 @@ def find_obj_square(img, draw):
 
     l, w, h = img.shape
     #area_of_image = l * w
-    black = np.zeros((l, w), np.uint8)
 
     thresh = 255 - thresh
     closing = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
@@ -33,11 +32,9 @@ def find_obj_square(img, draw):
         points.append(point)
         if draw is True:
             cv2.circle(img, point, 5, [0, 0, 255], -1)
-            cv2.drawContours(black, [cnt], 0, (255, 255, 255), 10)
+            cv2.drawContours(img, [cnt], 0, (255, 255, 255), 10)
 
     if draw is True:
-        cv2.imshow('all contours', black)
         cv2.imshow('center points', img)
 
     return points
-    
