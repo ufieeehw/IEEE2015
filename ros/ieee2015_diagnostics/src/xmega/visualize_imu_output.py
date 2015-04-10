@@ -98,7 +98,7 @@ class IMU_Visualizer(object):
     @thread_lock
     def draw(self, i):
         # x = np.array(self.times) - self.start_time.to_time()
-        x = np.array(self.plot_dict['angular_velocity.x'], np.float64)
+        x = np.array(self.plot_dict['orientation.x'], np.float64)
         if len(x) < 10:
             return
         self.ax.clear()
@@ -106,8 +106,8 @@ class IMU_Visualizer(object):
         # for item_name, item_queue in self.plot_dict.items():
             # y = np.array(item_queue)
             # self.ax.plot(x, y, '-', label=item_name)
-        y = np.array(self.plot_dict['angular_velocity.y'], np.float64)
-        self.ax.plot(x, y, '-', label='angular velocity')
+        y = np.array(self.plot_dict['orientation.y'], np.float64)
+        self.ax.plot(x, y, '-', label='Orientation')
         self.ax.set_autoscale_on(False)
         self.ax.axis([-34000, 34000, -34000, 34000])
         # self.ax.legend()
@@ -126,12 +126,14 @@ if __name__ == '__main__':
 
     args = parser.parse_args(rospy.myargv()[1:])
     name = args.name
-    topic = args.topic
+    # topic = args.topic
+    topic = '/robot/imu'
     if name is None:
         name = 'Magnetometer XY'
     IV = IMU_Visualizer(topic, name=name,
         plot_items=[
-            'linear_acceleration.x', 'linear_acceleration.y', 'linear_acceleration.z',
-            'angular_velocity.x', 'angular_velocity.y', 'angular_velocity.z'
+            'orientation.x', 'orientation.y', 'orientation.z'
+            # 'linear_acceleration.x', 'linear_acceleration.y', 'linear_acceleration.z',
+            # 'angular_velocity.x', 'angular_velocity.y', 'angular_velocity.z'
         ])
 
