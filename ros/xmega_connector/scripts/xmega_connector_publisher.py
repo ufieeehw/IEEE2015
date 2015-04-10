@@ -171,6 +171,7 @@ def get_heading_service(head_req):
 	service_response.zData = zData
 	service_response.yData = yData
 
+	xmega_lock.release()
 	return service_response
 
 def get_motion_service(m_req):
@@ -197,6 +198,7 @@ def get_motion_service(m_req):
 	service_response.zGyroData = zGyroData
 
 	print( "Returning response")
+	xmega_lock.release()
 	return service_response
 
 
