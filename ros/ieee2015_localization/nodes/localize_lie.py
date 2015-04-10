@@ -35,33 +35,36 @@ class Localization(object):
         self.map_size = 750
         self.reset()
 
-        self.image_sub = Image_Subscriber(
-            '/robot/base_camera/down_view', 
-            self.image_cb_matrix,
-            encoding="8UC1",
-        )
-
-        if DEBUG:
-            cv2.namedWindow("Map")
-            cv2.setMouseCallback("Map", self.on_mouse)
-
         self.pose_pub = rospy.Publisher('pose', PoseStamped, queue_size=3)
         self.desired_pose_pub = rospy.Publisher('desired_pose', PoseStamped, queue_size=3)
 
         # Size we shrink incoming images to (k x k)
         self.shrink_size = 200
         self.ones_mask = np.ones((self.shrink_size, self.shrink_size))
+        self.image_scale = 0.5  # How much we shrink (i.e. 0.5 as many pixels represent same length)
+        self.world_scale = (0.3 / 45) * (self.image_scale * 2)
+
+        self.image_sub = Image_Subscriber(
+            '/robot/base_camera/down_view', 
+            self.image_cb_matrix,
+            encoding="8UC1",
+        )
+
+        '''
+        if DEBUG:
+            cv2.namedWindow("map")
+            cv2.setMouseCallback("map", self.on_mouse)
+        '''
 
     def imshow(self, name, image):
         if DEBUG:
             cv2.imshow(name, image)
-        else:
-            pass
 
     def on_mouse(self, *args):
         if args[0] == 1:
-            self.des_pos = (np.array([args[1], args[2]]) - self.keyframe_position) - ((-342 // 2) + 261, 395 // 2)
-            self.publish_desired_pose(self.des_pos[0], self.des_pos[1], 0.0)
+            self.des_pos = np.array([args[1], args[2]]) - (462, 571)
+                # - self.keyframe_position) - (342, 395)
+            # self.publish_desired_pose(-self.des_pos[0], -self.des_pos[1], 0.0)
 
     def reset(self):
         '''
@@ -69,7 +72,6 @@ class Localization(object):
         '''
         self.full_map = np.zeros((self.map_size, self.map_size), np.uint8)
         self.keyframe_image = None
-        self.keyframe_position = 0
         self.keyframe_scale = 1.0
         self.keyframe_orientation = 0.0
         self.keyframe_position = (self.map_size // 2, self.map_size // 2)
@@ -118,7 +120,7 @@ class Localization(object):
         rotated = cv2.warpAffine(image, rot_M, (cols, rows))
         return rotated
 
-    def translate(self, image, tx, ty, scalex=1.0, scaley=1.0):
+    def translate(self, image, tx, ty, scale=1.0):
         rows, cols = image.shape
         trans_M = np.float32([
             [1.0 / scale, 0.0, tx],
@@ -128,7 +130,7 @@ class Localization(object):
         return translated
 
     def publish_pose(self, tx, ty, angle):
-        _orientation = tf_trans.quaternion_from_euler(0, 0, angle)
+        _orientation = tf_trans.quaternion_from_euler(0, 0, -angle)
         self.pose_pub.publish(
             PoseStamped(
                 header = Header(
@@ -136,13 +138,14 @@ class Localization(object):
                     frame_id='/course',
                 ),
                 pose = Pose(
-                    position = Point(tx, ty, 0.0),
+                    position = Point(-ty * self.world_scale, -tx * self.world_scale, 0.0),
                     orientation = Quaternion(*_orientation), # Radians
                 )
             )
         )
-    def publish_desired_pose(self, tx, ty, angle):
-        _orientation = tf_trans.quaternion_from_euler(0, 0, angle)
+
+    def publish_desired_pose(self, ty, tx, angle):
+        _orientation = tf_trans.quaternion_from_euler(0, 0, -angle)
         self.desired_pose_pub.publish(
             PoseStamped(
                 header = Header(
@@ -150,7 +153,7 @@ class Localization(object):
                     frame_id='/course',
                 ),
                 pose = Pose(
-                    position = Point(tx, ty, 0.0),
+                    position = Point(tx * self.world_scale, ty * self.world_scale, 0.0),
                     orientation = Quaternion(*_orientation), # Radians
                 )
             )
@@ -185,13 +188,13 @@ class Localization(object):
         ang_i2k, dx_i2k, dy_i2k, sx, sy = self.motion_from_matrix(im_to_keyframe)
 
         if (np.fabs(sx - 1.0) > 0.01) or (np.fabs(sy - 1.0) > 0.01):
-            print sx, sy
+            # print sx, sy
             return False, h_im_to_keyframe
 
         h_i2root = np.dot(self.h_k2root, h_im_to_keyframe)
         ang_i2root, dx_i2root, dy_i2root, sxroot, syroot = self.motion_from_matrix(h_i2root)
         rotated = self.rotate(new_image, np.degrees(ang_i2root), scale=sx)
-        self.imshow("Rotated", rotated)
+        # self.imshow("Rotated", rotated)
 
         self.overlay(
             rotated,
@@ -200,9 +203,16 @@ class Localization(object):
             self.full_map
         )
 
-        self.imshow("Map", self.full_map)
+        self.imshow("map", self.full_map)
 
         return True, h_im_to_keyframe
+
+    def largest_contour(self, image):
+        contours, hierarchy = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        largest_ctr = max(contours, key=cv2.contourArea)
+        empty_image = np.zeros(image.shape, np.uint8)
+        cv2.drawContours(empty_image, [largest_ctr], 0, 255, thickness=-20)
+        return empty_image
 
     def image_cb_matrix(self, image_msg):
         key_press = cv2.waitKey(1)
@@ -213,16 +223,18 @@ class Localization(object):
 
         image_msg = np.squeeze(image_msg)
         # image_fixed = self.fix_size(image_msg, size=self.shrink_size)
-        image_fixed = cv2.resize(image_msg, (342 // 2, 395 // 2))
+        image_fixed = cv2.resize(image_msg, (int(image_msg.shape[0] * self.image_scale), int(image_msg.shape[1] * self.image_scale)))
         ret, image = cv2.threshold(image_fixed, 150, 255, cv2.THRESH_BINARY)
-        # image = image_fixed
+        image = self.largest_contour(image)
+
         if self.keyframe_image is None:
             self.keyframe_image = image
-            self.imshow("Original keyframe", image)
+            self.keyframe_position = ((self.map_size // 2) - (image.shape[0]//2), (self.map_size // 2) - (image.shape[1]//2))
+
             return
 
-        tic = time()
         self.imshow("Input Image", image)
+        tic = time()
         good_match, h_i2k = self.stitch_matrix(image)
 
         if h_i2k is None:
@@ -234,20 +246,23 @@ class Localization(object):
         # Check if we matched well
         self.odom_h_i2root = np.dot(self.h_k2root, h_i2k)
         ang_i2root, dx_i2root, dy_i2root, sx, sy = self.motion_from_matrix(self.odom_h_i2root)
-        # print 'ang_i2root, {} dx_i2root, {} dy_i2root {}'.format(ang_i2root, dx_i2root, dy_i2root)
-        self.publish_pose(dx_i2root, dy_i2root, ang_i2root)
-        print 'x {}, y {}'.format(dx_i2root, dy_i2root)
+
+
+        if np.fabs(sx - 1) < 0.1:
+            print 'x{} y{}'.format(dx_i2root, dy_i2root)
+            self.publish_pose(dx_i2root, dy_i2root, ang_i2root)
+
         if good_match is False:
             return
 
-        if (np.linalg.norm([dx_i2k, dy_i2k]) > 4 or
-            np.fabs(ang_i2k) > 0.05):
-            print "Keyframing-----"
-            self.keyframe_image = image
-            self.h_k2root = np.dot(self.h_k2root, h_i2k)
-            # This is correct, evidence:
-            self.imshow("warped", self.warp(image, self.h_k2root))
-            print self.h_k2root
+        # if ((np.linalg.norm([dx_i2k, dy_i2k]) > 4) or
+            # (np.fabs(ang_i2k) > 0.05)):
+        print "Keyframing-----"
+        self.keyframe_image = image
+        self.h_k2root = np.dot(self.h_k2root, h_i2k)
+        # This is correct, evidence:
+        # self.imshow("warped", self.warp(image, self.h_k2root))
+        print self.h_k2root
 
     def fix_size(self, image, size=200):
         '''Takes an image, makes it square, resizes it
