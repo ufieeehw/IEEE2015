@@ -5,7 +5,7 @@ def find_obj_square(img, draw):
 	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
 	#range for the white squares
-	thresh = cv2.inRange(hsv,np.array((0,0, 160)),np.array((255,255,255)))
+	thresh = cv2.inRange(hsv, np.array((0, 0, 160)), np.array((255, 255, 255)))
 	thresh = 255 - thresh
 	kernel = np.ones((8, 8), np.uint8)
 	#kernel for dilating
@@ -19,7 +19,7 @@ def find_obj_square(img, draw):
 
 	l, w, h = img.shape
 	area_of_image = l * w
-	black = np.zeros((l,w), np.uint8) 
+	black = np.zeros((l, w), np.uint8) 
 
 
 
