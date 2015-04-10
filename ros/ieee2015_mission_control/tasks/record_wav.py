@@ -23,7 +23,6 @@ def record_simon(num_of_sequence):
     while True:
         l, data = inp.read()
         a = numpy.fromstring(data, dtype='int16')
-        print numpy.abs(a).mean()
         w.writeframes(data)
         if time.time() > timeout: 
         # Will break after safe time
@@ -31,5 +30,5 @@ def record_simon(num_of_sequence):
 
 if __name__ == '__main__':
     # Need to pass in current level, starting at 1
-    num_of_sequence = 0 # Just a place holder
+    num_of_sequence = 1 # Just a place holder
     record_simon(num_of_sequence)
