@@ -12,29 +12,29 @@ pub = rospy.Publisher('end_efffector_angles_sub', high_level)
 pi = np.pi
 
 array = [[0,	   0],
-		[pi*3/4,   0],
-		[pi*5/12,  0],
-		[pi*5/12, pi],
-		[0,		  pi],
-		[pi*3/2,  pi],
-		[pi,	  pi],
-		[pi,	pi*1/2],
-		[pi*3/2,pi*1/2],
-		[pi,	pi*1/2],
-		[pi,		0],
-		[pi*9/4,	0],
-		[pi*7/4,	0],
-		[pi*7/4,pi*1/2],
-		[pi*9/4,pi*1/2],
-		[pi*7/4,pi*1/2],
-		[pi*7/4,  pi],
-		[pi*3,	  pi],
-		[pi*5/2,  pi],
-		[pi*5/2,pi*1/2],
-		[pi*3,	pi*1/2],
-		[pi*5/2,pi*1/2],
-		[pi*5/2,	0],
-		[pi*3,		0]]
+		[pi*3/4,   0],#right
+		[pi*5/12,  0],#left
+		[pi*5/12, pi],#down
+		[0,		  pi],#left
+		[pi*3/2+.5,  pi],#right bottom E ###########
+		[pi,	  pi],#left
+		[pi,	pi*1/2],#up, first half E
+		[pi*3/2+.5,pi*1/2],#out first leg ##########
+		[pi,	pi*1/2],#in
+		[pi,		0],	#top of E
+		[pi*9/4+.5,	0], #top of second E ########
+		[pi*7/4,	0],	#back
+		[pi*7/4,pi*1/2],#down half 2 E
+		[pi*9/4+.5,pi*1/2],#out leg ################
+		[pi*7/4,pi*1/2],#back in
+		[pi*7/4,  pi],  #bottom E
+		[pi*3+.5,	  pi],	#right to bottom 3 E ####
+		[pi*5/2,  pi],	#back
+		[pi*5/2,pi*1/2],#up half 3 E
+		[pi*3+.5,	pi*1/2],#out leg ################
+		[pi*5/2,pi*1/2],#back in
+		[pi*5/2,	0],	#up top E
+		[pi*3+.5,		0]]	#END     ################
 
 for i in range(len(array)):
 	pub.publish(high_level(large_radians=array[i][0]/5, small_radians=array[i][1]/5))
