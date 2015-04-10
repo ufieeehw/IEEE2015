@@ -21,6 +21,7 @@ add_message_files(
    ComputeDistance.srv
    StopMecanum.srv
    StopController.srv
+   ResetOdom.srv
 )
 
 ## Generate actions in the 'action' folder

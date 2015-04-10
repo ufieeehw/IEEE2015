@@ -12,13 +12,16 @@ from std_msgs.msg import Header
 from geometry_msgs.msg import Pose, PoseStamped, Twist, TwistStamped, Vector3
 from ieee2015_msgs.msg import Mecanum
 from ieee2015_msgs.srv import StopController, StopControllerResponse
+from nav_msgs.msg import Odometry
 
 # max_linear_vel = 1 # m/s
-max_linear_vel = 0.1
+max_linear_vel = 0.03
 max_linear_acc = max_linear_vel # m/s^2
 
-max_angular_vel = 2 # rad/s
+# max_angular_vel = 2 # rad/s
+max_angular_vel = 0.5 # rad/s
 max_angular_acc = max_angular_vel # rad/s^2 
+
 # (Jason says this is just called angular acceleration, # I call it angcelleration)
 
 
@@ -66,18 +69,32 @@ class Controller(object):
         self.yaw = None
 
         # Current pose sub
-        self.pose_sub = rospy.Subscriber('pose', PoseStamped, self.got_pose)
+        # self.pose_sub = rospy.Subscriber('pose', PoseStamped, self.got_pose)
+        self.odom_sub = rospy.Subscriber('odom', Odometry, self.got_odom)
+
         self.desired_pose_sub = rospy.Subscriber('desired_pose', PoseStamped, self.got_desired_pose)
 
         self.on = True
         rospy.Service('controller/stop', StopController, self.stop)
+        freq = 10
+        r = rospy.Rate(freq) # 10hz
+        while not rospy.is_shutdown():
+            rospy.sleep(rospy.Duration(0.1))
+            self.control()
+            r.sleep()
+
 
     def stop(self, req):
         self.on = not req.stop
         if not self.on:
             rospy.logwarn("DISABLING MECANUM CONTROLLER")
+            self.des_position = None
+            self.des_yaw = None
         else:
             rospy.logwarn("ENABLING MECANUM CONTROLLER")
+            self.des_position = None
+            self.des_yaw = None
+
         return StopControllerResponse()
 
     def send_twist(self, (xvel, yvel), angvel):
@@ -99,7 +116,7 @@ class Controller(object):
         '''norm_angle_diff(ang_1, ang_2)
         -> Normalized angle difference, constrained to range [-pi, pi]
         '''
-        return (ang_1 - ang_2 + np.pi) % (2 * np.pi) - np.pi
+        return ((ang_1 - ang_2 + np.pi) % (2 * np.pi)) - (np.pi)
 
     def unit_vec(self, v):
         '''unit_vec(v)'''
@@ -121,7 +138,17 @@ class Controller(object):
         elif x < 0: return -1
         else: return 0
 
+    def got_odom(self, msg):
+        pose = msg.pose.pose
+        self.position = np.array([pose.position.x, pose.position.y])
+        self.yaw = tf_trans.euler_from_quaternion(xyzw_array(pose.orientation))[2]
+
+
     def got_pose(self, msg):
+        self.position = np.array([msg.pose.position.x, msg.pose.position.y])
+        self.yaw = tf_trans.euler_from_quaternion(xyzw_array(msg.pose.orientation))[2]
+
+    def control(self):
         '''recieve current pose of robot
 
         Function:
@@ -142,12 +169,32 @@ class Controller(object):
         if (self.des_position is None) or (self.des_yaw is None) or (self.on is False):
             return
 
-        # World frame position
-        self.position = np.array([msg.pose.position.x, msg.pose.position.y])
-        self.yaw = tf_trans.euler_from_quaternion(xyzw_array(msg.pose.orientation))[2]
+        if (self.position is None) or (self.yaw is None):
+            return
 
+        # World frame position
         position_error = self.des_position - self.position
         yaw_error = self.norm_angle_diff(self.des_yaw, self.yaw)
+
+        position_error_len = np.linalg.norm(position_error)
+
+        if (position_error_len > 0.01): # 8cm stop-error
+            yaw_target = np.arctan2(position_error[0], -position_error[1]) - (np.pi /2)
+            yaw_error = self.norm_angle_diff(yaw_target, self.yaw)
+
+            print 'error', position_error
+            print 'yaw error', yaw_error
+            if np.fabs(yaw_error) > 0.01:
+                state = 'nav_rotate'
+            else:
+                state = 'nav_drive'
+
+        elif np.fabs(yaw_error) > 0.05:
+            state = 'stop_rotate'
+
+        else:
+            state = 'stop'
+
         # Determines the linear speed necessary to maintain a consant backward acceleration
         linear_speed = min(
                             math.sqrt(2 * np.linalg.norm(position_error) * max_linear_acc),
@@ -169,13 +216,46 @@ class Controller(object):
         left = np.array([math.cos(self.yaw + np.pi/2), math.sin(self.yaw + np.pi/2)])
 
         # Send twist if above error threshold
-        if (np.fabs(yaw_error) > 0.01) or (np.linalg.norm(position_error) > 0.01):
+        # Point at position, go to position, achieve desired orientation
+
+        print state
+        if state == 'nav_drive':
             x_vel = forward.dot(desired_vel)
-            y_vel = left.dot(desired_vel)
+            y_vel = 0.0
+            target_angvel = 0.0
+
+        elif state == 'nav_rotate':
+            x_vel = 0.0
+            y_vel = 0.0
+            target_angvel = desired_angvel
+
+        elif state == 'stop_rotate':
+            x_vel = 0.0
+            y_vel = 0.0
+            target_angvel = desired_angvel
+
+        elif state == 'stop':
+            x_vel = 0.0
+            y_vel = 0.0
+            target_angvel = 0.0
+
+        # if (np.fabs(yaw_error) > 0.05): # Tenth-radian stop error
+        #         target_angvel = desired_angvel
+        #     else:
+        #         target_angvel = 0.0
+
+        # if (position_error_len > 0.01): # 8cm stop-error
+        #     x_vel = forward.dot(desired_vel)
+        #     # y_vel = left.dot(desired_vel)
+        #     y_vel = 0.0
+        #     target_angvel = 0.0
+        # else:
+        #     x_vel = 0.0
+        #     y_vel = 0.0
 
             # Send the raw x, y, w desired velocity vector
             # Alone, this line does nothing
-            self.send_twist((x_vel, y_vel), desired_angvel) 
+        self.send_twist((x_vel, y_vel), target_angvel) 
 
     def got_desired_pose(self, msg):
         '''Recieved desired pose message

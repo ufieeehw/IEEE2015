@@ -13,7 +13,7 @@ from geometry_msgs.msg import (Pose, PoseStamped, TwistStamped, Pose2D, PoseWith
     TwistWithCovariance, Twist)
 from nav_msgs.msg import Odometry
 from ieee2015_msgs.msg import Mecanum
-from ieee2015_msgs.srv import StopMecanum, StopMecanumResponse
+from ieee2015_msgs.srv import StopMecanum, StopMecanumResponse, ResetOdom, ResetOdomResponse
 from xmega_connector.srv import * #Echo, EchoRequest, EchoResponse, SetWheelSpeeds
 
 class Controller(object):
@@ -49,6 +49,8 @@ class Controller(object):
 
         self.odometry_proxy = rospy.ServiceProxy('/robot/xmega_connector/get_odometry', GetOdometry)
         rospy.Service('mecanum/stop', StopMecanum, self.stop)
+
+        rospy.Service('reset_odom', ResetOdom, self.reset)
 
         self.on = True
         self.get_odom()
@@ -149,6 +151,10 @@ class Controller(object):
         ],
         dtype=np.float32)
         return mat
+
+    def reset(self, srv):
+        self.pose = np.array([0.0, 0.0, 0.0])
+        return ResetOdomResponse()
 
     def get_odom(self):
         '''get_odom: at a rate of _freq_, compute the motion of the vehicle from wheel odometry
