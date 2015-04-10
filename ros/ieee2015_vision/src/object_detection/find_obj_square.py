@@ -17,9 +17,9 @@ def find_obj_square(img, draw):
     if draw is True:
         cv2.imshow('thresh', thresh)
 
-    l, w, h = img.shape
-    #area_of_image = l * w
+    l, w, h = img.shape 
 
+    #inverts the image
     thresh = 255 - thresh
     closing = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 

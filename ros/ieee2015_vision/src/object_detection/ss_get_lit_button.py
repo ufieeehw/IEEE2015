@@ -11,9 +11,7 @@ def get_lit_button(img, draw):
     bright_button = cv2.inRange(hsv_img, lower_on, upper_on)
 
     kernel = np.ones((8, 8), np.uint8)
-    #kernel for eroding
     kernel2 = np.ones((8, 8), np.uint8)
-    #kernel for dilating
     kernel3 = np.ones((4, 4), np.uint8)
     eroded = cv2.erode(bright_button, kernel2)
     dilated = cv2.dilate(eroded, kernel3)
@@ -32,11 +30,8 @@ def get_lit_button(img, draw):
     lit_button = contours[0]
 
     leftmost = tuple(lit_button[lit_button[:, :, 0].argmin()][0])
-
     rightmost = tuple(lit_button[lit_button[:, :, 0].argmax()][0])
-
     topmost = tuple(lit_button[lit_button[:, :, 1].argmin()][0])
-
     bottommost = tuple(lit_button[lit_button[:, :, 1].argmax()][0])
 
     #Testing
@@ -55,8 +50,3 @@ def get_lit_button(img, draw):
         cv2.imshow('points', img)
 
     return (mean_cols, mean_rows)
-#img = cv2.imread('ti/ss3.JPG')
-#mg = cv2.resize(img,None,fx=.2, fy=.2,)
-#get_lit_button(img)
-#mc, mr, clsing = get_lit_button(img)
-#print mc, mr
