@@ -62,7 +62,7 @@ def get_axis_points(img, height, draw):
         cv2.imshow('detected box', img)
     #cv2.waitKey(0)
 
-    good_circle = ss_get_center_circle.get_center_circle(img, points, True)
+    good_circle = ss_get_center_circle.get_center_circle(img, points,height, True)
     #PLOTS THE 4 CORNER POINTS OF THE RECTANGLE
     #Testing
     if draw is True:
