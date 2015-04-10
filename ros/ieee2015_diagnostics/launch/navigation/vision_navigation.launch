@@ -1,13 +1,10 @@
 <!-- -*- mode: XML -*- -->
 <!-- To use this, you will have to manually do: rosrun joy joy_node -->
 
-        <!-- <node name="navigation_state_visualization" pkg="ieee2015_diagnostics" type="visualize_motion"  -->
-        <!-- args="- -topic odom - -name NavigationViz" -->
-        <!-- output="screen" /> -->
-
 
 <launch>
     <group ns="robot">
+
         <node name="joystick_listener" pkg="joy" type="joy_node" 
             output="screen" />        
         <node name="joystick_control" pkg="ieee2015_diagnostics" type="joystick_command" 
@@ -15,6 +12,11 @@
         <node name="mecanum_control" pkg="ieee2015_controller" type="mecanum_controller.py" 
             output="screen" />
         <node name="vehicle_control" pkg="ieee2015_controller" type="vehicle_controller.py" 
+            output="screen" />
+        <!-- <include file="$(find ieee2015_launch)/launch/base_camera.launch"/> -->
+        <node name="transformation" pkg="ieee2015_localization" type="transformation.py"
+            output="screen" />
+        <node name="localization" pkg="ieee2015_localization" type="localize_lie.py" 
             output="screen" />
         <node name="xmega_connector" pkg="xmega_connector" type="xmega_connector_publisher.py" 
             respawn="true" output="screen" >

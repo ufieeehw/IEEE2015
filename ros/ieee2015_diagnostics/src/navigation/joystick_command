@@ -19,7 +19,7 @@ pub = rospy.Publisher('twist', TwistStamped)
 rospy.loginfo("------- Waiting for mecanum stop service ------")
 rospy.wait_for_service('/robot/mecanum/stop')
 stop_proxy = rospy.ServiceProxy('/robot/mecanum/stop', StopMecanum)
-
+controller_stop_proxy = None
 
 def got_joy_msg(joy_msg):
     # 6 start, 7 stop
@@ -29,10 +29,11 @@ def got_joy_msg(joy_msg):
         if joy_msg.buttons[7]:
             stop_proxy(False)
 
-    if joy_msg.buttons[1]:
-        controller_stop_proxy(True)
-    elif joy_msg.buttons[3]:
-        controller_stop_proxy(False)
+    if controller_stop_proxy is not None:
+        if joy_msg.buttons[1]:
+            controller_stop_proxy(True)
+        elif joy_msg.buttons[3]:
+            controller_stop_proxy(False)
 
     linear_x = joy_msg.axes[1] * max_linear_velocity
     linear_y = joy_msg.axes[0] * max_linear_velocity
