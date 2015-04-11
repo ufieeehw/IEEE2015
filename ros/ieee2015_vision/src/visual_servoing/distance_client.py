@@ -65,21 +65,94 @@ def getColor(image):
     else:  
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
-        target = (cx,cy,0.2)                        #contour centroid
+        target = (cx,cy,0.06)                        #contour centroid
         cv2.line(img,(320,240),(cx,cy),(255,0,0),10)#Draw a blue line from what I hope is the center of the image to the cetroid of the contour
         point2=Point(*target)                       #convert target in the form of a list to point2 in the form of a geometry message Point
         cv2.imshow("Blue Line Image", img)          #display
         return point2
 
+'''        
+def card_pick_up():
+    if flag = None
+        return hover_over_card()
+    if flag = hover1
+        return drop()
+       
+def hover_over_card():
+    listener = tf.TransformListener()
+    rate = rospy.Rate(10.0)
+    while not rospy.is_shutdown():
+        try:
+            (trans_diff,rot_diff) = listener.lookupTransform('/arm_camera','/card_picker', rospy.Time(0)) #change to /end_camera frame 
+            diff_x=trans_diff[0]
+            diff_y=trans_diff[1]
+            diff_height = trans_diff[2]
+            (trans,rot) = listener.lookupTransform('/robot','/arm_camera', rospy.Time(0)) #change to /end_camera frame 
+            end_camera_x=trans[0]
+            end_camera_y=trans[1]
+            end_camera_height = trans[2]
+
+            
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            continue
+    xcomp2= end_camera_x + diff_x
+    ycomp2= end_camera_y + diff_y
+    zcomp2= end_camera_z + diff_z
+    dist1 = (xcomp2, ycomp2, zcomp2) 
+    dist2 = Point(*dist1)           #convert from list to Point msg
+    #print "dist", dist
+    #print "Returning vector components [%s , %s to %s , %s = %s]"%(req.point1.x, req.point1.y, req.point2.x, req.point2.y, (dist))
+    
+    
+    dist = PointStamped()               #make a point stamped to send to the arm ontroller
+    dist.header.stamp = rospy.Time.now()
+    dist.header.frame_id = '/robot'
+    dist.point = dist2
+    return dist
+def drop():
+    listener = tf.TransformListener()
+    rate = rospy.Rate(10.0)
+    while not rospy.is_shutdown():
+        try:
+            (trans,rot) = listener.lookupTransform('/robot','/card_picker', rospy.Time(0)) #change to /end_camera frame 
+            card_picker_x=trans[0]
+            card_picker_y=trans[1]
+            card_picker_z = trans[2]
+            
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            continue
+
+    xcomp2= card_picker_x
+    ##
+    dist1 = (xcomp2, ycomp1, 0.005) 
+    dist2 = Point(*dist1)  
+    dist = PointStamped()               #make a point stamped to send to the arm ontroller
+    dist.header.stamp = rospy.Time.now()
+    dist.header.frame_id = '/robot'
+    dist.point = dist2
+    flag = dropped
+    return dist, flag
+'''
 
 
 #if __name__ == "__main__":
     
 def main(image):
-    point =  [320, 240, 0] #list
+
+    point =  [320, 240, 0.05] #list
     #pointa =  [randint(200,409), randint(222,409), random.random()/4] #for generating random pixels for testing
     point1 = Point(*point)  #convert list to Point Msg
+    #if conditions based on mission state
+
     point2 = getColor(image) #Is a point Msg
+    
+    #if (point2 - point1 <= [5, 5, 0]):
+            
+    
+    #point2= getRubix(image)
+    #point2= getSimon(image)
+    #point2= getEtch(image)
+
     if (point2 == 1): #This is in case there is no target point in the view 
         return        #should really only be used for the getColor function when trying to find the center of any avalible color
                       #It keeps the program from crashing when it doenst have any distance to compute
