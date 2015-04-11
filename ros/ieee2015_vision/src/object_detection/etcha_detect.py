@@ -1,55 +1,65 @@
 import cv2
 import numpy as np
-
-img = cv2.imread('closeTest/closeetch3.jpg')
-small = cv2.imread('rectangle.png', 0)
-grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-gray = cv2.adaptiveThreshold(grayscale, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 47, 7)
-#gray = cv2.erode(gray, kernelg)
-cv2.imshow('adaptive thresh', gray)
-cv2.waitKey(0)
-kernel2 = np.ones((8, 5), np.uint8)
-gray = cv2.erode(gray, kernel2)
+import math
 
 
-cv2.imshow('adaptive thresh', gray)
-cv2.waitKey(0)
-
-contours, hierarchy = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-
-contours_small,hierarchy_small = cv2.findContours(small.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-cnt1 = contours[0]
-
-squares = []
-for cnt in contours:
-	ret = cv2.matchShapes(cnt1,cnt,1,0.0)
-	area = cv2.contourArea(cnt)
-	print ret
-	if area > 20000: #area value is fishy need for straight across par
-t		squares.append(cnt)
+def detect_etcha_sketch(img, height, draw):
+	grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+	gray = cv2.adaptiveThreshold(grayscale, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 41, 7)
+	#gray = cv2.erode(gray, kernelg)
 	
+	kernel2 = np.ones((10, 10), np.uint8)
+	gray = cv2.erode(gray, kernel2)
 
-for i in squares:
-	cv2.drawContours(img, [i], 0, (255, 255, 255), 10)
+	if draw is True:
+		cv2.imshow('adaptive thresh', gray)
+		cv2.waitKey(0)
 
+	contours, hierarchy = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-small_square = squares[0]
+	area_of_inner_square = (14366097 * height**(2)) - (5004772 * height) + 471677
+	sigma = 10000
 
-###GET HEIGHTS
+	if draw is True:
+		print 'this is area_of_inner_square'
+		print area_of_inner_square
+	
+	lower_bound = area_of_inner_square - sigma
+	upper_bound = area_of_inner_square + sigma
 
-boxpoints = cv2.minAreaRect(small_square)
-               # rect = ((center_x,center_y),(width,height),angle)
-points = cv2.cv.BoxPoints(boxpoints)         # Find four vertices of rectangle from above rect
-points = np.int0(np.around(points))
-cv2.drawContours(img,[points],0,(0,0,255),2)
+	squares = []
+	for cnt in contours:
+		area = cv2.contourArea(cnt)
+		if area > lower_bound and area < upper_bound: #area value is fishy need for straight across par
+			if draw is True:
+				print 'this is area'
+				print area
+			squares.append(cnt)
+		
+	if draw is True:
+		for i in squares:
+			cv2.drawContours(img, [i], 0, (255, 255, 255), 10)
+		cv2.imshow('contours', img)
+		cv2.waitKey(0)
 
-cv2.imshow('img with contours', img)
-cv2.waitKey(0)
+	center_square = squares[0]
 
+	boxpoints = cv2.minAreaRect(center_square)
+	points = cv2.cv.BoxPoints(boxpoints)         # Find four vertices of rectangle from above rect
+	points = np.int0(np.around(points))
+	cv2.drawContours(img,[points],0,(0,0,255),2)
 
-cv2.imshow('orgi', img)
-cv2.waitKey(0)
+	if draw is True:	
+		cv2.imshow('img with contours', img)
+		cv2.waitKey(0)
 
-angle = boxpoints[2]
-#angle = -90 - angle
-print angle
+	angle = boxpoints[2]
+
+	radians = math.radians(angle)
+
+	center = boxpoints[0]
+	
+	return center, radians
+
+#img = cv2.imread('es/11.5es.jpg')
+#detect_etcha_sketch(img, .115, True)
