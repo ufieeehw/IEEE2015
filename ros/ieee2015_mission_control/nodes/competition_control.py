@@ -52,7 +52,7 @@ class Compete(object):
             self.down_view_cb,
             encoding="8UC1",
         )
-        self.image_scale = 0.3 / 45.88  # m / px
+        self.image_scale = 0.4 / 45.88  # m / px
         self.position = np.array([0.0, 0.0])
         self.yaw = 0.0
         self.odom_sub = rospy.Subscriber('/robot/odom', Odometry, self.got_odom)
@@ -170,8 +170,10 @@ class Compete(object):
                 continue
 
             if state == 'start':
+                self.rest_odom()
                 self.goto_pose((0.1, 0.0), 0.0)
                 state = 'first_find'
+                self.reset_odom()
 
             if state = 'first_find':
                 # This returns robot-frame position
