@@ -21,7 +21,7 @@ def nav_detect_squares(image, shape, offset, scale):
 
 
 def detect_squares(image, min_size=100):
-    _, white_all = cv2.threshold(image, 170, 255, cv2.THRESH_BINARY)
+    _, white_all = cv2.threshold(image, 200, 255, cv2.THRESH_BINARY)
 
     if DEBUG:
         cv2.imshow('whiteallindow', white_all)
@@ -43,6 +43,10 @@ def detect_squares(image, min_size=100):
 
     objects = np.zeros_like(edged) * 255
 
+    if DEBUG:
+        rectangles_image = np.zeros((edged.shape[0], edged.shape[1], 3))
+
+
     # Loop over our contours
     for object_contour in cnts:
         cvx_hull = cv2.convexHull(object_contour)
@@ -54,7 +58,7 @@ def detect_squares(image, min_size=100):
         # Draw filled contours
         cv2.drawContours(objects, [cvx_hull], -1, 255, -10)
         # Expand these contours
-        cv2.drawContours(objects, [cvx_hull], -1, 255, 10)
+        cv2.drawContours(objects, [cvx_hull], -1, 255, 2)
     cv2.imshow("Objects", objects)
 
     rectangle_contours, _ = cv2.findContours(objects, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -62,6 +66,10 @@ def detect_squares(image, min_size=100):
     rectangles = []
     for contour in rectangle_contours:
         center, area = compute_centroid(contour)
+        if DEBUG:
+            cv2.drawContours(rectangles_image, [contour], -1, (255, 0, 0), -10)
+            cv2.circle(rectangles_image, (int(center[0]), int(center[1])), 5, (0, 255, 0), thickness=-1)
+            cv2.imshow("rectangles", rectangles_image)
         rectangles.append({
             'center': center,
             'area': area

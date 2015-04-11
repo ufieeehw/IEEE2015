@@ -22,9 +22,10 @@ if __name__ == '__main__':
         (0, 0),
         (320, 240),
         (360, 320),
+        (205, 278),
     ]
 
     for test in tests_a:
-        cv2f = cv_to_forward(test)
+        cv2f = cv_to_forward(test, (342, 395))
         print 'cv2f', cv2f
-        print forward_to_robot(cv2f, 0.23, 1/20)
+        print forward_to_robot(cv2f, offset=0.23, scale=0.3/45.88)

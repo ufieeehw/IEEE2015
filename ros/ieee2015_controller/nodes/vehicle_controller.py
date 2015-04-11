@@ -78,6 +78,7 @@ class Controller(object):
         rospy.Service('controller/stop', StopController, self.stop)
         freq = 10
         r = rospy.Rate(freq) # 10hz
+
         while not rospy.is_shutdown():
             rospy.sleep(rospy.Duration(0.1))
             self.control()
@@ -184,8 +185,8 @@ class Controller(object):
 
             print 'error', position_error
             print 'yaw error', yaw_error
-            if np.fabs(yaw_error) > 0.01:
-                state = 'nav_rotate'
+            if np.fabs(yaw_error) > 0.08:
+                state = 'nav_start_rotate'
             else:
                 state = 'nav_drive'
 
@@ -222,9 +223,9 @@ class Controller(object):
         if state == 'nav_drive':
             x_vel = forward.dot(desired_vel)
             y_vel = 0.0
-            target_angvel = 0.0
+            target_angvel = desired_angvel
 
-        elif state == 'nav_rotate':
+        elif state == 'nav_start_rotate':
             x_vel = 0.0
             y_vel = 0.0
             target_angvel = desired_angvel
