@@ -23,7 +23,7 @@
 #define SIDE_ONE    5
 #define SIDE_TWO    6
 
-bool is_testing = true;
+bool is_testing = false;
 int side_control = 1;
 int large_control = 1;
 int small_control = 1;
@@ -68,38 +68,38 @@ void read_from_servos(int dxl_id){
   uint16_t position, angle, c_load, c_gain;
   uint8_t mode, alarm, error_return, u_volt, l_volt, c_volt, temp, m_temp;
 
-  std::cout << "--------------------------------------------------------------------------";
+  //std::cout << "--------------------------------------------------------------------------";
 
-  std::cout << "\n\nServo: " << dxl_id << "\n\n";
+  //std::cout << "\n\nServo: " << dxl_id << "\n\n";
 
   ReadTorque(dxl_id, &position);
-  std::cout << "Torque:          " << (int)position << "\n";
+ // std::cout << "Torque:          " << (int)position << "\n";
   ReadPosition(dxl_id, &position);
-  std::cout << "Position:        " << (int)position << "\n";
+  //std::cout << "Position:        " << (int)position << "\n";
   ReadControl(dxl_id, &mode);
-  std::cout << "Control:         " << (int)mode << "\n";
+  //std::cout << "Control:         " << (int)mode << "\n";
   ReadCWAngle(dxl_id, &angle);
-  std::cout << "CW Limit:        " << (int)angle << "\n";
+  //std::cout << "CW Limit:        " << (int)angle << "\n";
   ReadCWWAngle(dxl_id, &angle);
-  std::cout << "CWW Limit:       " << (int)angle << "\n";
+  //std::cout << "CWW Limit:       " << (int)angle << "\n";
   ReadAlarm(dxl_id, &alarm);
-  std::cout << "Alarm:           " << (int)alarm << "\n";
+  //std::cout << "Alarm:           " << (int)alarm << "\n";
   ReadError(dxl_id, &error_return);
-  std::cout << "Error:           " << (int)error_return << "\n";
+  //std::cout << "Error:           " << (int)error_return << "\n";
   ReadUpperVoltage(dxl_id, &u_volt);
-  std::cout << "High Volt Limit: " << (int)u_volt << "\n";
+  //std::cout << "High Volt Limit: " << (int)u_volt << "\n";
   ReadLowerVoltage(dxl_id, &l_volt);
-  std::cout << "Low Volt limit:  " << (int)l_volt << "\n";
+  //std::cout << "Low Volt limit:  " << (int)l_volt << "\n";
   ReadCurrentVoltage(dxl_id, &c_volt);
-  std::cout << "Current Voltage: " << (int)c_volt << "\n";
+  //std::cout << "Current Voltage: " << (int)c_volt << "\n";
   ReadCurrentLoad(dxl_id, &c_load);
-  std::cout << "Current Load:    " << (int)c_load << "\n";
+  //std::cout << "Current Load:    " << (int)c_load << "\n";
   ReadCurrentTemp(dxl_id, &temp);
-  std::cout << "Current Temp:    " << (int)temp << "\n";
+  //std::cout << "Current Temp:    " << (int)temp << "\n";
   ReadCurrentTemp(dxl_id, &temp);
-  std::cout << "Current Temp:    " << (int)temp << "\n";
+  //std::cout << "Current Temp:    " << (int)temp << "\n";
   ReadCurrentGain(dxl_id, &c_gain);
-  std::cout << "Current Gain:    " << (int)c_gain << "\n\n";
+  //std::cout << "Current Gain:    " << (int)c_gain << "\n\n";
 }
 
 void ToAngleMode(int dxl_id){
@@ -173,7 +173,7 @@ void calibrate_large_servo(){
     SetVelocity(LARGE_SERVO, 2047);
     ReadMovingStatus(LARGE_SERVO, &moving);
   }
-  usleep(3000000);
+  usleep(2800000);
   SetVelocity(LARGE_SERVO,0);
   SetLED(LARGE_SERVO,1);
   PAYLOAD(LARGE_SERVO,2);
@@ -325,7 +325,7 @@ void calibrate_sides_DOWN()
   c_load_r = 1000;
   usleep(500000);
 
-  while((c_load_r > 750) && (c_load_l >750)){
+  while((c_load_r > 600) && (c_load_l > 600)){
     ReadCurrentLoad(SIDE_ONE, &c_load_r);
     ReadCurrentLoad(SIDE_TWO, &c_load_l);
   }
@@ -506,6 +506,8 @@ bool mode_DOWN(ieee2015_end_effector_servos::EE::Request  &req,
 bool mode_UP(ieee2015_end_effector_servos::EE::Request  &req,
              ieee2015_end_effector_servos::EE::Response &res)
 {
+  //SetPosition(LARGE_SERVO, 0);
+  //SetPosition(SMALL_SERVO, 0);
   
   SetVelocity(SIDE_ONE, 0);
   SetVelocity(SIDE_TWO, 0);
@@ -555,15 +557,10 @@ int main(int argc, char **argv){
   
   if (is_testing == true)
   {
-    init(WRIST_SERVO);
-    PAYLOAD(WRIST_SERVO,1);
-    SetLED(WRIST_SERVO,7);
-    ros::spin();
-    /*
-    InitDXL(5,3);
-    SetID(6,5);
-    SetLED(5,1);
-    */
+    InitDXL(1,3);
+    SetID(1,LARGE_SERVO);
+    SetLED(LARGE_SERVO,1);
+    
 
   }
 
@@ -582,17 +579,24 @@ int main(int argc, char **argv){
     init(SMALL_SERVO);
     PAYLOAD(SMALL_SERVO, 1);
 
+    /*
+
     calibrate_sides_DOWN();
-    sleep(1);
+    usleep(100000);
     calibrate_sides_DOWN();
 
     sides_UP();
+
+    usleep(100000);
+
+
+
+  */
     
     calibrate_large_servo();
 
     calibrate_small_servo(); 
     
-
     blink_LED(); 
 
     ros::spin();

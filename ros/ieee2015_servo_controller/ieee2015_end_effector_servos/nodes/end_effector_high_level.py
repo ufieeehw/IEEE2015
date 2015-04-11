@@ -88,9 +88,6 @@ def get_some(msg):
     to_radians_one = xl_format_one
     to_radians_two = xl_format_two
 
-    print "LARGE SERVO POSITION: ", xl_format_one
-    print "SMALL SERVO POSITION: ", xl_format_two
-
     master_sub = rospy.Publisher('ieee2015_end_effector_servos', Num, queue_size=1)
     master_sub.publish(to_radians_one, to_radians_two, to_radians_three)
 
@@ -106,10 +103,6 @@ def get_some_two(msg):
     xl_format_three = check_size(degree_three, 3)
 
     to_radians_three = xl_format_three
-
-    print "WRIST SERVO POSITION: ", xl_format_three
-
-
 
     master_sub = rospy.Publisher('ieee2015_end_effector_servos', Num, queue_size=1)
     master_sub.publish(to_radians_one, to_radians_two, to_radians_three)

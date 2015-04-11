@@ -47,7 +47,7 @@ target_link_libraries(end_effector_sub ${catkin_LIBRARIES} xl320_library)
 
 add_dependencies(end_effector_sub end_effector_servos_generate_messages_cpp)
 
-add_dependencies(end_effector_sub src/communications.cpp src/crc.cpp src/dxl_hal.cpp src/high_level_commands.cpp src/packet_utils.cpp)
+add_dependencies(end_effector_sub src/communications.cpp src/crc.cpp src/dxl_hal.cpp src/high_level_commands.cpp src/packet_utils.cpp close_small_servo.py)
 
 install(TARGETS xl320_library 
         ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
