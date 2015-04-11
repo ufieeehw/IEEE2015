@@ -15,7 +15,6 @@
 #include "ieee2015_end_effector_servos/Num.h"
 #include "ieee2015_end_effector_servos/EE.h"
 #include <math.h> 
-#include "std_msgs/Float64.h"
 
 #define WRIST_SERVO 1
 #define SMALL_SERVO 3
@@ -38,6 +37,13 @@ uint16_t t_pos_r = 0;
 float past_location_one = 0;
 float past_location_two = 0;
 
+
+ros::NodeHandle n;
+
+ros::Publisher large_pub = n.advertise<std_msgs::Float64>("large_pincer", 1000);
+ros::Publisher small_pub = n.advertise<std_msgs::Float64>("small_pincer", 1000);
+ros::Publisher wrist_pub = n.advertise<std_msgs::Float64>("wrist_controller", 1000);
+
 void init(int dxl_id){
 
       InitDXL(dxl_id,3);
@@ -51,6 +57,7 @@ void blink_LED(){
     SetLED(SMALL_SERVO,0);
     SetLED(SIDE_ONE,0);
     SetLED(SIDE_TWO,0);
+    SetLED(WRIST_SERVO,0);
 
     usleep(50000);
 
@@ -58,6 +65,7 @@ void blink_LED(){
     SetLED(SMALL_SERVO,i);
     SetLED(SIDE_ONE,i);
     SetLED(SIDE_TWO,i);
+    SetLED(WRIST_SERVO,i);
 
     usleep(50000);
   }
@@ -247,6 +255,7 @@ bool close_large_servo(ieee2015_end_effector_servos::EE::Request  &req,
                        ieee2015_end_effector_servos::EE::Response &res)
 {
   uint16_t c_load;
+  std_msgs::Float64 msg;
 
   PAYLOAD(LARGE_SERVO,2);
   SetVelocity(LARGE_SERVO, 500);
@@ -257,6 +266,8 @@ bool close_large_servo(ieee2015_end_effector_servos::EE::Request  &req,
 
   while(c_load != 1554){
     ReadCurrentLoad(LARGE_SERVO, &c_load);
+    msg.data = c_load;
+    large_pub.publish(msg);
   }
 
   
@@ -270,6 +281,7 @@ bool close_small_servo(ieee2015_end_effector_servos::EE::Request  &req,
                        ieee2015_end_effector_servos::EE::Response &res)
 {
   uint16_t c_load;
+  std_msgs::Float64 msg;
 
   PAYLOAD(SMALL_SERVO,2);
   SetVelocity(SMALL_SERVO, 500);
@@ -280,6 +292,8 @@ bool close_small_servo(ieee2015_end_effector_servos::EE::Request  &req,
 
   while(c_load != 1554){
     ReadCurrentLoad(SMALL_SERVO, &c_load);
+    msg.data = c_load;
+    small_pub.publish(msg);
   }
 
   SetVelocity(SMALL_SERVO, 0);
@@ -506,8 +520,7 @@ bool mode_DOWN(ieee2015_end_effector_servos::EE::Request  &req,
 bool mode_UP(ieee2015_end_effector_servos::EE::Request  &req,
              ieee2015_end_effector_servos::EE::Response &res)
 {
-  //SetPosition(LARGE_SERVO, 0);
-  //SetPosition(SMALL_SERVO, 0);
+
   
   SetVelocity(SIDE_ONE, 0);
   SetVelocity(SIDE_TWO, 0);
@@ -533,18 +546,18 @@ bool mode_UP(ieee2015_end_effector_servos::EE::Request  &req,
 
 void chatterCallback(const ieee2015_end_effector_servos::Num::ConstPtr &num){
 
+  std_msgs::Float64 msg;
   SetPosition(LARGE_SERVO, num->position_one);
   SetPosition(SMALL_SERVO, num->position_two);
   SetPosition(WRIST_SERVO, (num->wrist_pos)+210);
-
+  msg.data = num->wrist_pos;
+  large_pub.publish(msg);
 }
 
 
 int main(int argc, char **argv){
 
   ros::init(argc, argv, "end_effector_service");
-
-  ros::NodeHandle n;
 
   ros::ServiceServer mode_up = n.advertiseService("mode_up", mode_UP);
   ros::ServiceServer mode_down = n.advertiseService("mode_down", mode_DOWN);
@@ -554,6 +567,7 @@ int main(int argc, char **argv){
   ros::ServiceServer open_large = n.advertiseService("open_large_servo", open_large_servo);
 
   ros::Subscriber sub = n.subscribe("ieee2015_end_effector_servos", 1000, chatterCallback);
+  
   
   if (is_testing == true)
   {
@@ -579,6 +593,9 @@ int main(int argc, char **argv){
     init(SMALL_SERVO);
     PAYLOAD(SMALL_SERVO, 1);
 
+    init(WRIST_SERVO);
+    PAYLOAD(WRIST_SERVO, 1);
+
     /*
 
     calibrate_sides_DOWN();
@@ -593,9 +610,9 @@ int main(int argc, char **argv){
 
   */
     
-    calibrate_large_servo();
+    //calibrate_large_servo();
 
-    calibrate_small_servo(); 
+    //calibrate_small_servo(); 
     
     blink_LED(); 
 
