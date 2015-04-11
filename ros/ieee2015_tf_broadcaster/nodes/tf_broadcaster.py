@@ -7,7 +7,7 @@ roslib.load_manifest('ieee2015_tf_broadcaster')
 import rospy
 import numpy as np
 import tf
-
+from std_msgs.msg import Float64
 from geometry_msgs.msg import PoseStamped, Transform
 from dynamixel_msgs.msg import JointState
 
@@ -71,7 +71,7 @@ def read_elbow_servo(msg):
 def send_wrist_joint(msg): #end-effector always parallel to the floor, angle reationship between the wrist joint and elbow reference fram  
     '''Called in read_elbow_servo because it only depends on elbow'''
     global last_elbow_servo_position
-    global last_base_servo_positiona
+    global last_base_servo_position
     translation = (-0.160, 0, 0) 
     rotation = tf.transformations.quaternion_from_euler(0, -(-last_elbow_servo_position+last_shoulder_servo_position)+last_shoulder_servo_position-np.pi/2, 0) #angle offset applied to published servo value
     time = rospy.Time.now()
@@ -100,30 +100,30 @@ def read_end_effector_card_picker(msg):
     rotation = (0,0,0) 
     time = rospy.Time.now()
    
-    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_effector_center")
+    tf_broad.sendTransform(translation, rotation, time, "/card_picker", "/end_effector_center")
 
-'''
+
 def read_end_effector_simon_poker(msg): 
-    translation = ( , , ) 
-    rotation = () 
+    translation = ( -0.092, 0.03,0.052 ) 
+    rotation = (0,0,0) 
     time = rospy.Time.now()
    
-    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_effector_center")
-'''
+    tf_broad.sendTransform(translation, rotation, time, "/simon_poker", "/end_effector_center")
+
 
 def read_end_effector_large_pincher(msg): 
     translation = ( -0.07, -0.035, 0.01) 
     rotation = ()
     time = rospy.Time.now()
    
-    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_effector_center")
+    tf_broad.sendTransform(translation, rotation, time, "/large_pincher", "/end_effector_center")
 
 def read_end_effector_small_pincher(msg): 
     translation = ( -0.07, 0.035, 0.01) 
     rotation = () 
     time = rospy.Time.now()
    
-    tf_broad.sendTransform(translation, rotation, time, "/end_effector", "/end_effector_center")
+    tf_broad.sendTransform(translation, rotation, time, "/small_pincher", "/end_effector_center")
 
 def read_end_camera(msg):
     translation = ( 0, -0.234, -0.065) #constant offset 
@@ -176,6 +176,6 @@ if __name__ == '__main__':
     rospy.Subscriber('base_controller/state', JointState, read_base_servo)
     rospy.Subscriber('shoulder_controller/state', JointState, read_shoulder_servo)
     rospy.Subscriber('elbow_controller/state', JointState, read_elbow_servo)
-    rospy.Subscriber('wrist_controller/state', JointState, read_wrist_servo)
+    rospy.Subscriber('wrist_controller', Float64, read_wrist_servo)
 
 rospy.spin()
