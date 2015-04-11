@@ -17,11 +17,11 @@
     <node name="tf_broadcast" pkg="ieee2015_tf_broadcaster" type="tf_broadcaster.py" 
         output="screen" ns="/robot" />
 
-    <node pkg="ieee2015_end_effector_servos" name="end_effector_sub" type="end_effector_sub" required="true" output="screen" >
+    <node pkg="ieee2015_end_effector_servos" name="end_effector_sub" type="end_effector_sub" required="true" >
     </node>
     
     <node name="end_effector_angles" pkg="ieee2015_end_effector_servos" type="end_effector_high_level.py"
-    output="screen" />
+     />
 
 
 
