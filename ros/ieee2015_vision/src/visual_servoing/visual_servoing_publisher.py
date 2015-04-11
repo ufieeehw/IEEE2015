@@ -28,10 +28,14 @@ def image_reader(image):
     cv2.imshow("Input Image", image)
     # find_rubix(image, 0.3)
     distance_result = distance_client.main(image)
+    
     if (distance_result == None):
         return
-    r = rospy.Rate(5)
+
+    r = rospy.Rate(25)
     target_pt = distance_result.dist
+    if (target_pt.x>=0.31):
+        return 
     des_pose.publish(target_pt)
     #cardDetection.getCardLoc(image)
     cv2.waitKey(1)
@@ -41,9 +45,10 @@ def image_reader(image):
 
 if __name__ == '__main__':
     rospy.init_node('test_vision')
-    
+    print 1
     des_pose = rospy.Publisher('/robot/arm_des_pose', PointStamped, queue_size=1)
-
-    image = Image_Subscriber('/robot/arm_camera/image_rect', image_reader)
-    
+    print 2
+    image = Image_Subscriber('/robot/arm_camera/image_raw', image_reader)
+    print 3
+    #image_reader(image)
     rospy.spin()
