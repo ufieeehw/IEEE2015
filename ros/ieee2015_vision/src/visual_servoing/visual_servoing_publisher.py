@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import rospy
+import numpy as np
 from visual_servoing import distance_client
 #from object_detection import cardDetection
 from ros_image_tools import Image_Subscriber
@@ -34,7 +35,8 @@ def image_reader(image):
 
     r = rospy.Rate(25)
     target_pt = distance_result.dist
-    if (target_pt.x>=0.31):
+    print 'vector saftey', (np.linalg.norm([target_pt.point.x, target_pt.point.y]))
+    if (np.linalg.norm([target_pt.point.x, target_pt.point.y]) >= 0.31):
         return 
     des_pose.publish(target_pt)
     #cardDetection.getCardLoc(image)
@@ -46,6 +48,7 @@ def image_reader(image):
 if __name__ == '__main__':
     rospy.init_node('test_vision')
     print 1
+    
     des_pose = rospy.Publisher('/robot/arm_des_pose', PointStamped, queue_size=1)
     print 2
     image = Image_Subscriber('/robot/arm_camera/image_raw', image_reader)

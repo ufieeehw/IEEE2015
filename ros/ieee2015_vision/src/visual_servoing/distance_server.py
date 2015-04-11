@@ -29,9 +29,9 @@ def handle_two_points(req):
     #if (p < ((diffheight/2)*0.71428571428571))
         #p=
 
-    diffheight = (end_camera_z-0)
-    p=(req.point2.x - req.point1.x)*(diffheight/8.79167)/10
-
+    diffheight = (end_camera_z-req.point2.z)
+    py=((-req.point2.x + req.point1.x)*(diffheight-0.04)/8.79167)/100*0.5
+    print 'py', py
     #ycomp1=((end_camera_x-0.03442)-(p))
     #print "end_camera_height", end_camera_height
     #print "h*p/c" 
@@ -39,16 +39,15 @@ def handle_two_points(req):
     #xcomp1=((end_camera_x)-25*((req.point2.x + req.point1.x)/(10000000*(end_camera_height+0.18-req.point2.z))))
     #xcomp1=((end_camera_x)+(1.0/840)*(end_camera_height+0.21658+0.15-req.point2.z)*(req.point2.y + req.point1.y))
     
-    ycomp1=0
+    ycomp1=end_camera_y+py
     d1= end_camera_z
     print 'd1', d1
-    px=((480-req.point2.y - req.point1.y)*(d1-req.point2.z)/8.79167)/100*0.5
+    px=((req.point2.y - req.point1.y)*(diffheight-0.04)/8.79167)/100*0.7
     print 'px', px
     print 'd1', d1 
     print 'end_camera_x', end_camera_x
-    xcomp1=(+((end_camera_x)-px))
-    if (xcomp1>=0.31):
-        return 1
+    xcomp1=(((end_camera_x)-px))
+
     #xcomp1=0.034+((end_camera_x)+((-req.point2.y + req.point1.y)*((end_camera_height-req.point2.z)/8.79167)/50*0.2))
     #ycomp1=((end_camera_y)+(1.0/840)*(end_camera_height+0.21658+0.15-req.point2.z)*(req.point2.x + req.point1.x))
 
