@@ -71,14 +71,16 @@ def getColor(image):
         cv2.imshow("Blue Line Image", img)          #display
         return point2
 
-'''        
-def card_pick_up():
-    if flag = None
-        return hover_over_card()
-    if flag = hover1
+        
+def card_pick_up(flag):
+    if (flag == None):
+        return hover_over_card(1)
+    if (flag == hover1):
         return drop()
+    if (flag== dropped):
+        return hover_over_card(2)
        
-def hover_over_card():
+def hover_over_card(iteration):
     listener = tf.TransformListener()
     rate = rospy.Rate(10.0)
     while not rospy.is_shutdown():
@@ -108,7 +110,10 @@ def hover_over_card():
     dist.header.stamp = rospy.Time.now()
     dist.header.frame_id = '/robot'
     dist.point = dist2
-    return dist
+    if (iteration == 1):
+        return dist, "ready"
+    if(iteration == 2):
+        return dist 
 def drop():
     listener = tf.TransformListener()
     rate = rospy.Rate(10.0)
@@ -130,14 +135,14 @@ def drop():
     dist.header.stamp = rospy.Time.now()
     dist.header.frame_id = '/robot'
     dist.point = dist2
-    flag = dropped
-    return dist, flag
-'''
+    #flag = dropped
+    return dist  #, flag
+
 
 
 #if __name__ == "__main__":
     
-def main(image):
+def main(image, mission):
 
     point =  [320, 240, 0.05] #list
     #pointa =  [randint(200,409), randint(222,409), random.random()/4] #for generating random pixels for testing
@@ -146,21 +151,15 @@ def main(image):
 
     point2 = getColor(image) #Is a point Msg
     
-    #if (point2 - point1 <= [5, 5, 0]):
-            
+    if (abs(point2.point.x - point1.point.x) <= 15 and abs(point2.point.y - point1.point.x <= 15)):
+        if (mission==cards):
+            return "pick"       
     
-    #point2= getRubix(image)
-    #point2= getSimon(image)
-    #point2= getEtch(image)
 
     if (point2 == 1): #This is in case there is no target point in the view 
         return        #should really only be used for the getColor function when trying to find the center of any avalible color
                       #It keeps the program from crashing when it doenst have any distance to compute
-    '''
-    if len(point) != 3: #staged for deleting
-        print usage()
-        sys.exit(1)
-    '''
+
     print "Requesting %s ----> %s"%(point1, point2)
     print "%s ----> %s = %s"%(point1, point2, compute_distance_client(point1, point2))
     return compute_distance_client(point1, point2) #PointStamped in robot frame for comanding arm 

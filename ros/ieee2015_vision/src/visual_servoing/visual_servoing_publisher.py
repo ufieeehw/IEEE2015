@@ -27,9 +27,21 @@ Remove: Uses of cv instead of cv2 (dependency issue)
 
 def image_reader(image):
     cv2.imshow("Input Image", image)
-    # find_rubix(image, 0.3)
-    distance_result = distance_client.main(image)
+    while distance_result not "pick": #or grab_rubix or grab etch or poke
+        distance_result = distance_client.main(image, cards)
     
+    if (distance_result = "pick"):
+        dist, state = card_pick_up()
+        des_pose.publish(dist)
+        if (state = "ready"):
+            dist = card_pick_up("hover1")
+            des_pose.publish(dist)
+            dist = card_pick_up(dropped)
+            des_pose.publish(dist)
+            return
+
+               
+
     if (distance_result == None):
         return
 
