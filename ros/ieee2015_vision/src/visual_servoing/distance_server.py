@@ -77,7 +77,7 @@ if __name__== "__main__":
     
 
     compute_distance_server()
-    rospy.init_node('ieee2015_tf_broadcaster2')#I think this is wrong
+    rospy.init_node('visual_servo_listener')
     
     #For getting current camera position
     
